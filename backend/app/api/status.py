@@ -1,0 +1,226 @@
+from fastapi import APIRouter, Request, Depends, HTTPException
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
+from sqlalchemy.orm import Session
+from sqlalchemy import func
+from datetime import datetime, timedelta
+
+from app.database import get_db
+from app.models import SearchDefinition, ScrapeHealth, FlightPrice
+from app.scheduler import get_scheduler_status, manual_scrape_definition
+from app.services.notification import NtfyNotifier
+from app.services.scraping_service import ScrapingService
+from app.config import get_settings
+
+settings = get_settings()
+router = APIRouter()
+templates = Jinja2Templates(directory="app/templates")
+
+
+@router.get("/", response_class=HTMLResponse)
+async def status_page(request: Request, db: Session = Depends(get_db)):
+    """
+    Main status page for Phase 1a - server-rendered HTML.
+    
+    Shows:
+    - System status (scheduler, ntfy)
+    - All search definitions with health
+    - Quick action buttons
+    """
+    # Get scheduler status
+    scheduler_status = get_scheduler_status()
+    
+    # Get all search definitions with their health
+    search_definitions = db.query(SearchDefinition).filter(
+        SearchDefinition.is_active == True
+    ).all()
+    
+    # Enhance search definitions with health data and recent prices
+    for search_def in search_definitions:
+        health = search_def.scrape_health
+        if health:
+            # Add recent prices count
+            recent_count = db.query(FlightPrice).filter(
+                FlightPrice.search_definition_id == search_def.id,
+                FlightPrice.scraped_at >= datetime.utcnow() - timedelta(days=7)
+            ).count()
+            health.recent_prices_count = recent_count
+            health.healthy = health.is_healthy
+        else:
+            # Create mock health for display
+            search_def.scrape_health = type('MockHealth', (), {
+                'total_attempts': 0,
+                'total_successes': 0,
+                'total_failures': 0,
+                'consecutive_failures': 0,
+                'success_rate': 0,
+                'healthy': True,
+                'last_success_at': None,
+                'last_failure_reason': None,
+                'recent_prices_count': 0
+            })()
+    
+    # Get total prices across all search definitions
+    total_prices = db.query(FlightPrice).count()
+    
+    # Test ntfy connectivity
+    notifier = NtfyNotifier()
+    try:
+        ntfy_working = await notifier.send_test_notification()
+    except:
+        ntfy_working = False
+    
+    template_vars = {
+        "request": request,
+        "search_definitions": search_definitions,
+        "scheduler": scheduler_status,
+        "total_prices": total_prices,
+        "current_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "ntfy_working": ntfy_working,
+        "ntfy_url": settings.ntfy_url,
+        "ntfy_topic": settings.ntfy_topic,
+    }
+    
+    return templates.TemplateResponse("status.html", template_vars)
+
+
+@router.post("/api/scrape/manual/{search_definition_id}")
+async def manual_scrape_single(search_definition_id: int, db: Session = Depends(get_db)):
+    """Manually trigger a scrape for a specific search definition."""
+    search_def = db.query(SearchDefinition).filter(
+        SearchDefinition.id == search_definition_id
+    ).first()
+    
+    if not search_def:
+        raise HTTPException(status_code=404, detail="Search definition not found")
+    
+    try:
+        success = await manual_scrape_definition(search_definition_id)
+        return {
+            "success": success,
+            "message": f"Scrape {'completed' if success else 'failed'} for {search_def.display_name}"
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+@router.post("/api/scrape/manual/all")
+async def manual_scrape_all(db: Session = Depends(get_db)):
+    """Manually trigger scraping for all active search definitions."""
+    active_definitions = db.query(SearchDefinition).filter(
+        SearchDefinition.is_active == True
+    ).all()
+    
+    if not active_definitions:
+        return {
+            "success": True,
+            "message": "No active search definitions to scrape",
+            "successes": 0,
+            "failures": 0
+        }
+    
+    successes = 0
+    failures = 0
+    
+    for search_def in active_definitions:
+        try:
+            success = await manual_scrape_definition(search_def.id)
+            if success:
+                successes += 1
+            else:
+                failures += 1
+        except Exception:
+            failures += 1
+    
+    return {
+        "success": successes > 0,
+        "message": f"Scraped {len(active_definitions)} definitions",
+        "successes": successes,
+        "failures": failures
+    }
+
+
+@router.post("/api/notifications/test")
+async def test_notifications():
+    """Send a test notification to verify ntfy is working."""
+    notifier = NtfyNotifier()
+    
+    try:
+        success = await notifier.send_test_notification()
+        return {
+            "success": success,
+            "message": "Test notification sent" if success else "Failed to send test notification"
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+@router.get("/api/status/health")
+async def health_check(db: Session = Depends(get_db)):
+    """Simple health check endpoint for monitoring."""
+    try:
+        # Test database connection
+        db.execute("SELECT 1")
+        
+        # Get basic stats
+        active_definitions = db.query(SearchDefinition).filter(
+            SearchDefinition.is_active == True
+        ).count()
+        
+        # Get scheduler status
+        scheduler = get_scheduler_status()
+        
+        return {
+            "status": "healthy",
+            "timestamp": datetime.utcnow().isoformat(),
+            "database": "connected",
+            "scheduler": "running" if scheduler["running"] else "stopped",
+            "active_monitors": active_definitions
+        }
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Health check failed: {str(e)}")
+
+
+@router.get("/search/{search_definition_id}/prices")
+async def view_prices(search_definition_id: int, db: Session = Depends(get_db)):
+    """Simple JSON view of recent prices for a search definition."""
+    search_def = db.query(SearchDefinition).filter(
+        SearchDefinition.id == search_definition_id
+    ).first()
+    
+    if not search_def:
+        raise HTTPException(status_code=404, detail="Search definition not found")
+    
+    # Get recent prices (last 30 days)
+    prices = db.query(FlightPrice).filter(
+        FlightPrice.search_definition_id == search_definition_id,
+        FlightPrice.scraped_at >= datetime.utcnow() - timedelta(days=30)
+    ).order_by(FlightPrice.scraped_at.desc()).limit(100).all()
+    
+    return {
+        "search_definition": {
+            "id": search_def.id,
+            "name": search_def.display_name,
+            "origin": search_def.origin,
+            "destination": search_def.destination
+        },
+        "price_count": len(prices),
+        "prices": [
+            {
+                "id": price.id,
+                "scraped_at": price.scraped_at.isoformat(),
+                "departure_date": price.departure_date.isoformat(),
+                "return_date": price.return_date.isoformat() if price.return_date else None,
+                "price_nzd": str(price.price_nzd),
+                "airline": price.airline,
+                "stops": price.stops
+            }
+            for price in prices
+        ]
+    }

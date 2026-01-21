@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     
     ntfy_url: str = "http://localhost:8080"
     ntfy_topic: str = "walkabout-deals"
+    base_url: str = "http://localhost:8000"  # For notification action links
     
     scrape_frequency_hours: int = 12
     deal_threshold_z_score: float = -1.5
