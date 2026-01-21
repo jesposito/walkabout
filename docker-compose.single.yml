@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  walkabout:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: walkabout
+    restart: unless-stopped
+    environment:
+      ENV: dev
+      DATABASE_URL: sqlite:///./data/walkabout.db
+      SCHEDULER_ENABLED: "true"
+      SCRAPE_FREQUENCY_HOURS: "12"
+      NTFY_URL: ${NTFY_URL:-}
+      NTFY_TOPIC: ${NTFY_TOPIC:-walkabout-deals}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      TZ: ${TZ:-Pacific/Auckland}
+    ports:
+      - "${PORT:-8080}:8000"
+    volumes:
+      - walkabout_data:/app/data
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  walkabout_data:

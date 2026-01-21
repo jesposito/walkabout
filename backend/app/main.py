@@ -1,14 +1,16 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 import logging
+import os
 
-from app.api import routes, prices, health, status
+from app.api import routes, prices, health, status, notifications, deals
 from app.scheduler import start_scheduler, stop_scheduler
-from app.services.notification import NtfyNotifier
+from app.services.notification import InMemoryNotifier
 from app.config import get_settings
 from app.database import engine, Base
-from app.models import SearchDefinition, ScrapeHealth, FlightPrice, Route, Alert
+from app.models import SearchDefinition, ScrapeHealth, FlightPrice, Route, Alert, Deal, FeedHealth
 
 settings = get_settings()
 
@@ -34,7 +36,7 @@ async def lifespan(app: FastAPI):
         logger.info("✅ APScheduler started")
         
         # Send startup notification
-        notifier = NtfyNotifier()
+        notifier = InMemoryNotifier()
         await notifier.send_startup_notification()
         logger.info("✅ Startup notification sent")
         
@@ -77,14 +79,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers
-# Status router handles the main "/" route and status page
-app.include_router(status.router, tags=["status"])
+static_dir = os.path.join(os.path.dirname(__file__), "static")
+if os.path.exists(static_dir):
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
-# API routers
+app.include_router(deals.router, prefix="/deals", tags=["deals"])
+app.include_router(status.router, tags=["status"])
 app.include_router(health.router, tags=["health"])  
 app.include_router(routes.router, prefix="/api/routes", tags=["routes"])
 app.include_router(prices.router, prefix="/api/prices", tags=["prices"])
+app.include_router(notifications.router, prefix="/api", tags=["notifications"])
 
 
 # Health check for monitoring/Docker

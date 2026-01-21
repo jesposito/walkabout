@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="bg-slate-900 min-h-full pb-12">
+    
+    <!-- Filter / Title Bar -->
+    <div class="bg-slate-800/50 border-b border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                    <h1 class="text-3xl font-bold text-white tracking-tight">Latest Finds</h1>
+                    <p class="text-slate-400 mt-1">Curated flight deals departing from Auckland (AKL)</p>
+                </div>
+                
+                <!-- Simple Filters (Visual only for now, functional logic would need JS/Backend support) -->
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="text-xs font-mono text-slate-500 uppercase tracking-wider mr-2">Filter:</span>
+                    <button class="px-3 py-1.5 rounded-md bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-medium transition-colors border border-slate-600">All Cabins</button>
+                    <button class="px-3 py-1.5 rounded-md bg-transparent hover:bg-slate-800 text-slate-400 hover:text-slate-200 text-xs font-medium transition-colors border border-slate-700 hover:border-slate-600">Economy</button>
+                    <button class="px-3 py-1.5 rounded-md bg-transparent hover:bg-slate-800 text-slate-400 hover:text-slate-200 text-xs font-medium transition-colors border border-slate-700 hover:border-slate-600">Business</button>
+                    <div class="w-px h-6 bg-slate-700 mx-2"></div>
+                    <button class="px-3 py-1.5 rounded-md bg-transparent hover:bg-slate-800 text-slate-400 hover:text-slate-200 text-xs font-medium transition-colors border border-slate-700 hover:border-slate-600">Secret Flying</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Deals Grid -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+        {% if deals %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for deal in deals %}
+            <article class="deal-card relative bg-slate-800 rounded-xl overflow-hidden border border-slate-700 group flex flex-col h-full">
+                <!-- Card Header: Image/Pattern or Airline Color Strip -->
+                <div class="h-2 bg-gradient-to-r from-cyan-500 to-blue-600"></div>
+                
+                <div class="p-6 flex-grow flex flex-col">
+                    <!-- Top Meta -->
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="px-2 py-1 rounded text-[10px] font-mono font-bold tracking-wider uppercase 
+                            {% if deal.parsed_cabin_class == 'BUSINESS' %}bg-amber-500/10 text-amber-400 border border-amber-500/20
+                            {% elif deal.parsed_cabin_class == 'FIRST' %}bg-purple-500/10 text-purple-400 border border-purple-500/20
+                            {% else %}bg-slate-700 text-slate-300 border border-slate-600{% endif %}">
+                            {{ deal.parsed_cabin_class or 'ECONOMY' }}
+                        </span>
+                        <span class="text-xs text-slate-500 font-mono">{{ deal.published_at.strftime('%d %b %Y') if deal.published_at else 'Just now' }}</span>
+                    </div>
+
+                    <!-- Route -->
+                    <div class="mb-4">
+                        <div class="flex items-baseline gap-2 text-2xl font-bold text-white">
+                            <span>{{ deal.parsed_origin or 'AKL' }}</span>
+                            <span class="text-slate-600 text-lg">→</span>
+                            <span class="text-cyan-400">{{ deal.parsed_destination or 'Anywhere' }}</span>
+                        </div>
+                        <div class="text-sm text-slate-400 mt-1 truncate" title="{{ deal.raw_title }}">
+                            {{ deal.parsed_airline or 'Unknown Airline' }}
+                        </div>
+                    </div>
+
+                    <!-- Price Section -->
+                    <div class="mt-auto pt-4 border-t border-slate-700/50 flex items-end justify-between">
+                        <div>
+                            <span class="block text-xs text-slate-500 font-mono mb-0.5">EST. PRICE</span>
+                            <span class="text-2xl font-bold text-white tracking-tight">
+                                {% if deal.parsed_price %}
+                                    {{ deal.parsed_currency }} {{ deal.parsed_price }}
+                                {% else %}
+                                    See Deal
+                                {% endif %}
+                            </span>
+                        </div>
+                        
+                        <!-- Source Badge -->
+                        <div class="text-right">
+                            <span class="text-[10px] uppercase tracking-wider text-slate-500 font-mono block mb-1">Source</span>
+                            <span class="inline-flex items-center gap-1.5 text-xs font-medium text-slate-300">
+                                {% if deal.source.value == 'secret_flying' %}
+                                    <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> Secret Flying
+                                {% elif deal.source.value == 'omaat' %}
+                                    <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span> OMAAT
+                                {% else %}
+                                    <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span> {{ deal.source.value }}
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hover Link Overlay -->
+                <a href="{{ deal.link }}" target="_blank" rel="noopener noreferrer" class="absolute inset-0 z-10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/60 backdrop-blur-[2px]">
+                    <span class="px-6 py-2 bg-cyan-500 hover:bg-cyan-400 text-white font-semibold rounded-full shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-all duration-200 flex items-center gap-2">
+                        View Deal 
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                    </span>
+                </a>
+            </article>
+            {% endfor %}
+        </div>
+        
+        <!-- Pagination / Load More (Static for now) -->
+        <div class="mt-12 flex justify-center">
+            <button class="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-lg font-medium transition-colors">
+                Load More Deals
+            </button>
+        </div>
+
+        {% else %}
+        <!-- Empty State -->
+        <div class="flex flex-col items-center justify-center py-20 text-center">
+            <div class="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mb-6">
+                <svg class="w-10 h-10 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                </svg>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-2">No deals found</h3>
+            <p class="text-slate-400 max-w-md mx-auto">It looks quiet right now. Check back later for new flight deals from Auckland.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
