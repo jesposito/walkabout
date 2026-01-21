@@ -61,15 +61,6 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
-    - name: Make image public
-      if: github.event_name != 'pull_request'
-      run: |
-        # Make the image public via GitHub CLI
-        gh api --method PATCH \
-          -H "Accept: application/vnd.github+json" \
-          /user/packages/container/walkabout%2Fbackend \
-          -f visibility=public
-
 
 
   # Security scanning
