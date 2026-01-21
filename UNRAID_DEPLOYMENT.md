@@ -2,7 +2,7 @@
 
 Deploy Walkabout Phase 1a on your Unraid server with custom network support.
 
-## Quick Start (ansublenet)
+## Quick Start (ansiblenet)
 
 ```bash
 # 1. SSH to your Unraid server
@@ -23,9 +23,9 @@ nano .env  # Edit with your settings (see Configuration section)
 # 5. Create data directories
 mkdir -p ./data/{screenshots,html_snapshots,backups}
 
-# 6. Deploy with ansublenet
-docker network create ansublenet --driver bridge || true  # Create if doesn't exist
-USE_EXTERNAL_NETWORK=true EXTERNAL_NETWORK_NAME=ansublenet docker-compose up -d
+# 6. Deploy with ansiblenet
+docker network create ansiblenet --driver bridge || true  # Create if doesn't exist
+USE_EXTERNAL_NETWORK=true EXTERNAL_NETWORK_NAME=ansiblenet docker-compose up -d
 
 # 7. Wait for startup and check status
 sleep 30
@@ -35,13 +35,13 @@ curl -f http://localhost:8000/ping
 
 ## Network Configurations
 
-### Option 1: ansublenet (Custom Bridge Network)
+### Option 1: ansiblenet (Custom Bridge Network)
 ```bash
 # Create the network if it doesn't exist
-docker network create ansublenet --driver bridge
+docker network create ansiblenet --driver bridge
 
-# Deploy with ansublenet
-USE_EXTERNAL_NETWORK=true EXTERNAL_NETWORK_NAME=ansublenet docker-compose up -d
+# Deploy with ansiblenet
+USE_EXTERNAL_NETWORK=true EXTERNAL_NETWORK_NAME=ansiblenet docker-compose up -d
 ```
 
 ### Option 2: Default Bridge Network
@@ -89,9 +89,9 @@ BASE_URL=http://your-unraid-ip:8000
 ### Optional Settings
 
 ```bash
-# External network (for ansublenet)
+# External network (for ansiblenet)
 USE_EXTERNAL_NETWORK=true
-EXTERNAL_NETWORK_NAME=ansublenet
+EXTERNAL_NETWORK_NAME=ansiblenet
 
 # API keys (for Phase 2 features)
 ANTHROPIC_API_KEY=your_claude_key
@@ -269,7 +269,7 @@ Add to cron: `0 3 * * * /mnt/user/scripts/walkabout-backup.sh`
 docker-compose logs
 
 # Verify network exists
-docker network ls | grep ansublenet
+docker network ls | grep ansiblenet
 
 # Verify .env file
 cat .env
@@ -361,7 +361,7 @@ docker-compose up -d
 
 ## Quick Reference
 
-**Start**: `USE_EXTERNAL_NETWORK=true EXTERNAL_NETWORK_NAME=ansublenet docker-compose up -d`  
+**Start**: `USE_EXTERNAL_NETWORK=true EXTERNAL_NETWORK_NAME=ansiblenet docker-compose up -d`  
 **Stop**: `docker-compose down`  
 **Logs**: `docker-compose logs -f backend`  
 **Status**: Visit `http://your-unraid-ip:8000/`  
