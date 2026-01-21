@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-**Total Estimated Time:** 80-100 hours across 3 phases
+**Total Estimated Time:** 80-100 hours across 4 phases
 **Monthly Cost:** ~$12-15 USD (Seats.aero + Claude API)
 
 ---
@@ -11,514 +11,300 @@
 
 | Phase | Goal | Time | Status |
 |-------|------|------|--------|
-| **Phase 1: MVP** | Scrape, store, alert | 30-40h | Not Started |
+| **Phase 1a: Prove Ingestion** | Validate scraping stability | 15-20h | Not Started |
+| **Phase 1b: Infrastructure** | Add production infrastructure | 15-20h | Not Started |
 | **Phase 2: Intelligence** | AI + Awards + Analysis | 25-35h | Not Started |
 | **Phase 3: Full Features** | Production + Extensibility | 25-30h | Not Started |
 
+**Oracle Review Note**: Original Phase 1 split into 1a and 1b to validate scraping before adding complexity.
+
 ---
 
-## Phase 1: MVP (Get Something Working)
+## Phase 1a: Prove Ingestion (15-20h)
 
-**Goal:** Working system that scrapes Google Flights, stores prices, and sends ntfy notifications when deals are detected.
+**Goal:** Validate that scraping works reliably before investing in infrastructure.
+
+**Oracle Review**: "MVP scope too large. Spend 30-40h on infrastructure and still don't have dependable prices."
+
+### Success Criteria (MANDATORY before moving to 1b)
+- [ ] 7 days of continuous scraping
+- [ ] <10% failure rate
+- [ ] At least 50 price points collected
+- [ ] Deal notifications delivered
 
 ### Tasks
 
 | ID | Task | Time | Dependencies | Status |
 |----|------|------|--------------|--------|
-| 1.1 | Docker Infrastructure Setup | 4-5h | - | [ ] |
-| 1.2 | Database Models & Migrations | 3-4h | 1.1 | [ ] |
-| 1.3 | Google Flights Playwright Scraper | 8-10h | 1.1 | [ ] |
-| 1.4 | Celery Task Setup | 4-5h | 1.2, 1.3 | [ ] |
-| 1.5 | Basic Deal Detection (Z-score) | 4-5h | 1.2, 1.4 | [ ] |
-| 1.6 | ntfy Notification Integration | 3-4h | 1.1, 1.5 | [ ] |
-| 1.7 | Basic FastAPI Endpoints | 4-5h | 1.2 | [ ] |
-| 1.8 | Minimal React Dashboard | 6-8h | 1.7 | [ ] |
+| 1a.1 | Minimal Docker Setup | 2-3h | - | [ ] |
+| 1a.2 | SearchDefinition + ScrapeHealth Models | 2-3h | 1a.1 | [x] |
+| 1a.3 | Playwright Scraper with Failure Handling | 4-5h | 1a.1 | [x] |
+| 1a.4 | Simple APScheduler (no Celery) | 2-3h | 1a.2, 1a.3 | [ ] |
+| 1a.5 | ntfy Notifications (Deals + System) | 2-3h | 1a.4 | [ ] |
+| 1a.6 | Barebones HTML Status Page | 2-3h | 1a.5 | [ ] |
 
 ### Task Details
 
-#### 1.1 Docker Infrastructure Setup (4-5h)
+#### 1a.1 Minimal Docker Setup (2-3h)
 
-**Files to create:**
-```
-docker-compose.yml
-.env.example
-backend/Dockerfile
-playwright/Dockerfile
-```
-
-**Services:**
-- PostgreSQL + TimescaleDB
-- Redis
+**Simplified services (no Celery/Redis yet):**
+- PostgreSQL (plain, no TimescaleDB yet)
 - FastAPI backend
-- Celery worker + beat
-- ntfy
 - Playwright browser container
+- ntfy
 
-**Acceptance criteria:**
-- [ ] `docker-compose up` starts all services
-- [ ] All containers show healthy
-- [ ] Data persists across restarts
-
----
-
-#### 1.2 Database Models & Migrations (3-4h)
-
-**Files to create:**
-```
-backend/app/database.py
-backend/app/models/base.py
-backend/app/models/flight_price.py
-backend/app/models/route.py
-backend/app/models/alert.py
-backend/alembic.ini
-backend/alembic/env.py
-backend/alembic/versions/001_initial.py
-```
-
-**Core models:**
-
-```python
-class FlightPrice(Base):
-    """TimescaleDB hypertable for price time-series"""
-    id: BigInteger
-    route_id: Integer (FK)
-    scraped_at: DateTime  # Partition column
-    departure_date: Date
-    return_date: Date
-    price_nzd: Numeric(10,2)
-    airline: String
-    stops: Integer
-    cabin_class: String
-    raw_data: JSONB
-
-class Route(Base):
-    """Monitored flight routes"""
-    id: Integer
-    origin: String(3)  # IATA code
-    destination: String(3)
-    name: String
-    is_active: Boolean
-    scrape_frequency_hours: Integer
-```
-
-**Migration SQL:**
-```sql
-SELECT create_hypertable('flight_prices', 'scraped_at', 
-    chunk_time_interval => INTERVAL '1 week');
+```yaml
+# docker-compose.yml (simplified)
+services:
+  db:
+    image: postgres:15
+    # ...
+  
+  backend:
+    build: ./backend
+    depends_on: [db]
+    # ...
+  
+  playwright:
+    build: ./playwright
+    # ...
+  
+  ntfy:
+    image: binwiederhier/ntfy
+    # ...
 ```
 
 **Acceptance criteria:**
-- [ ] Migrations run without errors
-- [ ] Hypertable created for flight_prices
-- [ ] Can insert and query prices
+- [ ] `docker-compose up` starts 4 services
+- [ ] Backend connects to Postgres
+- [ ] Playwright container accessible
 
 ---
 
-#### 1.3 Google Flights Playwright Scraper (8-10h)
+#### 1a.2 SearchDefinition + ScrapeHealth Models (2-3h) ✅
 
-**Files to create:**
-```
-backend/app/scrapers/base.py
-backend/app/scrapers/google_flights.py
-playwright/Dockerfile
-```
+**Already implemented in this session:**
+- `SearchDefinition` - fully specifies comparable price series
+- `ScrapeHealth` - tracks scrape success/failure with circuit breaker
+- `FlightPrice` - updated to use search_definition_id
 
-**Key implementation:**
+**Files created:**
+- `backend/app/models/search_definition.py`
+- `backend/app/models/scrape_health.py`
+- `backend/app/models/flight_price.py` (updated)
+
+---
+
+#### 1a.3 Playwright Scraper with Failure Handling (4-5h) ✅
+
+**Already implemented in this session:**
+- `ScrapeResult` dataclass with failure classification
+- Failure reasons: captcha, timeout, layout_change, no_results, blocked
+- Screenshot + HTML capture on failure
+- Circuit breaker integration
+
+**File updated:**
+- `backend/app/scrapers/google_flights.py`
+
+---
+
+#### 1a.4 Simple APScheduler (2-3h)
+
+**Use APScheduler instead of Celery for Phase 1a:**
+
 ```python
-class GoogleFlightsScraper:
-    """
-    URL pattern:
-    https://www.google.com/travel/flights?q=flights%20from%20AKL%20to%20HNL...
-    
-    Anti-detection:
-    - playwright-stealth for fingerprint masking
-    - Random delays 2-5 seconds
-    - Limit to 2x daily per route
-    - Rotate user agents
-    """
-    
-    async def scrape_route(
-        self, 
-        origin: str, 
-        destination: str,
-        departure_date: date,
-        return_date: date,
-        passengers: int = 4
-    ) -> list[FlightResult]:
-        pass
+# backend/app/scheduler.py
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
+
+scheduler = AsyncIOScheduler()
+
+@scheduler.scheduled_job(CronTrigger(hour=6, minute=30))
+async def morning_scrape():
+    await scrape_all_active_definitions()
+
+@scheduler.scheduled_job(CronTrigger(hour=18, minute=30))
+async def evening_scrape():
+    await scrape_all_active_definitions()
 ```
 
 **Acceptance criteria:**
-- [ ] Returns valid prices for AKL→HNL
-- [ ] Handles errors gracefully
-- [ ] Works inside Docker container
-- [ ] Not blocked after 10 consecutive scrapes
+- [ ] Jobs run on schedule
+- [ ] Failed jobs logged
+- [ ] Manual trigger endpoint works
 
 ---
 
-#### 1.4 Celery Task Setup (4-5h)
+#### 1a.5 ntfy Notifications (2-3h)
 
-**Files to create:**
-```
-backend/celery_app/celery.py
-backend/celery_app/tasks/__init__.py
-backend/celery_app/tasks/scrape_flights.py
-```
+**Notify on:**
+1. **Deals** - price below threshold
+2. **System failures** - consecutive scrape failures, stale data
 
-**Schedule:**
 ```python
-app.conf.beat_schedule = {
-    'scrape-morning': {
-        'task': 'scrape_all_routes',
-        'schedule': crontab(hour=6, minute=30),  # 6:30 AM NZT
-    },
-    'scrape-evening': {
-        'task': 'scrape_all_routes',
-        'schedule': crontab(hour=18, minute=30),  # 6:30 PM NZT
-    },
-}
-```
-
-**Acceptance criteria:**
-- [ ] Tasks execute on schedule
-- [ ] Failed tasks retry with backoff
-- [ ] Results logged
-
----
-
-#### 1.5 Basic Deal Detection (4-5h)
-
-**Files to create:**
-```
-backend/app/services/price_analyzer.py
-```
-
-**Detection logic:**
-```python
-class PriceAnalyzer:
-    """
-    A price is a "deal" if:
-    1. Z-score < -1.5 (1.5 std devs below mean)
-    2. At least 10 historical prices exist
-    3. Price drop > $100 from last scrape (optional)
-    """
-    
-    def analyze_price(self, price: FlightPrice) -> DealAnalysis:
-        history = self.get_price_history(route_id, date_window_days=14)
-        if len(history) < 10:
-            return DealAnalysis(is_deal=False, reason="Insufficient history")
-        
-        mean = statistics.mean(history)
-        stdev = statistics.stdev(history)
-        z_score = (price.price_nzd - mean) / stdev
-        
-        return DealAnalysis(
-            is_deal=(z_score < -1.5),
-            z_score=z_score,
-            mean_price=mean,
-            percentile=self.calculate_percentile(price.price_nzd, history)
+# backend/app/services/notification.py
+async def send_system_alert(search_def: SearchDefinition, health: ScrapeHealth):
+    """Alert when scraping is unhealthy."""
+    if health.consecutive_failures >= 3:
+        await ntfy.post(
+            title=f"⚠️ Scraping Failing: {search_def.display_name}",
+            message=f"{health.consecutive_failures} consecutive failures. "
+                    f"Last error: {health.last_failure_reason}",
+            priority="high",
+            tags="warning"
         )
 ```
 
 **Acceptance criteria:**
-- [ ] Z-score calculation verified
-- [ ] Unit tests pass
-- [ ] Deals detected when price significantly below average
+- [ ] Deal alerts work
+- [ ] System failure alerts work
+- [ ] Alert deduplication (don't spam)
 
 ---
 
-#### 1.6 ntfy Notification Integration (3-4h)
+#### 1a.6 Barebones HTML Status Page (2-3h)
 
-**Files to create:**
-```
-backend/app/services/notification.py
-```
-
-**Implementation:**
-```python
-class NtfyNotifier:
-    async def send_deal_alert(self, deal: DealAnalysis, price: FlightPrice):
-        message = f"""
-🎉 Flight Deal Alert!
-{route.name}
-{price.departure_date} - {price.return_date}
-💰 ${price.price_nzd:.0f} NZD
-📉 {abs(deal.price_vs_mean):.0f} below average
-"""
-        await httpx.post(
-            f"{self.base_url}/walkabout-deals",
-            content=message,
-            headers={
-                "Title": f"Flight Deal: ${price.price_nzd:.0f}",
-                "Priority": "high" if deal.z_score < -2 else "default",
-                "Tags": "airplane,moneybag",
-            }
-        )
-```
-
-**Acceptance criteria:**
-- [ ] Notifications arrive on phone
-- [ ] Priority levels work
-- [ ] All deal info included
-
----
-
-#### 1.7 Basic FastAPI Endpoints (4-5h)
-
-**Files to create:**
-```
-backend/app/main.py
-backend/app/api/routes.py
-backend/app/api/prices.py
-backend/app/api/health.py
-backend/app/schemas/
-```
-
-**Endpoints:**
-```
-GET  /api/routes                    # List routes
-POST /api/routes                    # Add route
-GET  /api/prices/{route_id}         # Price history
-GET  /api/prices/{route_id}/latest  # Latest prices
-GET  /api/prices/{route_id}/stats   # Statistics
-GET  /api/health                    # Health check
-POST /api/scrape/trigger            # Manual scrape
-```
-
-**Acceptance criteria:**
-- [ ] OpenAPI docs at /docs
-- [ ] CRUD operations work
-- [ ] Error handling proper
-
----
-
-#### 1.8 Minimal React Dashboard (6-8h)
-
-**Files to create:**
-```
-frontend/Dockerfile
-frontend/package.json
-frontend/src/App.tsx
-frontend/src/pages/Dashboard.tsx
-frontend/src/components/PriceChart.tsx
-frontend/src/components/RouteCard.tsx
-```
-
-**Features:**
-- List monitored routes with latest prices
-- Line chart of price history (30 days)
-- Deal score indicator
-- Last scrape status
+**Simple Jinja2 template showing:**
+- Active search definitions
+- Last scrape time + status
+- Health indicators (green/yellow/red)
 - Manual "Scrape Now" button
 
-**Tech stack:**
-- Vite
-- Tailwind CSS
-- Recharts
-- React Query
+**No React yet.** Just server-rendered HTML.
+
+```python
+# backend/app/api/dashboard.py
+@router.get("/", response_class=HTMLResponse)
+async def dashboard(request: Request, db: Session = Depends(get_db)):
+    definitions = db.query(SearchDefinition).filter(
+        SearchDefinition.is_active == True
+    ).all()
+    
+    return templates.TemplateResponse("dashboard.html", {
+        "request": request,
+        "definitions": definitions,
+    })
+```
 
 **Acceptance criteria:**
-- [ ] Dashboard loads and shows routes
-- [ ] Price chart displays history
-- [ ] Responsive for mobile
-- [ ] Loading/error states handled
+- [ ] Shows all active monitors
+- [ ] Health status visible at a glance
+- [ ] Can manually trigger scrape
 
 ---
 
-### Phase 1 Completion Criteria
+## Phase 1b: Add Infrastructure (15-20h)
 
-| Requirement | Met |
-|-------------|-----|
-| System runs 7 days unattended | [ ] |
-| Scrapes 2x daily | [ ] |
-| At least 100 price points collected | [ ] |
-| Deal notifications delivered <5 min | [ ] |
-| Dashboard shows price charts | [ ] |
+**Goal:** Add production infrastructure after validating scraping stability.
 
----
-
-## Phase 2: Intelligence Layer
-
-**Goal:** AI-powered deal analysis, award flight tracking, and advanced price analytics.
+**Prerequisites:** Phase 1a success criteria met.
 
 ### Tasks
 
 | ID | Task | Time | Dependencies | Status |
 |----|------|------|--------------|--------|
-| 2.1 | Seats.aero API Integration | 5-6h | Phase 1 | [ ] |
-| 2.2 | Miles Program Management | 4-5h | 2.1 | [ ] |
-| 2.3 | Claude AI Integration | 6-8h | 2.1, 2.2 | [ ] |
-| 2.4 | Advanced Price Analysis | 5-6h | Phase 1 | [ ] |
-| 2.5 | Enhanced Dashboard | 6-8h | 2.1-2.4 | [ ] |
+| 1b.1 | Migrate to TimescaleDB | 3-4h | Phase 1a | [ ] |
+| 1b.2 | Add Celery + Redis | 4-5h | 1b.1 | [ ] |
+| 1b.3 | Z-score Deal Detection | 3-4h | 1b.1 | [x] |
+| 1b.4 | React Dashboard | 6-8h | 1b.1, 1b.3 | [ ] |
 
 ### Task Details
 
-#### 2.1 Seats.aero API Integration (5-6h)
+#### 1b.1 Migrate to TimescaleDB (3-4h)
 
-**Files to create:**
-```
-backend/app/services/seats_aero.py
-backend/app/models/award_availability.py
-backend/celery_app/tasks/fetch_awards.py
-```
+**Convert Postgres to TimescaleDB:**
 
-**Award availability model:**
-```python
-class AwardAvailability(Base):
-    id: BigInteger
-    route_id: Integer (FK)
-    fetched_at: DateTime
-    departure_date: Date
-    program: String  # "Atmos", "Airpoints"
-    cabin: String
-    seats_available: Integer
-    miles_cost: Integer
-    taxes_usd: Numeric
-```
-
-**Acceptance criteria:**
-- [ ] Auth with Seats.aero API
-- [ ] Fetch NZ route availability
-- [ ] Store in database
-- [ ] Handle rate limits
-
----
-
-#### 2.2 Miles Program Management (4-5h)
-
-**Files to create:**
-```
-backend/app/models/miles_program.py
-backend/app/api/miles.py
-frontend/src/components/MilesTracker.tsx
-```
-
-**Features:**
-- Track multiple programs (Atmos, Airpoints)
-- Manual balance entry
-- Value per point calculation
-- Cash vs miles comparison
-
-**Acceptance criteria:**
-- [ ] Track balances
-- [ ] Calculate redemption value
-- [ ] Show on dashboard
-
----
-
-#### 2.3 Claude AI Integration (6-8h)
-
-**Files to create:**
-```
-backend/app/services/ai_advisor.py
-backend/celery_app/tasks/analyze_deals.py
-```
-
-**AI features:**
-```python
-class ClaudeAdvisor:
-    async def analyze_deal(self, deal, context) -> str:
-        """
-        Only called when z_score < -1.5 (cost control)
-        
-        Returns:
-        - Is this a good deal? (historical context)
-        - Should we book now or wait?
-        - Cash vs miles recommendation
-        - Timing considerations
-        """
-    
-    async def generate_weekly_digest(self, week_data) -> str:
-        """Weekly summary of opportunities"""
-```
-
-**Cost controls:**
-- Only call on threshold deals
-- Cache 24 hours
-- Batch multiple deals
-- Target: <$5/month
-
-**Acceptance criteria:**
-- [ ] Useful contextual advice
-- [ ] Responses cached
-- [ ] Cost <$5/month
-- [ ] Graceful API fallback
-
----
-
-#### 2.4 Advanced Price Analysis (5-6h)
-
-**Files to enhance:**
-```
-backend/app/services/price_analyzer.py
-backend/alembic/versions/002_continuous_aggregates.py
-```
-
-**Features:**
-- Seasonal baselines by travel month
-- TimescaleDB continuous aggregates
-- Trend prediction (rising/falling)
-- Multi-factor anomaly detection
-
-**Continuous aggregate:**
 ```sql
-CREATE MATERIALIZED VIEW price_monthly_stats
-WITH (timescaledb.continuous) AS
-SELECT
-    route_id,
-    time_bucket('1 month', scraped_at) AS month,
-    EXTRACT(MONTH FROM departure_date) AS travel_month,
-    AVG(price_nzd), STDDEV(price_nzd), MIN(price_nzd), COUNT(*)
-FROM flight_prices
-GROUP BY ...
+-- Enable TimescaleDB
+CREATE EXTENSION IF NOT EXISTS timescaledb;
+
+-- Convert flight_prices to hypertable
+SELECT create_hypertable('flight_prices', 'scraped_at', 
+    chunk_time_interval => INTERVAL '1 week',
+    migrate_data => true);
 ```
 
 **Acceptance criteria:**
-- [ ] Seasonal baselines work
-- [ ] Aggregates auto-refresh
-- [ ] Trend indicators shown
+- [ ] Hypertable created
+- [ ] Existing data migrated
+- [ ] Time-based queries faster
 
 ---
 
-#### 2.5 Enhanced Dashboard (6-8h)
+#### 1b.2 Add Celery + Redis (4-5h)
 
-**Files to enhance:**
-```
-frontend/src/pages/Dashboard.tsx
-frontend/src/components/DealCard.tsx
-frontend/src/components/MilesComparison.tsx
-```
+**Replace APScheduler with Celery for:**
+- Better job monitoring
+- Retry with backoff
+- Distributed workers (future)
 
-**New features:**
-- Award + cash prices side by side
-- Miles vs cash calculator
-- AI advice display
-- Seasonal context indicators
-- Price trend arrows
+```python
+# backend/celery_app/tasks/scrape_flights.py
+@celery.task(bind=True, max_retries=3)
+def scrape_search_definition(self, search_def_id: int):
+    # ...
+```
 
 **Acceptance criteria:**
-- [ ] Both options displayed
-- [ ] "Best option" highlighted
-- [ ] AI advice shown
-- [ ] Mobile friendly
+- [ ] Scheduled tasks work
+- [ ] Retries on failure
+- [ ] Flower monitoring (optional)
 
 ---
 
-### Phase 2 Completion Criteria
+#### 1b.3 Z-score Deal Detection (3-4h) ✅
 
-| Requirement | Met |
-|-------------|-----|
-| Award availability integrated | [ ] |
-| Miles balances tracked | [ ] |
-| AI advice on deals | [ ] |
-| Cash vs miles comparison | [ ] |
-| Cost < $15/month total | [ ] |
+**Already implemented in this session:**
+- `robust_z_score()` using median/MAD
+- `is_absolute_new_low()` detection
+- Updated `PriceAnalyzer` with both traditional and robust z-scores
+
+**File updated:**
+- `backend/app/services/price_analyzer.py`
 
 ---
 
-## Phase 3: Full Features
+#### 1b.4 React Dashboard (6-8h)
 
-**Goal:** Production hardening, extensibility, and additional destinations.
+**Full React dashboard with:**
+- Route cards with health status
+- Price history charts (Recharts)
+- Deal alerts timeline
+- Mobile responsive
+
+**Acceptance criteria:**
+- [ ] Dashboard loads
+- [ ] Charts display history
+- [ ] Responsive design
+- [ ] Error/loading states
+
+---
+
+## Phase 2: Intelligence Layer (25-35h)
+
+**Goal:** AI-powered deal analysis, award flight tracking.
+
+**Prerequisites:** Phase 1b complete.
+
+### Tasks
+
+| ID | Task | Time | Dependencies | Status |
+|----|------|------|--------------|--------|
+| 2.1 | Seats.aero API Integration | 5-6h | Phase 1b | [ ] |
+| 2.2 | Miles Program Management | 4-5h | 2.1 | [ ] |
+| 2.3 | Claude AI Integration | 6-8h | 2.1, 2.2 | [ ] |
+| 2.4 | Advanced Price Analysis | 5-6h | Phase 1b | [ ] |
+| 2.5 | Enhanced Dashboard | 6-8h | 2.1-2.4 | [ ] |
+
+**Before starting Phase 2:**
+- [ ] Verify Seats.aero covers AKL→HNL routes
+- [ ] Verify Seats.aero supports Atmos/Airpoints
+
+---
+
+## Phase 3: Full Features (25-30h)
+
+**Goal:** Production hardening, extensibility.
 
 ### Tasks
 
@@ -529,6 +315,25 @@ frontend/src/components/MilesComparison.tsx
 | 3.3 | User Authentication | 5-6h | Phase 2 | [ ] |
 | 3.4 | Production Hardening | 5-6h | All | [ ] |
 | 3.5 | Extensibility Framework | 4-5h | 3.1 | [ ] |
+
+---
+
+## Security Posture
+
+**Oracle Review**: "If exposed to internet without auth, it's an immediate risk."
+
+### Phase 1 (Default Private)
+- Bind all services to `127.0.0.1` only
+- Access via Tailscale or SSH tunnel
+- No authentication required (private network)
+
+### Phase 3 (If Internet Exposed)
+- Add reverse proxy (Traefik/Caddy)
+- Basic auth or OAuth
+- Rate limiting
+- HTTPS required
+
+**Do NOT expose to internet without Phase 3 auth implementation.**
 
 ---
 
@@ -550,24 +355,26 @@ walkabout/
 │   │   ├── main.py
 │   │   ├── config.py
 │   │   ├── database.py
+│   │   ├── scheduler.py          # APScheduler (Phase 1a)
 │   │   ├── models/
+│   │   │   ├── search_definition.py  # NEW
+│   │   │   ├── scrape_health.py      # NEW
+│   │   │   ├── flight_price.py       # Updated
+│   │   │   └── alert.py
 │   │   ├── schemas/
 │   │   ├── api/
 │   │   ├── services/
+│   │   │   ├── price_analyzer.py     # Updated with robust z-score
+│   │   │   └── notification.py
 │   │   └── scrapers/
+│   │       └── google_flights.py     # Updated with failure handling
 │   │
-│   └── celery_app/
+│   └── celery_app/               # Phase 1b
 │       ├── celery.py
 │       └── tasks/
 │
-├── frontend/
-│   ├── Dockerfile
-│   ├── package.json
-│   ├── src/
-│   │   ├── App.tsx
-│   │   ├── pages/
-│   │   ├── components/
-│   │   └── hooks/
+├── frontend/                     # Phase 1b
+│   └── ...
 │
 ├── playwright/
 │   └── Dockerfile
@@ -590,44 +397,54 @@ walkabout/
 
 ---
 
-## Success Metrics
-
-| Phase | Milestone | Target |
-|-------|-----------|--------|
-| 1 | System runs 7 days | Week 4 |
-| 1 | 100+ price points | Week 4 |
-| 2 | Award data integrated | Week 8 |
-| 2 | AI cost <$5/mo | Week 8 |
-| 3 | 3+ destinations | Week 12 |
-| 3 | Full backup/restore tested | Week 12 |
-
----
-
-## Quick Start (Development)
+## Quick Start (Phase 1a)
 
 ```bash
 # Clone and setup
 git clone <repo> walkabout && cd walkabout
 cp .env.example .env
-# Edit .env with your API keys
+# Edit .env with your settings
 
-# Start services
-docker-compose up -d
+# Start minimal services
+docker-compose up -d db playwright ntfy backend
 
 # Run migrations
 docker-compose exec backend alembic upgrade head
 
-# Seed initial route
+# Create first search definition
 docker-compose exec backend python -c "
 from app.database import SessionLocal
-from app.models import Route
+from app.models import SearchDefinition, TripType, CabinClass
 db = SessionLocal()
-db.add(Route(origin='AKL', destination='HNL', name='Auckland to Honolulu'))
+db.add(SearchDefinition(
+    origin='AKL',
+    destination='HNL',
+    name='Auckland to Honolulu (Family)',
+    trip_type=TripType.ROUND_TRIP,
+    adults=2,
+    children=2,
+    cabin_class=CabinClass.ECONOMY,
+    departure_days_min=60,
+    departure_days_max=90,
+    trip_duration_days_min=7,
+    trip_duration_days_max=14,
+))
 db.commit()
 "
 
-# Access
-# API: http://localhost:8000/docs
-# Frontend: http://localhost:3000
-# ntfy: http://localhost:8080
+# Access status page
+open http://localhost:8000/
 ```
+
+---
+
+## Changelog
+
+### 2026-01-21 - Oracle Review Implementation
+- Split Phase 1 into 1a (prove ingestion) and 1b (infrastructure)
+- Added `SearchDefinition` model for price comparability
+- Added `ScrapeHealth` model with circuit breaker
+- Added `ScrapeResult` with failure classification
+- Updated scraper with failure handling + screenshots
+- Added robust z-score (median/MAD) to price analyzer
+- Added security posture documentation
