@@ -1,15 +1,18 @@
 import re
 from typing import Optional
-from app.models.deal import DealSource
+from app.models.deal import DealSource, ParseStatus
 from app.services.feeds.base import BaseFeedParser, ParsedDeal, ParseResult
 
 
 class SecretFlyingParser(BaseFeedParser):
     
-    FEED_URL = "https://www.secretflying.com/feed/"
+    FEED_URL = "https://www.secretflying.com/posts/feed/"
+    
+    HOTEL_KEYWORDS = ['hotel', 'per night', 'stars*', 'resort', 'hostel', 'accommodation']
     
     ROUTE_PATTERNS = [
-        re.compile(r'(?P<origin>[A-Za-z\s]+)\s+to\s+(?P<dest>[A-Za-z\s]+)(?:\s+from)?', re.IGNORECASE),
+        re.compile(r'Non-?stop\s+from\s+(?P<origin>[A-Za-z\s]+)\s+to\s+(?P<dest>[A-Za-z\s,]+?)(?:\s+(?:for|from|\())', re.IGNORECASE),
+        re.compile(r'(?P<origin>[A-Za-z][A-Za-z\s]+?)\s+to\s+(?P<dest>[A-Za-z][A-Za-z\s,]+?)(?:\s+(?:for|from|only|\$|€|£|\())', re.IGNORECASE),
         re.compile(r'(?P<origin>[A-Z]{3})\s*[-–]\s*(?P<dest>[A-Z]{3})', re.IGNORECASE),
     ]
     
@@ -23,6 +26,15 @@ class SecretFlyingParser(BaseFeedParser):
         super().__init__(self.FEED_URL, DealSource.SECRET_FLYING)
     
     def extract_deal_details(self, deal: ParsedDeal) -> ParseResult:
+        title_lower = deal.raw_title.lower()
+        
+        if any(kw in title_lower for kw in self.HOTEL_KEYWORDS):
+            return ParseResult(
+                parse_status=ParseStatus.FAILED,
+                reasons=["Hotel deal, not a flight"],
+                parser_used="regex_secret_flying",
+            )
+        
         text = f"{deal.raw_title} {deal.raw_summary or ''}"
         
         origin, destination = self._extract_route(deal.raw_title)
@@ -52,7 +64,8 @@ class SecretFlyingParser(BaseFeedParser):
                 origin = self._normalize_location(origin)
                 dest = self._normalize_location(dest)
                 
-                return (origin, dest)
+                if origin and dest and len(origin) > 1 and len(dest) > 1:
+                    return (origin, dest)
         
         airports = self._extract_airports(title)
         if len(airports) >= 2:
@@ -61,8 +74,10 @@ class SecretFlyingParser(BaseFeedParser):
         return (None, None)
     
     def _normalize_location(self, location: str) -> str:
-        location = re.sub(r'\s*(from|roundtrip|one-?way|nonstop).*$', '', location, flags=re.IGNORECASE)
-        return location.strip()
+        location = re.sub(r'^(Non-?stop\s+from\s+)', '', location, flags=re.IGNORECASE)
+        location = re.sub(r'\s*(roundtrip|one-?way|nonstop|&\s*vice\s*versa).*$', '', location, flags=re.IGNORECASE)
+        location = location.rstrip(',').strip()
+        return location
     
     def _extract_cabin_class(self, text: str) -> Optional[str]:
         for cabin, pattern in self.CABIN_PATTERNS.items():

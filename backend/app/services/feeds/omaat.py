@@ -1,29 +1,52 @@
 import re
 from typing import Optional
-from app.models.deal import DealSource
+from app.models.deal import DealSource, ParseStatus
 from app.services.feeds.base import BaseFeedParser, ParsedDeal, ParseResult
 
 
 class OMAATParser(BaseFeedParser):
     
-    FEED_URL = "https://onemileatatime.com/deals/feed/"
+    FEED_URL = "https://onemileatatime.com/feed/"
+    
+    DEAL_KEYWORDS = ['deal', 'fare', 'sale', 'cheap', 'discount', 'offer', 'price']
+    SKIP_KEYWORDS = ['review', 'trip report', 'lounge', 'hotel review', 'question']
     
     ROUTE_PATTERNS = [
-        re.compile(r'(?P<origin>[A-Za-z\s,]+)\s+to\s+(?P<dest>[A-Za-z\s,]+?)(?:\s+(?:from|for|starting))?\s*[\$€£]', re.IGNORECASE),
-        re.compile(r'[\$€£]\d+.*?(?P<origin>[A-Za-z\s]+)\s+to\s+(?P<dest>[A-Za-z\s]+)', re.IGNORECASE),
+        re.compile(r'(?P<origin>[A-Za-z][A-Za-z\s,]+?)\s+to\s+(?P<dest>[A-Za-z][A-Za-z\s,]+?)(?:\s+(?:from|for|starting|only|\$|€|£))', re.IGNORECASE),
+        re.compile(r'[\$€£]\s*\d+.*?(?P<origin>[A-Za-z\s]+)\s+to\s+(?P<dest>[A-Za-z\s]+)', re.IGNORECASE),
     ]
     
     AIRLINES = [
-        'United', 'American', 'Delta', 'Southwest', 'JetBlue',
+        'United', 'American', 'Delta', 'Southwest', 'JetBlue', 'Alaska',
         'Air New Zealand', 'Qantas', 'Emirates', 'Singapore Airlines',
         'Cathay Pacific', 'British Airways', 'Lufthansa', 'Air France',
         'Qatar Airways', 'ANA', 'JAL', 'Korean Air', 'Fiji Airways',
+        'Hawaiian', 'Virgin Atlantic', 'Virgin Australia', 'Air Canada',
     ]
     
     def __init__(self):
         super().__init__(self.FEED_URL, DealSource.OMAAT)
     
     def extract_deal_details(self, deal: ParsedDeal) -> ParseResult:
+        title_lower = deal.raw_title.lower()
+        
+        if any(skip in title_lower for skip in self.SKIP_KEYWORDS):
+            return ParseResult(
+                parse_status=ParseStatus.FAILED,
+                reasons=["Not a deal post"],
+                parser_used="regex_omaat",
+            )
+        
+        is_deal = any(kw in title_lower for kw in self.DEAL_KEYWORDS)
+        has_price = bool(re.search(r'[\$€£]\s*\d+', deal.raw_title))
+        
+        if not is_deal and not has_price:
+            return ParseResult(
+                parse_status=ParseStatus.FAILED,
+                reasons=["No deal indicators found"],
+                parser_used="regex_omaat",
+            )
+        
         text = f"{deal.raw_title} {deal.raw_summary or ''}"
         
         origin, destination = self._extract_route(deal.raw_title)
@@ -55,7 +78,8 @@ class OMAATParser(BaseFeedParser):
                 origin = self._clean_location(origin)
                 dest = self._clean_location(dest)
                 
-                return (origin, dest)
+                if origin and dest and len(origin) > 1 and len(dest) > 1:
+                    return (origin, dest)
         
         airports = self._extract_airports(title)
         if len(airports) >= 2:
@@ -64,7 +88,7 @@ class OMAATParser(BaseFeedParser):
         return (None, None)
     
     def _clean_location(self, location: str) -> str:
-        location = re.sub(r'\s*(from|roundtrip|one-?way|nonstop|deal|alert).*$', '', location, flags=re.IGNORECASE)
+        location = re.sub(r'\s*(roundtrip|one-?way|nonstop|deal|alert|fare).*$', '', location, flags=re.IGNORECASE)
         location = location.rstrip(',').strip()
         return location
     
