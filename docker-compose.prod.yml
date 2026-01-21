@@ -1,0 +1,94 @@
+version: '3.8'
+
+# Production deployment for Unraid/custom networks
+# Uses pre-built images from GitHub Container Registry
+
+services:
+  # PostgreSQL database
+  db:
+    image: postgres:15-alpine
+    container_name: walkabout-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: walkabout
+      POSTGRES_USER: walkabout
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - walkabout_postgres:/var/lib/postgresql/data
+      - ./data:/app/data  # Shared data directory
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U walkabout"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - walkabout
+
+  # Walkabout backend (Phase 1a)
+  backend:
+    image: ghcr.io/jesposito/walkabout/backend:latest
+    container_name: walkabout-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://walkabout:${DB_PASSWORD}@db:5432/walkabout
+      NTFY_URL: http://ntfy:80
+      NTFY_TOPIC: ${NTFY_TOPIC:-walkabout-deals}
+      PHASE: "1a"
+      BASE_URL: ${BASE_URL:-http://localhost:8000}
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - ./data:/app/data  # Shared data for screenshots/logs
+    networks:
+      - walkabout
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Playwright browser container
+  playwright:
+    image: ghcr.io/jesposito/walkabout/playwright:latest
+    container_name: walkabout-playwright
+    restart: unless-stopped
+    shm_size: '2gb'
+    volumes:
+      - ./data:/app/data  # Shared data directory
+    networks:
+      - walkabout
+    # No exposed ports - internal use only
+
+  # ntfy notification server
+  ntfy:
+    image: binwiederhier/ntfy:v2.8.0
+    container_name: walkabout-ntfy
+    restart: unless-stopped
+    command: serve --cache-file /var/lib/ntfy/cache.db
+    volumes:
+      - walkabout_ntfy:/var/lib/ntfy
+    ports:
+      - "${NTFY_PORT:-8080}:80"
+    networks:
+      - walkabout
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:80/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+# External network support for Unraid custom networks
+networks:
+  walkabout:
+    external: ${USE_EXTERNAL_NETWORK:-false}
+    name: ${EXTERNAL_NETWORK_NAME:-walkabout}
+
+volumes:
+  walkabout_postgres:
+    name: walkabout_postgres
+  walkabout_ntfy:
+    name: walkabout_ntfy
