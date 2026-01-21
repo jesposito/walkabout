@@ -29,3 +29,6 @@ docker-compose.override.yml
 *.db
 *.sqlite
 data/
+
+# CI/CD Details (private)
+docs/CI_DETAILS.md
