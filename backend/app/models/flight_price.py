@@ -1,5 +1,4 @@
-from sqlalchemy import Column, BigInteger, Integer, String, Date, DateTime, Numeric, ForeignKey
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import Column, BigInteger, Integer, String, Date, DateTime, Numeric, ForeignKey, JSON
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.database import Base
@@ -42,7 +41,7 @@ class FlightPrice(Base):
     duration_minutes = Column(Integer, nullable=True)
     
     # Raw data for debugging/reprocessing
-    raw_data = Column(JSONB, nullable=True)
+    raw_data = Column(JSON, nullable=True)
     
     # Relationships
     search_definition = relationship("SearchDefinition", back_populates="prices")
