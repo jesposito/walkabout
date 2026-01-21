@@ -7,6 +7,8 @@ from app.api import routes, prices, health, status
 from app.scheduler import start_scheduler, stop_scheduler
 from app.services.notification import NtfyNotifier
 from app.config import get_settings
+from app.database import engine, Base
+from app.models import SearchDefinition, ScrapeHealth, FlightPrice, Route, Alert
 
 settings = get_settings()
 
@@ -20,18 +22,11 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """
-    Handle application startup and shutdown for Phase 1a.
-    
-    Startup:
-    - Start APScheduler for scraping jobs
-    - Send startup notification
-    
-    Shutdown:
-    - Stop scheduler gracefully
-    """
-    # Startup
     logger.info("🚀 Starting Walkabout Phase 1a")
+    
+    if settings.database_url.startswith("sqlite"):
+        logger.info("SQLite detected - creating tables if needed")
+        Base.metadata.create_all(bind=engine)
     
     try:
         # Start the scheduler
