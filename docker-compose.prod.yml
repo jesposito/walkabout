@@ -51,17 +51,6 @@ services:
       retries: 3
       start_period: 10s
 
-  # Playwright browser container
-  playwright:
-    image: ghcr.io/jesposito/walkabout/playwright:latest
-    container_name: walkabout-playwright
-    restart: unless-stopped
-    shm_size: '2gb'
-    volumes:
-      - ./data:/app/data  # Shared data directory
-    networks:
-      - walkabout
-    # No exposed ports - internal use only
 
   # ntfy notification server
   ntfy:

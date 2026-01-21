@@ -61,28 +61,7 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
-    - name: Extract metadata for playwright
-      id: meta-playwright
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/playwright
-        tags: |
-          type=ref,event=branch
-          type=ref,event=pr
-          type=semver,pattern={{version}}
-          type=semver,pattern={{major}}.{{minor}}
-          type=raw,value=latest,enable={{is_default_branch}}
 
-    - name: Build and push playwright image
-      uses: docker/build-push-action@v5
-      with:
-        context: ./playwright
-        platforms: linux/amd64,linux/arm64
-        push: ${{ github.event_name != 'pull_request' }}
-        tags: ${{ steps.meta-playwright.outputs.tags }}
-        labels: ${{ steps.meta-playwright.outputs.labels }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
 
   # Security scanning
   security:
@@ -124,7 +103,6 @@ jobs:
           Pull the latest images:
           ```bash
           docker pull ghcr.io/${{ github.repository }}/backend:${{ github.ref_name }}
-          docker pull ghcr.io/${{ github.repository }}/playwright:${{ github.ref_name }}
           ```
           
           ## Deployment
