@@ -371,14 +371,6 @@
                                 </svg>
                                 {{ matches|length }} Matching Deals from RSS
                             </h4>
-                            <button onclick="searchPrices({{ trip.id }})" 
-                                    id="search-btn-{{ trip.id }}"
-                                    class="px-3 py-1.5 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 text-xs font-medium rounded-lg transition-all inline-flex items-center gap-1.5 border border-cyan-500/30">
-                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
-                                Search Google Flights
-                            </button>
                         </div>
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                             {% for deal, score in matches[:5] %}

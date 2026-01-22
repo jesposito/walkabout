@@ -230,61 +230,55 @@ class TripPlanSearchService:
         return list(destinations)
     
     def _generate_date_combinations(self, trip: TripPlan) -> list[tuple[date, Optional[date]]]:
-        """
-        Generate departure/return date combinations within the trip's window.
-        
-        Returns list of (departure_date, return_date) tuples.
-        """
         combos = []
+        today = date.today()
         
-        # Get travel window
         if not trip.available_from or not trip.available_to:
-            # Default to next 60-90 days
-            start = date.today() + timedelta(days=60)
-            end = date.today() + timedelta(days=90)
+            start = today + timedelta(days=60)
+            end = today + timedelta(days=90)
         else:
             start = trip.available_from.date() if hasattr(trip.available_from, 'date') else trip.available_from
             end = trip.available_to.date() if hasattr(trip.available_to, 'date') else trip.available_to
         
-        if start > end:
+        min_search_date = today + timedelta(days=14)
+        max_search_date = today + timedelta(days=300)
+        
+        effective_start = max(start, min_search_date)
+        effective_end = min(end, max_search_date)
+        
+        if effective_start > effective_end:
             return []
         
-        # Get trip duration range
         min_days = trip.trip_duration_min or 5
         max_days = trip.trip_duration_max or 14
         mid_days = (min_days + max_days) // 2
         
-        # Generate a few strategic date combinations
-        # 1. Early in window
-        # 2. Middle of window
-        # 3. Late in window (if space)
-        
-        window_days = (end - start).days
+        window_days = (effective_end - effective_start).days
         
         if window_days < mid_days:
-            # Window too short for a trip
             return []
         
-        # Early departure
-        dep1 = start
-        ret1 = dep1 + timedelta(days=mid_days)
-        if ret1 <= end:
-            combos.append((dep1, ret1))
+        dep1 = effective_start + timedelta(days=14)
+        if dep1 + timedelta(days=mid_days) <= effective_end:
+            combos.append((dep1, dep1 + timedelta(days=mid_days)))
         
-        # Middle departure
-        mid_point = start + timedelta(days=window_days // 2)
-        dep2 = mid_point - timedelta(days=mid_days // 2)
-        ret2 = dep2 + timedelta(days=mid_days)
-        if dep2 >= start and ret2 <= end and (dep2, ret2) not in combos:
-            combos.append((dep2, ret2))
+        if window_days > 60:
+            dep2 = effective_start + timedelta(days=window_days // 3)
+            ret2 = dep2 + timedelta(days=mid_days)
+            if ret2 <= effective_end and (dep2, ret2) not in combos:
+                combos.append((dep2, ret2))
+            
+            dep3 = effective_start + timedelta(days=(window_days * 2) // 3)
+            ret3 = dep3 + timedelta(days=mid_days)
+            if ret3 <= effective_end and (dep3, ret3) not in combos:
+                combos.append((dep3, ret3))
+        elif window_days > 30:
+            mid_point = effective_start + timedelta(days=window_days // 2)
+            ret2 = mid_point + timedelta(days=mid_days)
+            if ret2 <= effective_end and (mid_point, ret2) not in combos:
+                combos.append((mid_point, ret2))
         
-        # Late departure
-        dep3 = end - timedelta(days=mid_days)
-        ret3 = end
-        if dep3 >= start and (dep3, ret3) not in combos:
-            combos.append((dep3, ret3))
-        
-        return combos[:3]  # Max 3 date combos
+        return combos[:3]
     
     def _generate_search_combinations(
         self,
