@@ -8,6 +8,7 @@ import os
 from app.database import get_db
 from app.services.feeds import FeedService
 from app.models.deal import DealSource
+from app.utils.template_helpers import get_airports_dict
 
 router = APIRouter()
 
@@ -60,6 +61,7 @@ async def deals_page(
             "current_sort": sort or "score",
             "all_count": all_count,
             "relevant_count": relevant_count,
+            "airports": get_airports_dict(),
         }
     )
 

@@ -247,7 +247,12 @@
                             <a href="{{ deal.link }}" target="_blank" 
                                class="group block p-3 rounded-lg bg-slate-800 border border-slate-700 hover:border-emerald-500/50 hover:bg-slate-700/50 transition-all">
                                 <div class="flex justify-between items-start mb-1">
-                                    <span class="font-bold text-white text-sm truncate">{{ deal.parsed_destination or 'Unknown' }}</span>
+                                    <span class="font-bold text-white text-sm truncate" title="{{ airports[deal.parsed_destination].city if airports.get(deal.parsed_destination) else deal.parsed_destination }}">
+                                        {{ deal.parsed_destination or 'Unknown' }}
+                                        {% if airports.get(deal.parsed_destination) %}
+                                        <span class="text-slate-400 font-normal">({{ airports[deal.parsed_destination].city }})</span>
+                                        {% endif %}
+                                    </span>
                                     {% if deal.parsed_price %}
                                     <span class="font-mono text-emerald-400 text-sm">{{ deal.parsed_price|int }} {{ deal.parsed_currency or 'USD' }}</span>
                                     {% endif %}

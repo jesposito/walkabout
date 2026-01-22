@@ -42,9 +42,12 @@
                 <div class="p-6">
                     <div class="flex items-center justify-between mb-4">
                         <div class="flex items-baseline gap-2 text-2xl font-bold text-white">
-                            <span>{{ search.origin }}</span>
+                            <span title="{{ airports[search.origin].city if airports.get(search.origin) else search.origin }}">{{ search.origin }}</span>
                             <span class="text-slate-600 text-lg">{% if search.trip_type == 'round_trip' %}⇄{% else %}→{% endif %}</span>
-                            <span class="text-cyan-400">{{ search.destination }}</span>
+                            <span class="text-cyan-400" title="{{ airports[search.destination].city if airports.get(search.destination) else search.destination }}">{{ search.destination }}</span>
+                        </div>
+                        <div class="text-xs text-slate-500 mt-1">
+                            {{ airports[search.origin].city if airports.get(search.origin) else '' }} to {{ airports[search.destination].city if airports.get(search.destination) else '' }}
                         </div>
                         <button onclick="deleteSearch({{ search.id }})" 
                                 class="text-slate-500 hover:text-red-400 transition-colors p-1 rounded hover:bg-slate-700"
@@ -148,19 +151,27 @@
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label class="block text-sm font-medium text-slate-300 mb-2">From</label>
-                    <input type="text" name="origin" required maxlength="3"
-                           class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white 
-                                  uppercase font-mono text-lg tracking-wider focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-                           placeholder="AKL">
-                    <p class="mt-1 text-xs text-slate-500">Airport code</p>
+                    <div class="relative">
+                        <input type="text" name="origin" id="origin-input" required
+                               autocomplete="off"
+                               class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white 
+                                      uppercase font-mono text-lg tracking-wider focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                               placeholder="Type city...">
+                        <div id="origin-dropdown" class="hidden absolute z-30 w-full mt-1 bg-slate-800 border border-slate-600 rounded-lg shadow-xl max-h-48 overflow-y-auto"></div>
+                    </div>
+                    <p id="origin-hint" class="mt-1 text-xs text-slate-500">Type a city name or code</p>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-slate-300 mb-2">To</label>
-                    <input type="text" name="destination" required maxlength="3"
-                           class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white 
-                                  uppercase font-mono text-lg tracking-wider focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-                           placeholder="SYD">
-                    <p class="mt-1 text-xs text-slate-500">Airport code</p>
+                    <div class="relative">
+                        <input type="text" name="destination" id="destination-input" required
+                               autocomplete="off"
+                               class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white 
+                                      uppercase font-mono text-lg tracking-wider focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                               placeholder="Type city...">
+                        <div id="destination-dropdown" class="hidden absolute z-30 w-full mt-1 bg-slate-800 border border-slate-600 rounded-lg shadow-xl max-h-48 overflow-y-auto"></div>
+                    </div>
+                    <p id="destination-hint" class="mt-1 text-xs text-slate-500">Type a city name or code</p>
                 </div>
             </div>
             
@@ -364,6 +375,94 @@ document.addEventListener('DOMContentLoaded', () => {
         const id = card.dataset.searchId;
         loadStats(id);
     });
+});
+
+// Airport autocomplete for modal inputs
+function setupAirportAutocomplete(inputId, dropdownId, hintId) {
+    const input = document.getElementById(inputId);
+    const dropdown = document.getElementById(dropdownId);
+    const hint = document.getElementById(hintId);
+    let debounceTimer;
+    
+    input.addEventListener('input', (e) => {
+        clearTimeout(debounceTimer);
+        const query = e.target.value.trim();
+        
+        if (query.length < 2) {
+            dropdown.classList.add('hidden');
+            hint.textContent = 'Type a city name or code';
+            hint.className = 'mt-1 text-xs text-slate-500';
+            return;
+        }
+        
+        debounceTimer = setTimeout(async () => {
+            try {
+                const response = await fetch(`/settings/api/airports/search?q=${encodeURIComponent(query)}&limit=6`);
+                const data = await response.json();
+                
+                if (data.results && data.results.length > 0) {
+                    dropdown.innerHTML = data.results.map(a => `
+                        <button type="button" 
+                                class="w-full px-3 py-2 text-left hover:bg-slate-700 flex items-center justify-between border-b border-slate-700 last:border-0"
+                                onclick="selectModalAirport('${inputId}', '${dropdownId}', '${hintId}', '${a.code}', '${a.city}', '${a.country}')">
+                            <span class="text-slate-300 text-sm">${a.city}, ${a.country}</span>
+                            <span class="font-mono font-bold text-cyan-400 text-sm">${a.code}</span>
+                        </button>
+                    `).join('');
+                    dropdown.classList.remove('hidden');
+                } else {
+                    dropdown.classList.add('hidden');
+                }
+            } catch (err) {
+                console.error('Airport search failed:', err);
+            }
+        }, 200);
+    });
+    
+    // Allow direct 3-letter code entry
+    input.addEventListener('blur', () => {
+        setTimeout(() => {
+            dropdown.classList.add('hidden');
+            // If user typed a valid 3-letter code, accept it
+            if (input.value.length === 3 && /^[A-Za-z]{3}$/.test(input.value)) {
+                input.value = input.value.toUpperCase();
+            }
+        }, 200);
+    });
+}
+
+function selectModalAirport(inputId, dropdownId, hintId, code, city, country) {
+    const input = document.getElementById(inputId);
+    const dropdown = document.getElementById(dropdownId);
+    const hint = document.getElementById(hintId);
+    
+    input.value = code;
+    dropdown.classList.add('hidden');
+    hint.innerHTML = `<span class="text-cyan-400">${city}, ${country}</span>`;
+    hint.className = 'mt-1 text-xs';
+}
+
+// Initialize autocomplete when modal opens
+const originalOpenModal = openAddModal;
+openAddModal = function() {
+    originalOpenModal();
+    setupAirportAutocomplete('origin-input', 'origin-dropdown', 'origin-hint');
+    setupAirportAutocomplete('destination-input', 'destination-dropdown', 'destination-hint');
+};
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', (e) => {
+    const originDropdown = document.getElementById('origin-dropdown');
+    const destDropdown = document.getElementById('destination-dropdown');
+    const originInput = document.getElementById('origin-input');
+    const destInput = document.getElementById('destination-input');
+    
+    if (originDropdown && originInput && !originInput.contains(e.target) && !originDropdown.contains(e.target)) {
+        originDropdown.classList.add('hidden');
+    }
+    if (destDropdown && destInput && !destInput.contains(e.target) && !destDropdown.contains(e.target)) {
+        destDropdown.classList.add('hidden');
+    }
 });
 </script>
 {% endblock %}

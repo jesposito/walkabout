@@ -97,9 +97,14 @@
                     <!-- Route -->
                     <div class="mb-4">
                         <div class="flex items-baseline gap-2 text-2xl font-bold text-white">
-                            <span>{{ deal.parsed_origin or 'AKL' }}</span>
+                            <span title="{{ airports[deal.parsed_origin].city if airports.get(deal.parsed_origin) else deal.parsed_origin }}">{{ deal.parsed_origin or 'AKL' }}</span>
                             <span class="text-slate-600 text-lg">→</span>
-                            <span class="text-cyan-400">{{ deal.parsed_destination or 'Anywhere' }}</span>
+                            <span class="text-cyan-400" title="{{ airports[deal.parsed_destination].city if airports.get(deal.parsed_destination) else deal.parsed_destination }}">{{ deal.parsed_destination or 'Anywhere' }}</span>
+                        </div>
+                        <div class="text-xs text-slate-500 mt-1">
+                            {% if deal.parsed_origin and airports.get(deal.parsed_origin) %}{{ airports[deal.parsed_origin].city }}{% else %}{{ deal.parsed_origin or '' }}{% endif %} 
+                            to 
+                            {% if deal.parsed_destination and airports.get(deal.parsed_destination) %}{{ airports[deal.parsed_destination].city }}{% else %}{{ deal.parsed_destination or 'Anywhere' }}{% endif %}
                         </div>
                         <div class="text-sm text-slate-400 mt-1 truncate" title="{{ deal.raw_title }}">
                             {{ deal.parsed_airline or 'Unknown Airline' }}

@@ -12,6 +12,7 @@ from app.models.trip_plan import TripPlan
 from app.models.user_settings import UserSettings
 from app.services.trip_matcher import TripMatcher
 from app.services.currency import CurrencyService
+from app.utils.template_helpers import get_airports_dict
 
 router = APIRouter()
 
@@ -83,6 +84,7 @@ async def trips_page(request: Request, db: Session = Depends(get_db)):
             "request": request,
             "trips": trips_with_matches,
             "settings": settings,
+            "airports": get_airports_dict(),
         }
     )
 
