@@ -292,14 +292,24 @@
                     {% else %}
                     <div class="px-6 py-4 bg-slate-900/30 border-t border-slate-700/50 text-center">
                         <p class="text-sm text-slate-500 italic mb-3">No matches found yet. We're watching the skies...</p>
-                        <button onclick="checkMatches({{ trip.id }})" 
-                                id="check-btn-{{ trip.id }}"
-                                class="px-4 py-2 bg-violet-500 hover:bg-violet-400 text-white text-sm font-semibold rounded-lg shadow-lg shadow-violet-500/25 transition-all inline-flex items-center gap-2">
-                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
-                            Check for Matches Now
-                        </button>
+                        <div class="flex gap-3 justify-center">
+                            <button onclick="checkMatches({{ trip.id }})" 
+                                    id="check-btn-{{ trip.id }}"
+                                    class="px-4 py-2 bg-violet-500 hover:bg-violet-400 text-white text-sm font-semibold rounded-lg shadow-lg shadow-violet-500/25 transition-all inline-flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                                Check Deals
+                            </button>
+                            <button onclick="searchPrices({{ trip.id }})" 
+                                    id="search-btn-{{ trip.id }}"
+                                    class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-white text-sm font-semibold rounded-lg shadow-lg shadow-cyan-500/25 transition-all inline-flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                Search Live Prices
+                            </button>
+                        </div>
                     </div>
                     {% endif %}
                 </div>
@@ -540,6 +550,96 @@
             alert('Connection error');
             card.style.opacity = '1';
         }
+    }
+
+    // Search Live Prices for a Trip Plan
+    async function searchPrices(id) {
+        const btn = document.getElementById(`search-btn-${id}`);
+        const originalContent = btn.innerHTML;
+        
+        btn.disabled = true;
+        btn.innerHTML = '<svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Searching... (may take 1-2 min)';
+        
+        try {
+            const response = await fetch(`/trips/api/trips/${id}/search`, {
+                method: 'POST'
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                
+                if (data.results && data.results.length > 0) {
+                    // Show results in a modal or expand section
+                    showSearchResults(id, data);
+                    btn.innerHTML = `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg> Found ${data.results.length} prices!`;
+                    btn.classList.remove('bg-cyan-500', 'hover:bg-cyan-400');
+                    btn.classList.add('bg-emerald-500', 'hover:bg-emerald-400');
+                } else {
+                    btn.innerHTML = '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" /></svg> No prices found';
+                    btn.classList.remove('bg-cyan-500', 'hover:bg-cyan-400');
+                    btn.classList.add('bg-slate-600', 'hover:bg-slate-500');
+                    if (data.errors && data.errors.length > 0) {
+                        console.log('Search errors:', data.errors);
+                    }
+                }
+                
+                setTimeout(() => {
+                    btn.innerHTML = originalContent;
+                    btn.classList.remove('bg-emerald-500', 'hover:bg-emerald-400', 'bg-slate-600', 'hover:bg-slate-500');
+                    btn.classList.add('bg-cyan-500', 'hover:bg-cyan-400');
+                    btn.disabled = false;
+                }, 5000);
+            } else {
+                throw new Error('Search failed');
+            }
+        } catch (err) {
+            console.error(err);
+            btn.innerHTML = originalContent;
+            btn.disabled = false;
+            alert('Error searching prices: ' + err.message);
+        }
+    }
+    
+    // Display search results in a modal
+    function showSearchResults(tripId, data) {
+        // Create or update results section
+        const card = document.getElementById(`trip-card-${tripId}`);
+        let resultsDiv = card.querySelector('.search-results');
+        
+        if (!resultsDiv) {
+            resultsDiv = document.createElement('div');
+            resultsDiv.className = 'search-results px-6 py-4 bg-cyan-900/20 border-t border-cyan-700/30';
+            card.appendChild(resultsDiv);
+        }
+        
+        const resultsHtml = data.results.map(r => `
+            <a href="${r.booking_url}" target="_blank" 
+               class="group block p-3 rounded-lg bg-slate-800 border border-slate-700 hover:border-cyan-500/50 hover:bg-slate-700/50 transition-all">
+                <div class="flex justify-between items-start mb-1">
+                    <span class="font-bold text-white text-sm">
+                        ${r.destination} <span class="text-slate-400 font-normal">(${r.destination_city})</span>
+                    </span>
+                    <span class="font-mono text-cyan-400 text-sm font-bold">NZ${r.price_nzd.toFixed(0)}</span>
+                </div>
+                <div class="text-xs text-slate-500 flex items-center justify-between">
+                    <span>${r.departure_date}${r.return_date ? ' → ' + r.return_date : ''}</span>
+                    <span>${r.origin} → ${r.destination}</span>
+                </div>
+            </a>
+        `).join('');
+        
+        resultsDiv.innerHTML = `
+            <h4 class="text-sm font-semibold text-cyan-400 mb-3 flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Live Prices (${data.searches_successful}/${data.searches_attempted} searches successful)
+            </h4>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                ${resultsHtml}
+            </div>
+            <p class="text-xs text-slate-500 mt-2">Searched in ${(data.duration_ms / 1000).toFixed(1)}s. Click a result to book on Google Flights.</p>
+        `;
     }
 
     // Check Matches for a Trip Plan

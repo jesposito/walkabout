@@ -14,6 +14,7 @@ from app.services.trip_matcher import TripMatcher
 from app.services.currency import CurrencyService
 from app.utils.template_helpers import get_airports_dict
 from app.services.airports import AIRPORTS
+from app.services.trip_plan_search import TripPlanSearchService
 
 # Pre-compute airports dict for API responses
 airports = {code: {"city": a.city, "country": a.country} for code, a in AIRPORTS.items()}
@@ -191,6 +192,50 @@ async def get_trip_matches(
             for deal, score in matches
         ],
     }
+
+
+@router.post("/api/trips/{trip_id}/search")
+async def search_trip_prices(trip_id: int, db: Session = Depends(get_db)):
+    """
+    Actively search Google Flights for prices matching this Trip Plan.
+    
+    This searches for real-time prices (not just RSS deal matches).
+    Results are sorted by price (cheapest first) and limited to top 3 per destination.
+    """
+    trip = db.query(TripPlan).filter(TripPlan.id == trip_id).first()
+    if not trip:
+        return {"error": "Trip not found"}
+    
+    search_service = TripPlanSearchService(db)
+    
+    try:
+        summary = await search_service.search_trip_plan(trip_id)
+        
+        return {
+            "trip_id": trip_id,
+            "trip_name": trip.name,
+            "searches_attempted": summary.searches_attempted,
+            "searches_successful": summary.searches_successful,
+            "duration_ms": summary.duration_ms,
+            "results": [
+                {
+                    "origin": r.origin,
+                    "origin_city": airports.get(r.origin, {}).get("city", r.origin),
+                    "destination": r.destination,
+                    "destination_city": airports.get(r.destination, {}).get("city", r.destination),
+                    "departure_date": r.departure_date.isoformat(),
+                    "return_date": r.return_date.isoformat() if r.return_date else None,
+                    "price_nzd": float(r.price_nzd),
+                    "airline": r.airline,
+                    "stops": r.stops,
+                    "booking_url": r.booking_url,
+                }
+                for r in summary.results
+            ],
+            "errors": summary.errors,
+        }
+    finally:
+        await search_service.close()
 
 
 @router.put("/api/trips/{trip_id}/toggle")
