@@ -36,19 +36,29 @@ async def status_page(request: Request, db: Session = Depends(get_db)):
     ).all()
     
     # Enhance search definitions with health data and recent prices
+    # Use a separate dict to store computed health data to avoid SQLAlchemy issues
+    health_data = {}
     for search_def in search_definitions:
         health = search_def.scrape_health
         if health:
-            # Add recent prices count
             recent_count = db.query(FlightPrice).filter(
                 FlightPrice.search_definition_id == search_def.id,
                 FlightPrice.scraped_at >= datetime.utcnow() - timedelta(days=7)
             ).count()
-            health.recent_prices_count = recent_count
-            health.healthy = health.is_healthy
+            health_data[search_def.id] = {
+                'total_attempts': health.total_attempts,
+                'total_successes': health.total_successes,
+                'total_failures': health.total_failures,
+                'consecutive_failures': health.consecutive_failures,
+                'success_rate': health.success_rate,
+                'healthy': health.is_healthy,
+                'last_success_at': health.last_success_at,
+                'last_failure_reason': health.last_failure_reason,
+                'recent_prices_count': recent_count,
+                'has_data': True,
+            }
         else:
-            # Create mock health for display
-            search_def.scrape_health = type('MockHealth', (), {
+            health_data[search_def.id] = {
                 'total_attempts': 0,
                 'total_successes': 0,
                 'total_failures': 0,
@@ -57,8 +67,9 @@ async def status_page(request: Request, db: Session = Depends(get_db)):
                 'healthy': True,
                 'last_success_at': None,
                 'last_failure_reason': None,
-                'recent_prices_count': 0
-            })()
+                'recent_prices_count': 0,
+                'has_data': False,
+            }
     
     # Get total prices across all search definitions
     total_prices = db.query(FlightPrice).count()
@@ -73,6 +84,7 @@ async def status_page(request: Request, db: Session = Depends(get_db)):
     template_vars = {
         "request": request,
         "search_definitions": search_definitions,
+        "health_data": health_data,
         "scheduler": scheduler_status,
         "total_prices": total_prices,
         "current_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),

@@ -95,17 +95,18 @@
             {% if search_definitions %}
                 <div class="space-y-6">
                 {% for search_def in search_definitions %}
+                    {% set health = health_data[search_def.id] %}
                     <div class="bg-slate-900/50 rounded-lg p-5 border border-slate-700">
                         <div class="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-3">
                             <h4 class="text-lg font-bold text-white">{{ search_def.display_name }}</h4>
                             <span class="px-2.5 py-1 rounded text-xs font-bold uppercase tracking-wide
-                                {% if search_def.health.healthy %}bg-emerald-500/10 text-emerald-400 border border-emerald-500/20
-                                {% elif search_def.health.consecutive_failures >= 3 %}bg-rose-500/10 text-rose-400 border border-rose-500/20
-                                {% elif search_def.health.consecutive_failures > 0 %}bg-amber-500/10 text-amber-400 border border-amber-500/20
+                                {% if health.healthy %}bg-emerald-500/10 text-emerald-400 border border-emerald-500/20
+                                {% elif health.consecutive_failures >= 3 %}bg-rose-500/10 text-rose-400 border border-rose-500/20
+                                {% elif health.consecutive_failures > 0 %}bg-amber-500/10 text-amber-400 border border-amber-500/20
                                 {% else %}bg-slate-700 text-slate-400{% endif %}">
-                                {% if search_def.health.healthy %}Healthy
-                                {% elif search_def.health.consecutive_failures >= 3 %}Failing
-                                {% elif search_def.health.consecutive_failures > 0 %}Warning
+                                {% if health.healthy %}Healthy
+                                {% elif health.consecutive_failures >= 3 %}Failing
+                                {% elif health.consecutive_failures > 0 %}Warning
                                 {% else %}Unknown{% endif %}
                             </span>
                         </div>
@@ -113,33 +114,33 @@
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                             <div>
                                 <span class="block text-xs text-slate-500 uppercase tracking-wider mb-1">Success Rate</span>
-                                <span class="font-mono font-bold {% if search_def.health.success_rate >= 90 %}text-emerald-400{% elif search_def.health.success_rate >= 70 %}text-amber-400{% else %}text-rose-400{% endif %}">
-                                    {{ "%.1f"|format(search_def.health.success_rate) }}%
+                                <span class="font-mono font-bold {% if health.success_rate >= 90 %}text-emerald-400{% elif health.success_rate >= 70 %}text-amber-400{% else %}text-rose-400{% endif %}">
+                                    {{ "%.1f"|format(health.success_rate) }}%
                                 </span>
                             </div>
                             <div>
                                 <span class="block text-xs text-slate-500 uppercase tracking-wider mb-1">Attempts</span>
-                                <span class="font-mono text-slate-300">{{ search_def.health.total_attempts }}</span>
+                                <span class="font-mono text-slate-300">{{ health.total_attempts }}</span>
                             </div>
                             <div>
                                 <span class="block text-xs text-slate-500 uppercase tracking-wider mb-1">Cons. Failures</span>
-                                <span class="font-mono font-bold {% if search_def.health.consecutive_failures == 0 %}text-emerald-400{% elif search_def.health.consecutive_failures < 3 %}text-amber-400{% else %}text-rose-400{% endif %}">
-                                    {{ search_def.health.consecutive_failures }}
+                                <span class="font-mono font-bold {% if health.consecutive_failures == 0 %}text-emerald-400{% elif health.consecutive_failures < 3 %}text-amber-400{% else %}text-rose-400{% endif %}">
+                                    {{ health.consecutive_failures }}
                                 </span>
                             </div>
                             <div>
                                 <span class="block text-xs text-slate-500 uppercase tracking-wider mb-1">Recent Prices</span>
-                                <span class="font-mono text-slate-300">{{ search_def.health.recent_prices_count }}</span>
+                                <span class="font-mono text-slate-300">{{ health.recent_prices_count }}</span>
                             </div>
                         </div>
                         
                         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-t border-slate-700/50 pt-4 mt-2">
                             <div class="text-xs text-slate-500 font-mono">
-                                {% if search_def.health.last_success_at %}
-                                    <span class="mr-3">Last success: {{ search_def.health.last_success_at }}</span>
+                                {% if health.last_success_at %}
+                                    <span class="mr-3">Last success: {{ health.last_success_at }}</span>
                                 {% endif %}
-                                {% if search_def.health.last_failure_reason %}
-                                    <span class="text-rose-400 block sm:inline mt-1 sm:mt-0">Error: {{ search_def.health.last_failure_reason }}</span>
+                                {% if health.last_failure_reason %}
+                                    <span class="text-rose-400 block sm:inline mt-1 sm:mt-0">Error: {{ health.last_failure_reason }}</span>
                                 {% endif %}
                             </div>
                             <div class="flex gap-2 w-full sm:w-auto">
