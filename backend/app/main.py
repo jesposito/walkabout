@@ -10,7 +10,7 @@ from app.api import settings as settings_api
 from app.scheduler import start_scheduler, stop_scheduler
 from app.services.notification import InMemoryNotifier
 from app.config import get_settings
-from app.database import engine, Base
+from app.database import engine, Base, ensure_sqlite_columns
 from app.models import SearchDefinition, ScrapeHealth, FlightPrice, Route, Alert, Deal, FeedHealth, TripPlan, TripPlanMatch
 
 settings = get_settings()
@@ -30,6 +30,7 @@ async def lifespan(app: FastAPI):
     if settings.database_url.startswith("sqlite"):
         logger.info("SQLite detected - creating tables if needed")
         Base.metadata.create_all(bind=engine)
+        ensure_sqlite_columns()
     
     try:
         # Start the scheduler
