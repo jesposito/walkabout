@@ -111,6 +111,31 @@
                     </div>
                 </div>
 
+                <!-- Departure Airport(s) -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1">Departing From</label>
+                    <p class="text-xs text-slate-500 mb-3">Which airport(s) can you leave from?</p>
+                    
+                    <input type="hidden" id="origins_input" name="origins">
+                    
+                    <div class="relative group">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-slate-500 group-focus-within:text-cyan-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                            </svg>
+                        </div>
+                        <input type="text" id="origin_search" 
+                               class="w-full pl-11 pr-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white 
+                                      placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 
+                                      focus:border-transparent font-sans transition-all"
+                               placeholder="Search airport (e.g. Wellington, WLG)..."
+                               autocomplete="off">
+                        <div id="origin-dropdown" class="hidden absolute z-20 w-full mt-2 bg-slate-800 border border-slate-600 rounded-lg shadow-xl shadow-black/50 max-h-60 overflow-y-auto overflow-x-hidden"></div>
+                    </div>
+
+                    <div id="origins-container" class="flex flex-wrap gap-2 mt-4 min-h-[32px]"></div>
+                </div>
+
                 <!-- Destination Types -->
                 <div>
                     <label class="block text-sm font-medium text-slate-300 mb-3">Destination Vibes (Select all that apply)</label>
@@ -293,7 +318,7 @@
                                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                                 </svg>
-                                Best Flights (Google)
+                                Best Flights
                             </h4>
                             {% if flights %}
                             <button onclick="searchPrices({{ trip.id }})" 
@@ -325,14 +350,15 @@
                                                 {% endif %}
                                             </h5>
                                             <div class="flex items-center text-xs text-slate-400 gap-2">
+                                                {% if flight.airline and flight.airline != 'Unknown' %}
                                                 <span>{{ flight.airline }}</span>
                                                 <span class="w-1 h-1 rounded-full bg-slate-600"></span>
-                                                <span>{{ flight.stops }}</span>
+                                                {% endif %}
+                                                <span>{% if flight.stops == 0 %}Direct{% elif flight.stops == 1 %}1 stop{% else %}{{ flight.stops }} stops{% endif %}</span>
                                             </div>
                                         </div>
                                         <div class="flex flex-col items-end flex-shrink-0">
                                             <span class="font-mono text-cyan-400 font-bold text-base">NZ${{ flight.price_nzd|int }}</span>
-                                            <span class="text-[10px] text-slate-500 uppercase">Google</span>
                                         </div>
                                     </div>
 
@@ -493,6 +519,89 @@
         });
     });
 
+    // --- Origins Logic ---
+    const originInput = document.getElementById('origin_search');
+    const originDropdown = document.getElementById('origin-dropdown');
+    const originContainer = document.getElementById('origins-container');
+    const originHidden = document.getElementById('origins_input');
+    let selectedOrigins = [];
+
+    document.addEventListener('click', (e) => {
+        if (originInput && !originInput.contains(e.target) && !originDropdown.contains(e.target)) {
+            originDropdown.classList.add('hidden');
+        }
+    });
+
+    let originDebounceTimer;
+    if (originInput) {
+        originInput.addEventListener('input', (e) => {
+            clearTimeout(originDebounceTimer);
+            const query = e.target.value.trim();
+            if (query.length < 2) { originDropdown.classList.add('hidden'); return; }
+            
+            originDebounceTimer = setTimeout(async () => {
+                try {
+                    const response = await fetch(`/settings/api/airports/search?q=${encodeURIComponent(query)}&limit=8`);
+                    const data = await response.json();
+                    if (data.results && data.results.length > 0) {
+                        const available = data.results.filter(r => !selectedOrigins.find(s => s.code === r.code));
+                        if (available.length === 0) {
+                            originDropdown.innerHTML = `<div class="px-4 py-3 text-sm text-slate-500 italic">Already added</div>`;
+                        } else {
+                            originDropdown.innerHTML = available.map(a => `
+                                <button type="button" class="w-full px-4 py-3 text-left hover:bg-slate-700 flex items-center justify-between group transition-colors border-b border-slate-700/50 last:border-0"
+                                        onclick="addOrigin('${a.code}', '${a.city}')">
+                                    <div class="flex flex-col">
+                                        <span class="font-bold text-white group-hover:text-cyan-400 transition-colors">${a.city}</span>
+                                        <span class="text-xs text-slate-400">${a.country}</span>
+                                    </div>
+                                    <span class="font-mono text-sm font-bold text-slate-500 group-hover:text-white bg-slate-900 px-2 py-1 rounded">${a.code}</span>
+                                </button>
+                            `).join('');
+                        }
+                        originDropdown.classList.remove('hidden');
+                    } else {
+                        originDropdown.innerHTML = `<div class="px-4 py-3 text-sm text-slate-500">No results found</div>`;
+                        originDropdown.classList.remove('hidden');
+                    }
+                } catch (err) { console.error('Origin search failed:', err); }
+            }, 200);
+        });
+    }
+
+    function addOrigin(code, city) {
+        if (selectedOrigins.some(o => o.code === code)) return;
+        selectedOrigins.push({ code, name: city });
+        updateOrigins();
+        originInput.value = '';
+        originInput.focus();
+        originDropdown.classList.add('hidden');
+    }
+    window.addOrigin = addOrigin;
+
+    function removeOrigin(code) {
+        selectedOrigins = selectedOrigins.filter(o => o.code !== code);
+        updateOrigins();
+    }
+    window.removeOrigin = removeOrigin;
+
+    function updateOrigins() {
+        originHidden.value = selectedOrigins.map(o => o.code).join(',');
+        originContainer.innerHTML = selectedOrigins.map(o => `
+            <div class="inline-flex items-center pl-3 pr-2 py-1.5 rounded-lg bg-slate-800 border border-slate-700 group hover:border-cyan-500/50 transition-all shadow-sm">
+                <span class="text-sm font-medium text-slate-200 mr-2">
+                    <span class="font-mono text-cyan-400 font-bold mr-1.5">${o.code}</span>
+                    <span class="text-slate-400 border-l border-slate-700 pl-1.5">${o.name}</span>
+                </span>
+                <button type="button" onclick="removeOrigin('${o.code}')" class="p-1 rounded-md text-slate-500 hover:text-red-400 hover:bg-slate-700/50 transition-colors">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+        `).join('');
+    }
+
     // --- Specific Destinations Logic ---
     const destInput = document.getElementById('destination_search');
     const destDropdown = document.getElementById('destination-dropdown');
@@ -500,7 +609,6 @@
     const destHidden = document.getElementById('destinations_input');
     let selectedDestinations = [];
 
-    // Close dropdown when clicking outside
     document.addEventListener('click', (e) => {
         if (destInput && !destInput.contains(e.target) && !destDropdown.contains(e.target)) {
             destDropdown.classList.add('hidden');
@@ -600,19 +708,22 @@
         const form = e.target;
         const submitBtn = form.querySelector('button[type="submit"]');
         
-        // Validation: Require at least one criteria (vibe OR destination)
+        if (selectedOrigins.length === 0) {
+            alert('Please select at least one departure airport');
+            return;
+        }
         if (selectedTypes.size === 0 && selectedDestinations.length === 0) {
             alert('Please select at least one destination vibe OR specific destination');
             return;
         }
 
-        // Loading state
         const originalBtnContent = submitBtn.innerHTML;
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Creating...';
 
         const data = {
             name: form.name.value,
+            origins: selectedOrigins.map(o => o.code),
             budget_max: parseInt(form.budget_max.value),
             budget_currency: form.budget_currency.value,
             available_from: form.available_from.value,
@@ -765,12 +876,11 @@
         const grid = section.querySelector('.flights-grid');
         const header = section.querySelector('h4');
         
-        // Update header to show success/count
         header.innerHTML = `
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
             </svg>
-            Best Flights (Google) - <span class="text-emerald-400 ml-1 text-xs">Updated just now (${data.results.length} found)</span>
+            Best Flights <span class="text-emerald-400 ml-1 text-xs">- Updated just now (${data.results.length} found)</span>
         `;
         
         const formatDate = (d, includeYear=false) => {
@@ -796,14 +906,12 @@
                             ${r.destination_city ? `<span class="text-slate-400 font-normal ml-1">${r.destination_city}</span>` : ''}
                         </h5>
                         <div class="flex items-center text-xs text-slate-400 gap-2">
-                            <span>${r.airline || 'Unknown'}</span>
-                            <span class="w-1 h-1 rounded-full bg-slate-600"></span>
-                            <span>${r.stops || 'Direct'}</span>
+                            ${r.airline && r.airline !== 'Unknown' ? `<span>${r.airline}</span><span class="w-1 h-1 rounded-full bg-slate-600"></span>` : ''}
+                            <span>${r.stops === 0 ? 'Direct' : r.stops === 1 ? '1 stop' : (r.stops + ' stops')}</span>
                         </div>
                     </div>
                     <div class="flex flex-col items-end flex-shrink-0">
-                        <span class="font-mono text-cyan-400 font-bold text-base">NZ${Math.round(r.price_nzd)}</span>
-                        <span class="text-[10px] text-slate-500 uppercase">Live</span>
+                        <span class="font-mono text-cyan-400 font-bold text-base">NZ$${Math.round(r.price_nzd)}</span>
                     </div>
                 </div>
 
