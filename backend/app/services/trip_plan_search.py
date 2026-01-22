@@ -67,9 +67,8 @@ class TripPlanSearchService:
     5. Returns sorted results (cheapest first)
     """
     
-    # Limit searches to avoid overwhelming Google
-    MAX_SEARCHES_PER_PLAN = 15
-    SEARCH_DELAY_SECONDS = 5
+    MAX_SEARCHES_PER_PLAN = 6
+    SEARCH_DELAY_SECONDS = 3
     
     def __init__(self, db: Session):
         self.db = db
