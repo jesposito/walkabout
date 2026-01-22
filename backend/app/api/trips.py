@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request, Query, HTTPException
+from fastapi import APIRouter, Depends, Request, Query, HTTPException, BackgroundTasks
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -6,6 +6,8 @@ from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime, timedelta
 import os
+import asyncio
+import logging
 
 from app.database import get_db
 from app.models.trip_plan import TripPlan
@@ -217,6 +219,34 @@ async def get_trip_matches(
     }
 
 
+async def run_trip_search_background(trip_id: int):
+    """Run trip search in background - survives client disconnect."""
+    logger = logging.getLogger(__name__)
+    from app.database import SessionLocal
+    db = SessionLocal()
+    try:
+        trip = db.query(TripPlan).filter(TripPlan.id == trip_id).first()
+        if not trip:
+            logger.error(f"Trip {trip_id} not found for background search")
+            return
+        
+        search_service = TripPlanSearchService(db)
+        try:
+            summary = await search_service.search_trip_plan(trip_id)
+            trip.search_in_progress = False
+            trip.last_search_at = datetime.utcnow()
+            db.commit()
+            logger.info(f"Trip {trip_id} search completed: {summary.searches_successful}/{summary.searches_attempted} successful")
+        except Exception as e:
+            logger.error(f"Trip {trip_id} search failed: {e}")
+            trip.search_in_progress = False
+            db.commit()
+        finally:
+            await search_service.close()
+    finally:
+        db.close()
+
+
 @router.post("/api/trips/{trip_id}/search")
 async def search_trip_prices(trip_id: int, db: Session = Depends(get_db)):
     trip = db.query(TripPlan).filter(TripPlan.id == trip_id).first()
@@ -240,44 +270,13 @@ async def search_trip_prices(trip_id: int, db: Session = Depends(get_db)):
     trip.search_started_at = now
     db.commit()
     
-    search_service = TripPlanSearchService(db)
+    asyncio.create_task(run_trip_search_background(trip_id))
     
-    try:
-        summary = await search_service.search_trip_plan(trip_id)
-        
-        trip.search_in_progress = False
-        trip.last_search_at = datetime.utcnow()
-        db.commit()
-        
-        return {
-            "trip_id": trip_id,
-            "trip_name": trip.name,
-            "searches_attempted": summary.searches_attempted,
-            "searches_successful": summary.searches_successful,
-            "duration_ms": summary.duration_ms,
-            "results": [
-                {
-                    "origin": r.origin,
-                    "origin_city": airports.get(r.origin, {}).get("city", r.origin),
-                    "destination": r.destination,
-                    "destination_city": airports.get(r.destination, {}).get("city", r.destination),
-                    "departure_date": r.departure_date.isoformat(),
-                    "return_date": r.return_date.isoformat() if r.return_date else None,
-                    "price_nzd": float(r.price_nzd),
-                    "airline": r.airline,
-                    "stops": r.stops,
-                    "booking_url": r.booking_url,
-                }
-                for r in summary.results
-            ],
-            "errors": summary.errors,
-        }
-    except Exception as e:
-        trip.search_in_progress = False
-        db.commit()
-        raise
-    finally:
-        await search_service.close()
+    return {
+        "status": "started",
+        "message": "Search started in background. Refresh the page to see results.",
+        "trip_id": trip_id,
+    }
 
 
 @router.put("/api/trips/{trip_id}/toggle")
