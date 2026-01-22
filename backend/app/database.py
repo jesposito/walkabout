@@ -1,21 +1,20 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, declarative_base
 from app.config import get_settings
+import logging
 
+logger = logging.getLogger(__name__)
 settings = get_settings()
 
-# SQLite needs different configuration than PostgreSQL
 db_url = settings.database_url
 is_sqlite = db_url.startswith("sqlite")
 
 if is_sqlite:
-    # SQLite: no pooling, enable check_same_thread=False for FastAPI
     engine = create_engine(
         db_url,
         connect_args={"check_same_thread": False}
     )
 else:
-    # PostgreSQL: use connection pooling
     engine = create_engine(
         db_url,
         pool_pre_ping=True,
@@ -34,3 +33,31 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+def ensure_sqlite_columns():
+    """Add any missing columns to SQLite tables (SQLite doesn't support full ALTER TABLE)."""
+    if not is_sqlite:
+        return
+    
+    migrations = [
+        ("deals", "is_relevant", "BOOLEAN DEFAULT 1"),
+        ("deals", "relevance_reason", "TEXT"),
+        ("deals", "score", "INTEGER DEFAULT 0"),
+        ("trip_plans", "search_in_progress", "BOOLEAN DEFAULT 0"),
+        ("trip_plans", "search_started_at", "DATETIME"),
+        ("trip_plans", "last_search_at", "DATETIME"),
+        ("search_definitions", "preferred_source", "VARCHAR(20) DEFAULT 'auto'"),
+    ]
+    
+    with engine.connect() as conn:
+        for table, column, col_type in migrations:
+            try:
+                result = conn.execute(text(f"PRAGMA table_info({table})")).fetchall()
+                existing_cols = [r[1] for r in result]
+                if column not in existing_cols:
+                    conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}"))
+                    logger.info(f"Added column {table}.{column}")
+            except Exception as e:
+                logger.debug(f"Migration check for {table}.{column}: {e}")
+        conn.commit()
