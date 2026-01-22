@@ -13,6 +13,10 @@ from app.models.user_settings import UserSettings
 from app.services.trip_matcher import TripMatcher
 from app.services.currency import CurrencyService
 from app.utils.template_helpers import get_airports_dict
+from app.services.airports import AIRPORTS
+
+# Pre-compute airports dict for API responses
+airports = {code: {"city": a.city, "country": a.country} for code, a in AIRPORTS.items()}
 
 router = APIRouter()
 
@@ -208,3 +212,43 @@ async def delete_trip(trip_id: int, db: Session = Depends(get_db)):
     db.commit()
     
     return {"deleted": True}
+
+
+@router.post("/api/trips/{trip_id}/check-matches")
+async def check_trip_matches(trip_id: int, db: Session = Depends(get_db)):
+    """
+    Manually trigger match checking for a trip plan.
+    Returns the number of matches found and top matches.
+    """
+    trip = db.query(TripPlan).filter(TripPlan.id == trip_id).first()
+    if not trip:
+        return {"error": "Trip not found"}
+    
+    matcher = TripMatcher(db)
+    match_count = matcher.update_plan_matches(trip)
+    matches = matcher.get_matches_for_plan(trip_id, limit=5)
+    
+    settings = UserSettings.get_or_create(db)
+    preferred_currency = settings.preferred_currency or "NZD"
+    
+    return {
+        "match_count": match_count,
+        "last_match_at": trip.last_match_at.isoformat() if trip.last_match_at else None,
+        "top_matches": [
+            {
+                "destination": deal.parsed_destination,
+                "destination_city": airports.get(deal.parsed_destination, {}).get("city", deal.parsed_destination) if deal.parsed_destination else "Unknown",
+                "price": deal.parsed_price,
+                "currency": deal.parsed_currency,
+                "converted_price": CurrencyService.convert_sync(
+                    deal.parsed_price, deal.parsed_currency or "USD", preferred_currency
+                ) if deal.parsed_price else None,
+                "preferred_currency": preferred_currency,
+                "airline": deal.parsed_airline,
+                "source": deal.source.value,
+                "link": deal.link,
+                "score": score,
+            }
+            for deal, score in matches
+        ],
+    }

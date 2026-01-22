@@ -106,6 +106,20 @@ class GoogleFlightsScraper:
                     "--disable-blink-features=AutomationControlled",
                     "--no-sandbox",
                     "--disable-dev-shm-usage",
+                    "--disable-gpu",
+                    "--disable-software-rasterizer",
+                    "--disable-extensions",
+                    "--single-process",
+                    "--no-zygote",
+                    "--disable-setuid-sandbox",
+                    "--disable-accelerated-2d-canvas",
+                    "--disable-background-networking",
+                    "--disable-default-apps",
+                    "--disable-sync",
+                    "--disable-translate",
+                    "--mute-audio",
+                    "--hide-scrollbars",
+                    "--metrics-recording-only",
                 ]
             )
         return self.browser
