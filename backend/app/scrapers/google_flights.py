@@ -324,21 +324,30 @@ class GoogleFlightsScraper:
             # Parse price elements
             price_elements = await page.query_selector_all("[data-gs]")
             
-            for element in price_elements[:10]:  # Limit to top 10 results
+            import re
+            seen_prices = set()  # Deduplicate
+            
+            for element in price_elements[:20]:  # Check more elements
                 try:
                     price_text = await element.inner_text()
-                    price_clean = price_text.replace("$", "").replace(",", "").replace("NZD", "").strip()
+                    # Extract digits from price text (handles NZ$128, $128, 128 NZD, etc.)
+                    match = re.search(r'[\d,]+', price_text.replace(',', ''))
                     
-                    if price_clean.isdigit():
-                        results.append(FlightResult(
-                            price_nzd=Decimal(price_clean),
-                            airline="Unknown",  # TODO: Extract airline
-                            stops=0,            # TODO: Extract stops
-                            duration_minutes=0, # TODO: Extract duration
-                            departure_time="",
-                            arrival_time="",
-                            raw_data={"price_text": price_text}
-                        ))
+                    if match:
+                        price_clean = match.group().replace(',', '')
+                        if price_clean.isdigit() and int(price_clean) > 10:  # Filter out tiny numbers
+                            price_val = int(price_clean)
+                            if price_val not in seen_prices:
+                                seen_prices.add(price_val)
+                                results.append(FlightResult(
+                                    price_nzd=Decimal(price_clean),
+                                    airline="Unknown",  # TODO: Extract airline
+                                    stops=0,            # TODO: Extract stops
+                                    duration_minutes=0, # TODO: Extract duration
+                                    departure_time="",
+                                    arrival_time="",
+                                    raw_data={"price_text": price_text}
+                                ))
                 except Exception:
                     continue
             
