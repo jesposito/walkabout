@@ -68,7 +68,7 @@ class TripPlanSearchService:
     """
     
     # Limit searches to avoid overwhelming Google
-    MAX_SEARCHES_PER_PLAN = 10
+    MAX_SEARCHES_PER_PLAN = 15
     SEARCH_DELAY_SECONDS = 5
     
     def __init__(self, db: Session):
@@ -278,7 +278,7 @@ class TripPlanSearchService:
             if ret2 <= effective_end and (mid_point, ret2) not in combos:
                 combos.append((mid_point, ret2))
         
-        return combos[:3]
+        return combos[:5]
     
     def _generate_search_combinations(
         self,
@@ -361,48 +361,72 @@ class TripPlanSearchService:
         self,
         trip: TripPlan,
         results: list[TripPlanSearchResult],
-        max_matches: int = 5
+        max_matches: int = 10
     ) -> int:
-        if not results:
-            return 0
+        today = date.today()
         
         self.db.query(TripPlanMatch).filter(
             TripPlanMatch.trip_plan_id == trip.id,
-            TripPlanMatch.source == MatchSource.GOOGLE_FLIGHTS.value
+            TripPlanMatch.departure_date < today
         ).delete()
         
-        sorted_results = sorted(results, key=lambda x: x.price_nzd)[:max_matches]
-        
-        for i, result in enumerate(sorted_results):
-            base_score = 80 - (i * 5)
+        for result in results:
+            existing = self.db.query(TripPlanMatch).filter(
+                TripPlanMatch.trip_plan_id == trip.id,
+                TripPlanMatch.origin == result.origin,
+                TripPlanMatch.destination == result.destination,
+                TripPlanMatch.departure_date == result.departure_date,
+                TripPlanMatch.return_date == result.return_date,
+            ).first()
             
-            if trip.budget_max:
-                budget = Decimal(trip.budget_max)
-                if result.price_nzd < budget * Decimal("0.5"):
-                    base_score += 15
-                elif result.price_nzd < budget * Decimal("0.75"):
-                    base_score += 10
-                elif result.price_nzd < budget:
-                    base_score += 5
-            
-            match = TripPlanMatch(
-                trip_plan_id=trip.id,
-                source=MatchSource.GOOGLE_FLIGHTS.value,
-                origin=result.origin,
-                destination=result.destination,
-                departure_date=result.departure_date,
-                return_date=result.return_date,
-                price_nzd=result.price_nzd,
-                airline=result.airline,
-                stops=result.stops,
-                duration_minutes=result.duration_minutes,
-                booking_url=result.booking_url,
-                match_score=Decimal(str(min(100, max(0, base_score)))),
-            )
-            self.db.add(match)
+            if existing:
+                if result.price_nzd < existing.price_nzd:
+                    existing.price_nzd = result.price_nzd
+                    existing.airline = result.airline
+                    existing.stops = result.stops
+                    existing.duration_minutes = result.duration_minutes
+                    existing.booking_url = result.booking_url
+                    existing.updated_at = datetime.utcnow()
+            else:
+                match = TripPlanMatch(
+                    trip_plan_id=trip.id,
+                    source=MatchSource.GOOGLE_FLIGHTS.value,
+                    origin=result.origin,
+                    destination=result.destination,
+                    departure_date=result.departure_date,
+                    return_date=result.return_date,
+                    price_nzd=result.price_nzd,
+                    airline=result.airline,
+                    stops=result.stops,
+                    duration_minutes=result.duration_minutes,
+                    booking_url=result.booking_url,
+                    match_score=Decimal("50"),
+                )
+                self.db.add(match)
         
         self.db.commit()
-        return len(sorted_results)
+        
+        all_matches = self.db.query(TripPlanMatch).filter(
+            TripPlanMatch.trip_plan_id == trip.id,
+            TripPlanMatch.source == MatchSource.GOOGLE_FLIGHTS.value,
+            TripPlanMatch.departure_date >= today
+        ).order_by(TripPlanMatch.price_nzd).all()
+        
+        for i, match in enumerate(all_matches):
+            base_score = 90 - (i * 3)
+            if trip.budget_max:
+                budget = Decimal(trip.budget_max)
+                if match.price_nzd < budget * Decimal("0.5"):
+                    base_score += 10
+                elif match.price_nzd < budget * Decimal("0.75"):
+                    base_score += 5
+            match.match_score = Decimal(str(min(100, max(0, base_score))))
+            
+            if i >= max_matches:
+                self.db.delete(match)
+        
+        self.db.commit()
+        return min(len(all_matches), max_matches)
     
     async def close(self):
         await self.scraper.close()
