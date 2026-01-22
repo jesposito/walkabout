@@ -13,6 +13,7 @@ from app.database import get_db
 from app.models.flight_price import FlightPrice
 from app.models.search_definition import SearchDefinition, TripType, CabinClass, StopsFilter
 from app.utils.template_helpers import get_airports_dict
+from app.services.airports import AirportService
 
 router = APIRouter()
 
@@ -120,6 +121,14 @@ async def create_search_definition(
     search: SearchDefinitionCreate,
     db: Session = Depends(get_db),
 ):
+    origin_valid, origin_error = AirportService.validate(search.origin)
+    if not origin_valid:
+        raise HTTPException(status_code=400, detail=f"Invalid origin: {origin_error}")
+    
+    dest_valid, dest_error = AirportService.validate(search.destination)
+    if not dest_valid:
+        raise HTTPException(status_code=400, detail=f"Invalid destination: {dest_error}")
+    
     definition = SearchDefinition(
         origin=search.origin.upper(),
         destination=search.destination.upper(),

@@ -180,6 +180,44 @@ AIRPORTS: dict[str, Airport] = {
 class AirportService:
     
     @staticmethod
+    def is_valid(code: str) -> bool:
+        """Check if an airport code is valid (exists in our database)."""
+        if not code or len(code) != 3:
+            return False
+        return code.upper() in AIRPORTS
+    
+    @staticmethod
+    def validate(code: str) -> tuple[bool, Optional[str]]:
+        """
+        Validate an airport code and return (is_valid, error_message).
+        
+        Returns:
+            (True, None) if valid
+            (False, "error message") if invalid
+        """
+        if not code:
+            return False, "Airport code is required"
+        
+        code = code.strip().upper()
+        
+        if len(code) != 3:
+            return False, f"Airport code must be 3 characters, got '{code}'"
+        
+        if not code.isalpha():
+            return False, f"Airport code must contain only letters, got '{code}'"
+        
+        if code in AIRPORTS:
+            return True, None
+        
+        # Code is well-formed but not in our database - suggest alternatives
+        suggestions = AirportService.search(code, limit=3)
+        if suggestions:
+            suggestion_text = ", ".join([f"{s.code} ({s.city})" for s in suggestions])
+            return False, f"Unknown airport code '{code}'. Did you mean: {suggestion_text}?"
+        
+        return False, f"Unknown airport code '{code}'. Check that it's a valid IATA code."
+    
+    @staticmethod
     def search(query: str, limit: int = 10) -> list[Airport]:
         if not query or len(query) < 2:
             return []

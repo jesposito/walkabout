@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request, Query
+from fastapi import APIRouter, Depends, Request, Query, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -13,7 +13,7 @@ from app.models.user_settings import UserSettings
 from app.services.trip_matcher import TripMatcher
 from app.services.currency import CurrencyService
 from app.utils.template_helpers import get_airports_dict
-from app.services.airports import AIRPORTS
+from app.services.airports import AIRPORTS, AirportService
 from app.services.trip_plan_search import TripPlanSearchService
 
 # Pre-compute airports dict for API responses
@@ -114,6 +114,22 @@ async def create_trip(
     trip: TripPlanCreate,
     db: Session = Depends(get_db),
 ):
+    invalid_origins = []
+    for o in trip.origins:
+        valid, error = AirportService.validate(o)
+        if not valid:
+            invalid_origins.append(f"{o}: {error}")
+    if invalid_origins:
+        raise HTTPException(status_code=400, detail=f"Invalid origin(s): {'; '.join(invalid_origins)}")
+    
+    invalid_dests = []
+    for d in trip.destinations:
+        valid, error = AirportService.validate(d)
+        if not valid:
+            invalid_dests.append(f"{d}: {error}")
+    if invalid_dests:
+        raise HTTPException(status_code=400, detail=f"Invalid destination(s): {'; '.join(invalid_dests)}")
+    
     new_trip = TripPlan(
         name=trip.name,
         origins=[o.upper() for o in trip.origins],

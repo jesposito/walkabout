@@ -67,10 +67,34 @@ class GoogleFlightsScraper:
     - Screenshot + HTML capture on failure
     - Circuit breaker integration
     - Proper timeout handling
+    
+    NOTE: Each scrape creates a fresh browser instance to avoid state leakage
+    and crashes between scrapes. The overhead is acceptable for 2-6 scrapes/day.
     """
     BASE_URL = "https://www.google.com/travel/flights"
     SCREENSHOTS_DIR = Path("/app/data/screenshots")
     HTML_SNAPSHOTS_DIR = Path("/app/data/html_snapshots")
+    
+    # Browser launch arguments for headless operation
+    BROWSER_ARGS = [
+        "--disable-blink-features=AutomationControlled",
+        "--no-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-gpu",
+        "--disable-software-rasterizer",
+        "--disable-extensions",
+        "--single-process",
+        "--no-zygote",
+        "--disable-setuid-sandbox",
+        "--disable-accelerated-2d-canvas",
+        "--disable-background-networking",
+        "--disable-default-apps",
+        "--disable-sync",
+        "--disable-translate",
+        "--mute-audio",
+        "--hide-scrollbars",
+        "--metrics-recording-only",
+    ]
     
     # Captcha detection patterns
     CAPTCHA_SELECTORS = [
@@ -88,41 +112,27 @@ class GoogleFlightsScraper:
         "access denied",
     ]
     
+    # Price selectors - multiple fallbacks for resilience against layout changes
+    PRICE_SELECTORS = [
+        "[data-gs]",                           # Primary: data-gs attribute
+        "span[aria-label*='dollars']",         # Fallback: aria-label with price
+        "span[aria-label*='NZD']",             # Fallback: NZD currency
+        ".YMlIz",                              # Fallback: price class (may change)
+        "[jsname='IWWDBc']",                   # Fallback: jsname for price element
+        "div[class*='price'] span",           # Generic price div
+    ]
+    
     def __init__(self, screenshots_dir: Optional[Path] = None, html_dir: Optional[Path] = None):
-        self.browser: Optional[Browser] = None
         self.screenshots_dir = screenshots_dir or self.SCREENSHOTS_DIR
         self.html_dir = html_dir or self.HTML_SNAPSHOTS_DIR
         
         # Ensure directories exist
         self.screenshots_dir.mkdir(parents=True, exist_ok=True)
         self.html_dir.mkdir(parents=True, exist_ok=True)
-    
-    async def _get_browser(self) -> Browser:
-        if not self.browser:
-            playwright = await async_playwright().start()
-            self.browser = await playwright.chromium.launch(
-                headless=True,
-                args=[
-                    "--disable-blink-features=AutomationControlled",
-                    "--no-sandbox",
-                    "--disable-dev-shm-usage",
-                    "--disable-gpu",
-                    "--disable-software-rasterizer",
-                    "--disable-extensions",
-                    "--single-process",
-                    "--no-zygote",
-                    "--disable-setuid-sandbox",
-                    "--disable-accelerated-2d-canvas",
-                    "--disable-background-networking",
-                    "--disable-default-apps",
-                    "--disable-sync",
-                    "--disable-translate",
-                    "--mute-audio",
-                    "--hide-scrollbars",
-                    "--metrics-recording-only",
-                ]
-            )
-        return self.browser
+        
+        # Store playwright instance for cleanup (set during scrape)
+        self._playwright = None
+        self._browser = None
     
     def _build_url(
         self,
@@ -222,6 +232,9 @@ class GoogleFlightsScraper:
         """
         Scrape Google Flights with proper failure classification.
         
+        Creates a fresh browser instance for each scrape to avoid state leakage
+        and crashes between scrapes (fixes cascading browser context failures).
+        
         Returns ScrapeResult with:
         - status: success/captcha/timeout/layout_change/no_results/blocked/network_error/unknown
         - prices: List of FlightResult (empty on failure)
@@ -229,8 +242,16 @@ class GoogleFlightsScraper:
         - error_message: Human-readable error description
         """
         start_time = datetime.utcnow()
-        browser = await self._get_browser()
-        context = await browser.new_context(
+        
+        # Create fresh playwright and browser for this scrape
+        # This avoids browser crashes affecting subsequent scrapes
+        self._playwright = await async_playwright().start()
+        self._browser = await self._playwright.chromium.launch(
+            headless=True,
+            args=self.BROWSER_ARGS
+        )
+        
+        context = await self._browser.new_context(
             viewport={"width": 1920, "height": 1080},
             user_agent=(
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -290,15 +311,23 @@ class GoogleFlightsScraper:
                     duration_ms=int((datetime.utcnow() - start_time).total_seconds() * 1000)
                 )
             
-            # Wait for flight results to load
-            try:
-                await page.wait_for_selector("[data-gs]", timeout=15000)
-            except PlaywrightTimeout:
-                # Check if this is "no results" vs layout change
+            # Wait for flight results to load - try multiple selectors
+            price_selector_used = None
+            for selector in self.PRICE_SELECTORS:
+                try:
+                    await page.wait_for_selector(selector, timeout=5000)
+                    price_selector_used = selector
+                    break
+                except PlaywrightTimeout:
+                    continue
+            
+            if not price_selector_used:
+                # None of our selectors worked - check if no results or layout change
                 no_flights_indicators = [
                     "no flights found",
                     "no matching flights",
                     "try different dates",
+                    "we couldn't find",
                 ]
                 content = (await page.content()).lower()
                 
@@ -309,45 +338,70 @@ class GoogleFlightsScraper:
                         duration_ms=int((datetime.utcnow() - start_time).total_seconds() * 1000)
                     )
                 else:
-                    # Likely a layout change if selector not found
+                    # Likely a layout change if no selector worked
                     screenshot_path, html_path = await self._save_failure_artifacts(
                         page, search_definition_id, "layout_change"
                     )
                     return ScrapeResult(
                         status="layout_change",
-                        error_message="Expected price elements not found - Google may have changed page structure",
+                        error_message=f"Expected price elements not found (tried {len(self.PRICE_SELECTORS)} selectors) - Google may have changed page structure",
                         screenshot_path=screenshot_path,
                         html_snapshot_path=html_path,
                         duration_ms=int((datetime.utcnow() - start_time).total_seconds() * 1000)
                     )
             
-            # Parse price elements
-            price_elements = await page.query_selector_all("[data-gs]")
+            # Parse price elements using the selector that worked
+            price_elements = await page.query_selector_all(price_selector_used)
             
             import re
             seen_prices = set()  # Deduplicate
             
-            for element in price_elements[:20]:  # Check more elements
+            for element in price_elements[:30]:  # Check more elements for better coverage
                 try:
+                    # Try inner_text first, then aria-label as fallback
                     price_text = await element.inner_text()
-                    # Extract digits from price text (handles NZ$128, $128, 128 NZD, etc.)
-                    match = re.search(r'[\d,]+', price_text.replace(',', ''))
                     
-                    if match:
-                        price_clean = match.group().replace(',', '')
-                        if price_clean.isdigit() and int(price_clean) > 10:  # Filter out tiny numbers
-                            price_val = int(price_clean)
-                            if price_val not in seen_prices:
-                                seen_prices.add(price_val)
-                                results.append(FlightResult(
-                                    price_nzd=Decimal(price_clean),
-                                    airline="Unknown",  # TODO: Extract airline
-                                    stops=0,            # TODO: Extract stops
-                                    duration_minutes=0, # TODO: Extract duration
-                                    departure_time="",
-                                    arrival_time="",
-                                    raw_data={"price_text": price_text}
-                                ))
+                    # Also check aria-label which often contains the price
+                    aria_label = await element.get_attribute("aria-label")
+                    if aria_label:
+                        price_text = f"{price_text} {aria_label}"
+                    
+                    # Extract price using multiple patterns
+                    # Pattern 1: Currency symbol followed by number (NZ$1,234 or $1234)
+                    # Pattern 2: Number followed by currency (1234 NZD)
+                    # Pattern 3: Just a number that looks like a price (3-5 digits)
+                    price_patterns = [
+                        r'(?:NZ\$|AU\$|\$|€|£)\s*([\d,]+)',  # Currency symbol prefix
+                        r'([\d,]+)\s*(?:NZD|AUD|USD|EUR|GBP)',  # Currency suffix
+                        r'\b(\d{3,5})\b',  # 3-5 digit number (typical flight price)
+                    ]
+                    
+                    price_val = None
+                    for pattern in price_patterns:
+                        match = re.search(pattern, price_text.replace(',', ''))
+                        if match:
+                            price_clean = match.group(1).replace(',', '')
+                            if price_clean.isdigit():
+                                val = int(price_clean)
+                                # Filter reasonable flight prices (50 to 50000)
+                                if 50 <= val <= 50000:
+                                    price_val = val
+                                    break
+                    
+                    if price_val and price_val not in seen_prices:
+                        seen_prices.add(price_val)
+                        results.append(FlightResult(
+                            price_nzd=Decimal(price_val),
+                            airline="Unknown",  # TODO: Extract airline
+                            stops=0,            # TODO: Extract stops
+                            duration_minutes=0, # TODO: Extract duration
+                            departure_time="",
+                            arrival_time="",
+                            raw_data={
+                                "price_text": price_text,
+                                "selector_used": price_selector_used
+                            }
+                        ))
                 except Exception:
                     continue
             
@@ -384,12 +438,33 @@ class GoogleFlightsScraper:
             )
         
         finally:
-            await context.close()
+            # Always close context, browser, and playwright to avoid resource leaks
+            try:
+                await context.close()
+            except Exception:
+                pass
+            
+            await self._cleanup_browser()
+    
+    async def _cleanup_browser(self):
+        """Clean up browser and playwright instances."""
+        if self._browser:
+            try:
+                await self._browser.close()
+            except Exception:
+                pass
+            self._browser = None
+        
+        if self._playwright:
+            try:
+                await self._playwright.stop()
+            except Exception:
+                pass
+            self._playwright = None
     
     async def close(self):
-        if self.browser:
-            await self.browser.close()
-            self.browser = None
+        """Clean up resources. Called for backward compatibility."""
+        await self._cleanup_browser()
 
 
 class ScraperError(Exception):
