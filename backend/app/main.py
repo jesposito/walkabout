@@ -6,6 +6,7 @@ import logging
 import os
 
 from app.api import routes, prices, health, status, notifications, deals
+from app.api import settings as settings_api
 from app.scheduler import start_scheduler, stop_scheduler
 from app.services.notification import InMemoryNotifier
 from app.config import get_settings
@@ -75,7 +76,7 @@ app.add_middleware(
         "http://127.0.0.1:8000"
     ],
     allow_credentials=True,
-    allow_methods=["GET", "POST"],  # Limited for Phase 1a
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
 )
 
@@ -84,10 +85,11 @@ if os.path.exists(static_dir):
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 app.include_router(deals.router, prefix="/deals", tags=["deals"])
+app.include_router(settings_api.router, prefix="/settings", tags=["settings"])
 app.include_router(status.router, tags=["status"])
 app.include_router(health.router, tags=["health"])  
 app.include_router(routes.router, prefix="/api/routes", tags=["routes"])
-app.include_router(prices.router, prefix="/api/prices", tags=["prices"])
+app.include_router(prices.router, prefix="/prices", tags=["prices"])
 app.include_router(notifications.router, prefix="/api", tags=["notifications"])
 
 

@@ -5,6 +5,7 @@ from app.models.alert import Alert
 from app.models.route import Route
 from app.models.deal import Deal, DealSource, ParseStatus
 from app.models.feed_health import FeedHealth
+from app.models.user_settings import UserSettings
 
 __all__ = [
     "SearchDefinition",
@@ -16,6 +17,7 @@ __all__ = [
     "DealSource",
     "ParseStatus",
     "FeedHealth",
+    "UserSettings",
     "TripType",
     "CabinClass", 
     "StopsFilter",

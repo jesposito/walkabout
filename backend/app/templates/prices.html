@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="bg-slate-900 min-h-full pb-12">
+    <div class="bg-slate-800/50 border-b border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                    <h1 class="text-3xl font-bold text-white tracking-tight">Price Tracker</h1>
+                    <p class="text-slate-400 mt-1">Monitor prices for your routes over time</p>
+                </div>
+                <button onclick="openAddModal()" 
+                        class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-white font-semibold rounded-lg 
+                               shadow-lg shadow-cyan-500/25 transition-all flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Add Route
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+        <div id="searches-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for search in searches %}
+            <div class="bg-slate-800 rounded-xl p-6 border border-slate-700" data-search-id="{{ search.id }}">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-baseline gap-2 text-2xl font-bold text-white">
+                        <span>{{ search.origin }}</span>
+                        <span class="text-slate-600 text-lg">{% if search.trip_type == 'round_trip' %}⇄{% else %}→{% endif %}</span>
+                        <span class="text-cyan-400">{{ search.destination }}</span>
+                    </div>
+                    <button onclick="deleteSearch({{ search.id }})" class="text-slate-500 hover:text-red-400 transition-colors">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </button>
+                </div>
+                
+                <div class="flex flex-wrap gap-2 mb-4">
+                    <span class="px-2 py-1 rounded text-[10px] font-mono font-bold tracking-wider uppercase bg-slate-700 text-slate-300 border border-slate-600">
+                        {{ search.cabin_class }}
+                    </span>
+                    <span class="px-2 py-1 rounded text-[10px] font-mono tracking-wider uppercase bg-slate-700 text-slate-300 border border-slate-600">
+                        {{ search.adults + search.children }} pax
+                    </span>
+                    <span class="px-2 py-1 rounded text-[10px] font-mono tracking-wider uppercase bg-slate-700 text-slate-300 border border-slate-600">
+                        {{ search.currency }}
+                    </span>
+                </div>
+                
+                <div id="stats-{{ search.id }}" class="border-t border-slate-700 pt-4 mt-4">
+                    <div class="text-sm text-slate-500">Loading stats...</div>
+                </div>
+            </div>
+            {% else %}
+            <div class="col-span-full flex flex-col items-center justify-center py-20 text-center">
+                <div class="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mb-6">
+                    <svg class="w-10 h-10 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-2">No routes tracked</h3>
+                <p class="text-slate-400 max-w-md mx-auto mb-6">Add a route to start monitoring prices over time.</p>
+                <button onclick="openAddModal()" class="px-6 py-3 bg-cyan-500 hover:bg-cyan-400 text-white font-semibold rounded-lg">
+                    Add Your First Route
+                </button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div id="add-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm">
+    <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 w-full max-w-md mx-4">
+        <h2 class="text-xl font-bold text-white mb-6">Add Route to Track</h2>
+        <form id="add-form" class="space-y-4">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-2">Origin</label>
+                    <input type="text" name="origin" required maxlength="3"
+                           class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white 
+                                  uppercase font-mono text-lg tracking-wider focus:ring-2 focus:ring-cyan-500"
+                           placeholder="AKL">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-2">Destination</label>
+                    <input type="text" name="destination" required maxlength="3"
+                           class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white 
+                                  uppercase font-mono text-lg tracking-wider focus:ring-2 focus:ring-cyan-500"
+                           placeholder="SYD">
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-2">Adults</label>
+                    <input type="number" name="adults" value="2" min="1" max="9"
+                           class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-cyan-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-2">Children</label>
+                    <input type="number" name="children" value="2" min="0" max="9"
+                           class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-cyan-500">
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2">Cabin Class</label>
+                <select name="cabin_class" class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-cyan-500">
+                    <option value="economy">Economy</option>
+                    <option value="premium_economy">Premium Economy</option>
+                    <option value="business">Business</option>
+                    <option value="first">First</option>
+                </select>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2">Trip Type</label>
+                <select name="trip_type" class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-cyan-500">
+                    <option value="round_trip">Round Trip</option>
+                    <option value="one_way">One Way</option>
+                </select>
+            </div>
+            
+            <div class="flex gap-3 pt-4">
+                <button type="button" onclick="closeAddModal()" 
+                        class="flex-1 px-4 py-3 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors">
+                    Cancel
+                </button>
+                <button type="submit" 
+                        class="flex-1 px-4 py-3 bg-cyan-500 hover:bg-cyan-400 text-white font-semibold rounded-lg transition-colors">
+                    Add Route
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openAddModal() {
+    document.getElementById('add-modal').classList.remove('hidden');
+}
+
+function closeAddModal() {
+    document.getElementById('add-modal').classList.add('hidden');
+}
+
+document.getElementById('add-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const data = {
+        origin: form.origin.value.toUpperCase(),
+        destination: form.destination.value.toUpperCase(),
+        adults: parseInt(form.adults.value),
+        children: parseInt(form.children.value),
+        cabin_class: form.cabin_class.value,
+        trip_type: form.trip_type.value,
+    };
+    
+    try {
+        const response = await fetch('/prices/searches', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        });
+        
+        if (response.ok) {
+            window.location.reload();
+        } else {
+            alert('Failed to add route');
+        }
+    } catch (err) {
+        alert('Error: ' + err.message);
+    }
+});
+
+async function deleteSearch(id) {
+    if (!confirm('Remove this route from tracking?')) return;
+    
+    try {
+        const response = await fetch(`/prices/searches/${id}`, { method: 'DELETE' });
+        if (response.ok) {
+            document.querySelector(`[data-search-id="${id}"]`).remove();
+        }
+    } catch (err) {
+        alert('Error: ' + err.message);
+    }
+}
+
+async function loadStats() {
+    const cards = document.querySelectorAll('[data-search-id]');
+    for (const card of cards) {
+        const id = card.dataset.searchId;
+        try {
+            const response = await fetch(`/prices/searches/${id}/stats`);
+            const stats = await response.json();
+            
+            const statsEl = document.getElementById(`stats-${id}`);
+            if (stats.price_count > 0) {
+                const trendIcon = stats.price_trend === 'down' ? '↓' : stats.price_trend === 'up' ? '↑' : '→';
+                const trendColor = stats.price_trend === 'down' ? 'text-green-400' : stats.price_trend === 'up' ? 'text-red-400' : 'text-slate-400';
+                
+                statsEl.innerHTML = `
+                    <div class="grid grid-cols-3 gap-4 text-center">
+                        <div>
+                            <div class="text-xs text-slate-500 uppercase mb-1">Low</div>
+                            <div class="text-lg font-bold text-green-400">$${Math.round(stats.min_price)}</div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-slate-500 uppercase mb-1">Avg</div>
+                            <div class="text-lg font-bold text-slate-300">$${Math.round(stats.avg_price)}</div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-slate-500 uppercase mb-1">Current</div>
+                            <div class="text-lg font-bold ${trendColor}">${stats.current_price ? '$' + Math.round(stats.current_price) : 'N/A'} ${trendIcon}</div>
+                        </div>
+                    </div>
+                    <div class="text-xs text-slate-500 text-center mt-2">${stats.price_count} price points</div>
+                `;
+            } else {
+                statsEl.innerHTML = '<div class="text-sm text-slate-500 text-center">No price data yet</div>';
+            }
+        } catch (err) {
+            console.error(`Failed to load stats for ${id}:`, err);
+        }
+    }
+}
+
+loadStats();
+</script>
+{% endblock %}

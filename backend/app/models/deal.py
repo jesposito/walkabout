@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Text, Enum as SQLEnum, UniqueConstraint
+from sqlalchemy import Column, Integer, String, DateTime, Text, Enum as SQLEnum, UniqueConstraint, Boolean, Float
 from sqlalchemy.sql import func
 from app.database import Base
 import enum
@@ -8,7 +8,15 @@ class DealSource(enum.Enum):
     SECRET_FLYING = "secret_flying"
     OMAAT = "omaat"
     TPG = "the_points_guy"
+    THE_FLIGHT_DEAL = "the_flight_deal"
+    FLY4FREE = "fly4free"
+    GOING = "going"
+    HOLIDAY_PIRATES = "holiday_pirates"
     AFF = "australian_frequent_flyer"
+    POINT_HACKS = "point_hacks"
+    FRUGAL_FLYER = "frugal_flyer"
+    SECRET_FLYING_EU = "secret_flying_eu"
+    TRAVEL_FREE = "travel_free"
 
 
 class ParseStatus(enum.Enum):
@@ -43,6 +51,10 @@ class Deal(Base):
     parse_status = Column(SQLEnum(ParseStatus), default=ParseStatus.PENDING)
     parse_error = Column(Text, nullable=True)
     parse_version = Column(Integer, default=1)
+    
+    is_relevant = Column(Boolean, default=False, index=True)
+    relevance_reason = Column(String(256), nullable=True)
+    score = Column(Float, default=0.0, index=True)
     
     fetched_at = Column(DateTime, server_default=func.now())
     created_at = Column(DateTime, server_default=func.now())

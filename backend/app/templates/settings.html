@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="bg-slate-900 min-h-full pb-12">
+    <div class="bg-slate-800/50 border-b border-slate-800">
+        <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <h1 class="text-3xl font-bold text-white tracking-tight">Settings</h1>
+            <p class="text-slate-400 mt-1">Configure your home airport and deal preferences</p>
+        </div>
+    </div>
+
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+        <form id="settings-form" class="space-y-8">
+            <div class="bg-slate-800 rounded-xl p-6 border border-slate-700">
+                <h2 class="text-lg font-semibold text-white mb-4">Home Location</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="home_airport" class="block text-sm font-medium text-slate-300 mb-2">
+                            Home Airport (IATA Code)
+                        </label>
+                        <input type="text" id="home_airport" name="home_airport" 
+                               value="{{ settings.home_airport }}"
+                               maxlength="3"
+                               class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white 
+                                      placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 
+                                      focus:border-transparent uppercase font-mono text-lg tracking-wider"
+                               placeholder="AKL">
+                        <p class="mt-1 text-xs text-slate-500">e.g., AKL, SYD, LAX</p>
+                    </div>
+                    
+                    <div>
+                        <label for="home_region" class="block text-sm font-medium text-slate-300 mb-2">
+                            Home Region
+                        </label>
+                        <select id="home_region" name="home_region"
+                                class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white 
+                                       focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
+                            <option value="Oceania" {% if settings.home_region == 'Oceania' %}selected{% endif %}>Oceania</option>
+                            <option value="North America" {% if settings.home_region == 'North America' %}selected{% endif %}>North America</option>
+                            <option value="Europe" {% if settings.home_region == 'Europe' %}selected{% endif %}>Europe</option>
+                            <option value="Asia" {% if settings.home_region == 'Asia' %}selected{% endif %}>Asia</option>
+                            <option value="South America" {% if settings.home_region == 'South America' %}selected{% endif %}>South America</option>
+                            <option value="Africa" {% if settings.home_region == 'Africa' %}selected{% endif %}>Africa</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-slate-800 rounded-xl p-6 border border-slate-700">
+                <h2 class="text-lg font-semibold text-white mb-4">Watched Destinations</h2>
+                <p class="text-sm text-slate-400 mb-4">Deals to these airports will be marked as relevant</p>
+                
+                <div>
+                    <label for="watched_destinations" class="block text-sm font-medium text-slate-300 mb-2">
+                        Airport Codes (comma-separated)
+                    </label>
+                    <input type="text" id="watched_destinations" name="watched_destinations" 
+                           value="{{ settings.watched_destinations | join(', ') }}"
+                           class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white 
+                                  placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 
+                                  focus:border-transparent uppercase font-mono"
+                           placeholder="SYD, MEL, NAN, TYO, SIN">
+                    <p class="mt-1 text-xs text-slate-500">e.g., SYD, MEL, NAN, RAR, HNL, TYO, SIN</p>
+                </div>
+                
+                <div class="mt-4">
+                    <label for="watched_regions" class="block text-sm font-medium text-slate-300 mb-2">
+                        Watched Regions
+                    </label>
+                    <div class="flex flex-wrap gap-2">
+                        {% for region in ['Pacific', 'Asia', 'Australia', 'Europe', 'North America', 'South America'] %}
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" name="watched_regions" value="{{ region }}"
+                                   {% if region in (settings.watched_regions or []) %}checked{% endif %}
+                                   class="w-4 h-4 rounded border-slate-600 bg-slate-900 text-cyan-500 
+                                          focus:ring-cyan-500 focus:ring-offset-slate-800">
+                            <span class="ml-2 text-sm text-slate-300">{{ region }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-slate-800 rounded-xl p-6 border border-slate-700">
+                <h2 class="text-lg font-semibold text-white mb-4">Notifications</h2>
+                
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <span class="text-sm font-medium text-slate-300">Enable Notifications</span>
+                        <p class="text-xs text-slate-500">Get alerts for relevant deals</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="notifications_enabled" name="notifications_enabled"
+                               {% if settings.notifications_enabled %}checked{% endif %}
+                               class="sr-only peer">
+                        <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-2 
+                                    peer-focus:ring-cyan-500 rounded-full peer 
+                                    peer-checked:after:translate-x-full peer-checked:after:border-white 
+                                    after:content-[''] after:absolute after:top-[2px] after:left-[2px] 
+                                    after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all 
+                                    peer-checked:bg-cyan-500"></div>
+                    </label>
+                </div>
+                
+                <div>
+                    <label for="notification_min_discount_percent" class="block text-sm font-medium text-slate-300 mb-2">
+                        Minimum Discount to Notify (%)
+                    </label>
+                    <input type="number" id="notification_min_discount_percent" name="notification_min_discount_percent"
+                           value="{{ settings.notification_min_discount_percent }}"
+                           min="5" max="90" step="5"
+                           class="w-32 px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white 
+                                  focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
+                    <p class="mt-1 text-xs text-slate-500">Only notify for deals this % below average</p>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between">
+                <a href="/deals/" class="text-slate-400 hover:text-white transition-colors">
+                    ← Back to Deals
+                </a>
+                <button type="submit" 
+                        class="px-6 py-3 bg-cyan-500 hover:bg-cyan-400 text-white font-semibold rounded-lg 
+                               shadow-lg shadow-cyan-500/25 transition-all">
+                    Save Settings
+                </button>
+            </div>
+        </form>
+        
+        <div id="save-status" class="hidden mt-4 p-4 rounded-lg text-center"></div>
+    </div>
+</div>
+
+<script>
+document.getElementById('settings-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const form = e.target;
+    const statusEl = document.getElementById('save-status');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Saving...';
+    
+    const watchedDests = form.watched_destinations.value
+        .split(',')
+        .map(s => s.trim().toUpperCase())
+        .filter(s => s.length > 0);
+    
+    const watchedRegions = Array.from(form.querySelectorAll('input[name="watched_regions"]:checked'))
+        .map(cb => cb.value);
+    
+    const data = {
+        home_airport: form.home_airport.value.toUpperCase().trim(),
+        home_region: form.home_region.value,
+        watched_destinations: watchedDests,
+        watched_regions: watchedRegions,
+        notifications_enabled: form.notifications_enabled.checked,
+        notification_min_discount_percent: parseInt(form.notification_min_discount_percent.value),
+    };
+    
+    try {
+        const response = await fetch('/settings/api/settings', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        });
+        
+        if (response.ok) {
+            statusEl.className = 'mt-4 p-4 rounded-lg text-center bg-green-500/10 text-green-400 border border-green-500/20';
+            statusEl.textContent = '✓ Settings saved! Deal relevance has been recalculated.';
+            statusEl.classList.remove('hidden');
+            setTimeout(() => statusEl.classList.add('hidden'), 3000);
+        } else {
+            throw new Error('Failed to save');
+        }
+    } catch (err) {
+        statusEl.className = 'mt-4 p-4 rounded-lg text-center bg-red-500/10 text-red-400 border border-red-500/20';
+        statusEl.textContent = '✗ Failed to save settings. Please try again.';
+        statusEl.classList.remove('hidden');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Save Settings';
+    }
+});
+</script>
+{% endblock %}

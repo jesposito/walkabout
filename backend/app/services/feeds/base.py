@@ -7,10 +7,14 @@ import hashlib
 import feedparser
 import httpx
 import logging
+import asyncio
 
 from app.models.deal import DealSource, ParseStatus
 
 logger = logging.getLogger(__name__)
+
+MAX_RETRIES = 3
+RETRY_DELAY = 2.0
 
 
 @dataclass
@@ -122,38 +126,59 @@ class BaseFeedParser(ABC):
         self.timeout = 30.0
     
     async def fetch_feed(self) -> list[ParsedDeal]:
-        try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.get(
-                    self.feed_url,
-                    headers={"User-Agent": "Walkabout/1.0 (Personal Flight Deal Monitor)"},
-                    follow_redirects=True,
-                )
-                response.raise_for_status()
+        last_error = None
+        
+        for attempt in range(MAX_RETRIES):
+            try:
+                async with httpx.AsyncClient(timeout=self.timeout) as client:
+                    response = await client.get(
+                        self.feed_url,
+                        headers={"User-Agent": "Walkabout/1.0 (Personal Flight Deal Monitor)"},
+                        follow_redirects=True,
+                    )
+                    response.raise_for_status()
+                    
+                feed = feedparser.parse(response.text)
                 
-            feed = feedparser.parse(response.text)
-            
-            if feed.bozo and feed.bozo_exception:
-                logger.warning(f"Feed parse warning for {self.source.value}: {feed.bozo_exception}")
-            
-            deals = []
-            for entry in feed.entries:
-                try:
-                    deal = self._parse_entry(entry)
-                    deal.compute_input_hash()
-                    deals.append(deal)
-                except Exception as e:
-                    logger.error(f"Failed to parse entry from {self.source.value}: {e}")
-                    deals.append(self._create_failed_deal(entry, str(e)))
-            
-            return deals
-            
-        except httpx.HTTPError as e:
-            logger.error(f"HTTP error fetching {self.source.value}: {e}")
-            raise
-        except Exception as e:
-            logger.error(f"Error fetching {self.source.value}: {e}")
-            raise
+                if feed.bozo and feed.bozo_exception:
+                    logger.warning(f"Feed parse warning for {self.source.value}: {feed.bozo_exception}")
+                
+                if not feed.entries:
+                    logger.warning(f"No entries found in {self.source.value} feed")
+                    return []
+                
+                deals = []
+                for entry in feed.entries:
+                    try:
+                        deal = self._parse_entry(entry)
+                        deal.compute_input_hash()
+                        deals.append(deal)
+                    except Exception as e:
+                        logger.error(f"Failed to parse entry from {self.source.value}: {e}")
+                        deals.append(self._create_failed_deal(entry, str(e)))
+                
+                return deals
+                
+            except httpx.TimeoutException as e:
+                last_error = e
+                logger.warning(f"Timeout fetching {self.source.value} (attempt {attempt + 1}/{MAX_RETRIES})")
+                if attempt < MAX_RETRIES - 1:
+                    await asyncio.sleep(RETRY_DELAY * (attempt + 1))
+            except httpx.HTTPStatusError as e:
+                if e.response.status_code in (429, 503, 502, 504):
+                    last_error = e
+                    logger.warning(f"Retryable HTTP {e.response.status_code} for {self.source.value}")
+                    if attempt < MAX_RETRIES - 1:
+                        await asyncio.sleep(RETRY_DELAY * (attempt + 1))
+                else:
+                    logger.error(f"HTTP {e.response.status_code} fetching {self.source.value}")
+                    raise
+            except Exception as e:
+                logger.error(f"Error fetching {self.source.value}: {e}")
+                raise
+        
+        logger.error(f"All {MAX_RETRIES} retries failed for {self.source.value}")
+        raise last_error or Exception(f"Failed to fetch {self.source.value}")
     
     def _parse_entry(self, entry) -> ParsedDeal:
         deal = ParsedDeal(

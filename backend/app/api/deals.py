@@ -20,11 +20,17 @@ async def deals_page(
     request: Request,
     source: Optional[str] = Query(None),
     cabin: Optional[str] = Query(None),
+    relevant: Optional[bool] = Query(True),
+    sort: Optional[str] = Query("score"),
     db: Session = Depends(get_db),
 ):
     service = FeedService(db)
     
-    deals = service.get_deals(limit=100)
+    deals = service.get_deals(
+        relevant_only=relevant if relevant is not None else True,
+        limit=100,
+        sort_by=sort or "score",
+    )
     
     if source:
         deals = [d for d in deals if d.source.value == source]
@@ -36,6 +42,10 @@ async def deals_page(
     sources = [s.value for s in DealSource]
     cabins = ["economy", "premium_economy", "business", "first"]
     
+    # Count totals for toggle display
+    all_count = len(service.get_deals(relevant_only=False, limit=500))
+    relevant_count = len(service.get_deals(relevant_only=True, limit=500))
+    
     return templates.TemplateResponse(
         "deals.html",
         {
@@ -46,6 +56,10 @@ async def deals_page(
             "cabins": cabins,
             "current_source": source,
             "current_cabin": cabin,
+            "current_relevant": relevant,
+            "current_sort": sort or "score",
+            "all_count": all_count,
+            "relevant_count": relevant_count,
         }
     )
 
@@ -53,12 +67,13 @@ async def deals_page(
 @router.get("/api/deals")
 async def get_deals_api(
     origin: Optional[str] = Query(None),
+    relevant: Optional[bool] = Query(None),
     limit: int = Query(50, le=200),
     offset: int = Query(0),
     db: Session = Depends(get_db),
 ):
     service = FeedService(db)
-    deals = service.get_deals(origin=origin, limit=limit, offset=offset)
+    deals = service.get_deals(origin=origin, relevant_only=relevant if relevant is not None else False, limit=limit, offset=offset)
     
     return {
         "deals": [
@@ -74,6 +89,8 @@ async def get_deals_api(
                 "source": d.source.value,
                 "link": d.link,
                 "published_at": d.published_at.isoformat() if d.published_at else None,
+                "is_relevant": d.is_relevant,
+                "relevance_reason": d.relevance_reason,
             }
             for d in deals
         ],

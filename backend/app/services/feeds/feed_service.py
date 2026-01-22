@@ -5,10 +5,14 @@ import logging
 
 from app.models.deal import Deal, DealSource, ParseStatus
 from app.models.feed_health import FeedHealth
+from app.models.user_settings import UserSettings
 from app.services.feeds.base import BaseFeedParser, ParsedDeal
 from app.services.feeds.secret_flying import SecretFlyingParser
 from app.services.feeds.omaat import OMAATParser
+from app.services.feeds.generic_parser import create_parser, FEED_CONFIGS
 from app.services.feeds.ai_extractor import AIExtractor, AIInsightsEngine
+from app.services.relevance import RelevanceService
+from app.services.deal_scorer import DealScorer
 from app.config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -16,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 class FeedService:
     
-    PARSERS: dict[DealSource, type[BaseFeedParser]] = {
+    CUSTOM_PARSERS: dict[DealSource, type[BaseFeedParser]] = {
         DealSource.SECRET_FLYING: SecretFlyingParser,
         DealSource.OMAAT: OMAATParser,
     }
@@ -25,11 +29,24 @@ class FeedService:
         self.db = db
         self.ai_extractor = AIExtractor()
         self.ai_insights = AIInsightsEngine()
+        self.relevance = RelevanceService(db)
         self.settings = get_settings()
+    
+    def _get_parser(self, source: DealSource) -> Optional[BaseFeedParser]:
+        if source in self.CUSTOM_PARSERS:
+            return self.CUSTOM_PARSERS[source]()
+        if source in FEED_CONFIGS:
+            return create_parser(source)
+        return None
+    
+    def get_enabled_sources(self) -> list[DealSource]:
+        custom = list(self.CUSTOM_PARSERS.keys())
+        generic = list(FEED_CONFIGS.keys())
+        return custom + generic
     
     async def ingest_all_feeds(self) -> dict[str, dict]:
         results = {}
-        for source in self.PARSERS:
+        for source in self.get_enabled_sources():
             try:
                 result = await self.ingest_feed(source)
                 results[source.value] = result
@@ -40,11 +57,9 @@ class FeedService:
         return results
     
     async def ingest_feed(self, source: DealSource) -> dict:
-        parser_class = self.PARSERS.get(source)
-        if not parser_class:
+        parser = self._get_parser(source)
+        if not parser:
             raise ValueError(f"No parser for source: {source}")
-        
-        parser = parser_class()
         
         try:
             deals = await parser.fetch_feed()
@@ -106,6 +121,11 @@ class FeedService:
                 fetched_at=datetime.utcnow(),
             )
             
+            self.relevance.update_deal_relevance(deal)
+            
+            scorer = DealScorer(self.db)
+            scorer.update_deal_score(deal)
+            
             self.db.add(deal)
             new_count += 1
         
@@ -158,15 +178,32 @@ class FeedService:
     def get_deals(
         self,
         origin: Optional[str] = None,
+        relevant_only: bool = False,
         limit: int = 50,
         offset: int = 0,
+        sort_by: str = "score",
     ) -> list[Deal]:
-        query = self.db.query(Deal).order_by(Deal.published_at.desc())
+        query = self.db.query(Deal)
+        
+        if relevant_only:
+            query = query.filter(Deal.is_relevant == True)
         
         if origin:
             query = query.filter(Deal.parsed_origin == origin.upper())
         
+        if sort_by == "score":
+            query = query.order_by(Deal.score.desc().nullslast(), Deal.published_at.desc())
+        elif sort_by == "date":
+            query = query.order_by(Deal.published_at.desc())
+        elif sort_by == "price":
+            query = query.order_by(Deal.parsed_price.asc().nullslast())
+        else:
+            query = query.order_by(Deal.published_at.desc())
+        
         return query.offset(offset).limit(limit).all()
+    
+    def get_relevant_deals(self, limit: int = 50) -> list[Deal]:
+        return self.relevance.get_relevant_deals(limit)
     
     def get_deals_for_home(self, home_airport: str, limit: int = 50) -> list[Deal]:
         return self.db.query(Deal).filter(

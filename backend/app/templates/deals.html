@@ -8,18 +8,49 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
-                    <h1 class="text-3xl font-bold text-white tracking-tight">Latest Finds</h1>
-                    <p class="text-slate-400 mt-1">Curated flight deals departing from Auckland (AKL)</p>
+                    <h1 class="text-3xl font-bold text-white tracking-tight">
+                        {% if current_relevant %}For You{% else %}All Deals{% endif %}
+                    </h1>
+                    <p class="text-slate-400 mt-1">
+                        {% if current_relevant %}Deals relevant to your home airport and watched destinations
+                        {% else %}All flight deals from {{ feed_health|length }} sources{% endif %}
+                    </p>
                 </div>
                 
-                <!-- Simple Filters (Visual only for now, functional logic would need JS/Backend support) -->
-                <div class="flex flex-wrap items-center gap-2">
-                    <span class="text-xs font-mono text-slate-500 uppercase tracking-wider mr-2">Filter:</span>
-                    <button class="px-3 py-1.5 rounded-md bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-medium transition-colors border border-slate-600">All Cabins</button>
-                    <button class="px-3 py-1.5 rounded-md bg-transparent hover:bg-slate-800 text-slate-400 hover:text-slate-200 text-xs font-medium transition-colors border border-slate-700 hover:border-slate-600">Economy</button>
-                    <button class="px-3 py-1.5 rounded-md bg-transparent hover:bg-slate-800 text-slate-400 hover:text-slate-200 text-xs font-medium transition-colors border border-slate-700 hover:border-slate-600">Business</button>
-                    <div class="w-px h-6 bg-slate-700 mx-2"></div>
-                    <button class="px-3 py-1.5 rounded-md bg-transparent hover:bg-slate-800 text-slate-400 hover:text-slate-200 text-xs font-medium transition-colors border border-slate-700 hover:border-slate-600">Secret Flying</button>
+                <div class="flex flex-wrap items-center gap-4">
+                    <div class="flex items-center gap-2">
+                        <a href="?relevant=true&sort={{ current_sort }}" 
+                           class="px-4 py-2 rounded-lg text-sm font-medium transition-all
+                                  {% if current_relevant %}bg-cyan-500 text-white shadow-lg shadow-cyan-500/25
+                                  {% else %}bg-slate-700 hover:bg-slate-600 text-slate-300 border border-slate-600{% endif %}">
+                            For You <span class="ml-1 opacity-75">({{ relevant_count }})</span>
+                        </a>
+                        <a href="?relevant=false&sort={{ current_sort }}" 
+                           class="px-4 py-2 rounded-lg text-sm font-medium transition-all
+                                  {% if not current_relevant %}bg-slate-600 text-white
+                                  {% else %}bg-slate-700/50 hover:bg-slate-700 text-slate-400 border border-slate-700{% endif %}">
+                            All Deals <span class="ml-1 opacity-75">({{ all_count }})</span>
+                        </a>
+                    </div>
+                    
+                    <div class="flex items-center gap-1 text-xs">
+                        <span class="text-slate-500 mr-1">Sort:</span>
+                        <a href="?relevant={{ current_relevant }}&sort=score" 
+                           class="px-2 py-1 rounded transition-all
+                                  {% if current_sort == 'score' %}bg-slate-600 text-white{% else %}text-slate-400 hover:text-white{% endif %}">
+                            Best
+                        </a>
+                        <a href="?relevant={{ current_relevant }}&sort=date" 
+                           class="px-2 py-1 rounded transition-all
+                                  {% if current_sort == 'date' %}bg-slate-600 text-white{% else %}text-slate-400 hover:text-white{% endif %}">
+                            Newest
+                        </a>
+                        <a href="?relevant={{ current_relevant }}&sort=price" 
+                           class="px-2 py-1 rounded transition-all
+                                  {% if current_sort == 'price' %}bg-slate-600 text-white{% else %}text-slate-400 hover:text-white{% endif %}">
+                            Cheapest
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -31,19 +62,36 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {% for deal in deals %}
             <article class="deal-card relative bg-slate-800 rounded-xl overflow-hidden border border-slate-700 group flex flex-col h-full">
-                <!-- Card Header: Image/Pattern or Airline Color Strip -->
-                <div class="h-2 bg-gradient-to-r from-cyan-500 to-blue-600"></div>
+                <div class="h-2 {% if deal.is_relevant %}bg-gradient-to-r from-cyan-500 to-blue-600{% else %}bg-slate-700{% endif %}"></div>
                 
                 <div class="p-6 flex-grow flex flex-col">
-                    <!-- Top Meta -->
                     <div class="flex items-center justify-between mb-4">
-                        <span class="px-2 py-1 rounded text-[10px] font-mono font-bold tracking-wider uppercase 
-                            {% if deal.parsed_cabin_class == 'BUSINESS' %}bg-amber-500/10 text-amber-400 border border-amber-500/20
-                            {% elif deal.parsed_cabin_class == 'FIRST' %}bg-purple-500/10 text-purple-400 border border-purple-500/20
-                            {% else %}bg-slate-700 text-slate-300 border border-slate-600{% endif %}">
-                            {{ deal.parsed_cabin_class or 'ECONOMY' }}
-                        </span>
-                        <span class="text-xs text-slate-500 font-mono">{{ deal.published_at.strftime('%d %b %Y') if deal.published_at else 'Just now' }}</span>
+                        <div class="flex items-center gap-2">
+                            <span class="px-2 py-1 rounded text-[10px] font-mono font-bold tracking-wider uppercase 
+                                {% if deal.parsed_cabin_class == 'BUSINESS' %}bg-amber-500/10 text-amber-400 border border-amber-500/20
+                                {% elif deal.parsed_cabin_class == 'FIRST' %}bg-purple-500/10 text-purple-400 border border-purple-500/20
+                                {% else %}bg-slate-700 text-slate-300 border border-slate-600{% endif %}">
+                                {{ deal.parsed_cabin_class or 'ECONOMY' }}
+                            </span>
+                            {% if deal.is_relevant and deal.relevance_reason %}
+                            <span class="px-2 py-1 rounded text-[10px] font-medium 
+                                {% if 'Similar to' in deal.relevance_reason %}bg-violet-500/10 text-violet-400 border border-violet-500/20
+                                {% else %}bg-cyan-500/10 text-cyan-400 border border-cyan-500/20{% endif %}">
+                                {{ deal.relevance_reason }}
+                            </span>
+                            {% endif %}
+                        </div>
+                        <div class="flex items-center gap-2">
+                            {% if deal.score and deal.score > 0 %}
+                            <span class="text-[10px] font-mono px-1.5 py-0.5 rounded 
+                                {% if deal.score >= 70 %}bg-emerald-500/10 text-emerald-400
+                                {% elif deal.score >= 50 %}bg-yellow-500/10 text-yellow-400
+                                {% else %}bg-slate-700 text-slate-400{% endif %}">
+                                {{ "%.0f"|format(deal.score) }}
+                            </span>
+                            {% endif %}
+                            <span class="text-xs text-slate-500 font-mono">{{ deal.published_at.strftime('%d %b') if deal.published_at else 'Now' }}</span>
+                        </div>
                     </div>
 
                     <!-- Route -->
@@ -71,7 +119,6 @@
                             </span>
                         </div>
                         
-                        <!-- Source Badge -->
                         <div class="text-right">
                             <span class="text-[10px] uppercase tracking-wider text-slate-500 font-mono block mb-1">Source</span>
                             <span class="inline-flex items-center gap-1.5 text-xs font-medium text-slate-300">
@@ -79,8 +126,20 @@
                                     <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> Secret Flying
                                 {% elif deal.source.value == 'omaat' %}
                                     <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span> OMAAT
+                                {% elif deal.source.value == 'the_points_guy' %}
+                                    <span class="w-1.5 h-1.5 rounded-full bg-orange-500"></span> TPG
+                                {% elif deal.source.value == 'the_flight_deal' %}
+                                    <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> Flight Deal
+                                {% elif deal.source.value == 'fly4free' %}
+                                    <span class="w-1.5 h-1.5 rounded-full bg-yellow-500"></span> Fly4Free
+                                {% elif deal.source.value == 'australian_frequent_flyer' %}
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> AFF
+                                {% elif deal.source.value == 'point_hacks' %}
+                                    <span class="w-1.5 h-1.5 rounded-full bg-purple-500"></span> Point Hacks
+                                {% elif deal.source.value == 'holiday_pirates' %}
+                                    <span class="w-1.5 h-1.5 rounded-full bg-pink-500"></span> Pirates
                                 {% else %}
-                                    <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span> {{ deal.source.value }}
+                                    <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span> {{ deal.source.value|replace('_', ' ')|title }}
                                 {% endif %}
                             </span>
                         </div>
@@ -108,7 +167,6 @@
         </div>
 
         {% else %}
-        <!-- Empty State -->
         <div class="flex flex-col items-center justify-center py-20 text-center">
             <div class="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mb-6">
                 <svg class="w-10 h-10 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -116,7 +174,13 @@
                 </svg>
             </div>
             <h3 class="text-xl font-bold text-white mb-2">No deals found</h3>
-            <p class="text-slate-400 max-w-md mx-auto">It looks quiet right now. Check back later for new flight deals from Auckland.</p>
+            <p class="text-slate-400 max-w-md mx-auto">
+                {% if current_relevant %}
+                    No relevant deals yet. <a href="?relevant=false" class="text-cyan-400 hover:underline">View all deals</a> or check back later.
+                {% else %}
+                    No deals ingested yet. Trigger an ingest to fetch the latest deals.
+                {% endif %}
+            </p>
         </div>
         {% endif %}
     </div>
