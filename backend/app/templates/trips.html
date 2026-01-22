@@ -297,6 +297,7 @@
                             </h4>
                             {% if flights %}
                             <button onclick="searchPrices({{ trip.id }})" 
+                                    id="search-btn-{{ trip.id }}"
                                     class="px-3 py-1.5 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 text-xs font-medium rounded-lg transition-all inline-flex items-center gap-1.5 border border-cyan-500/30">
                                 <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -349,7 +350,7 @@
                                 <div class="col-span-full text-center py-6">
                                      <p class="text-sm text-slate-500 italic mb-3">No flight data yet - click 'Search Google Flights'</p>
                                      <button onclick="searchPrices({{ trip.id }})" 
-                                            id="search-btn-flight-{{ trip.id }}"
+                                            id="search-btn-{{ trip.id }}"
                                             class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-white text-sm font-semibold rounded-lg shadow-lg shadow-cyan-500/25 transition-all inline-flex items-center gap-2">
                                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
