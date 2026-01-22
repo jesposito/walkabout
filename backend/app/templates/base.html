@@ -46,6 +46,10 @@
                         {% if request.url.path.startswith('/deals') %}bg-slate-800 text-white{% else %}text-slate-400 hover:text-white hover:bg-slate-800/50{% endif %}">
                         <span class="hidden sm:inline">Flight </span>Deals
                     </a>
+                    <a href="/trips/" class="px-3 py-2 rounded-lg text-sm font-medium transition-colors
+                        {% if request.url.path.startswith('/trips') %}bg-slate-800 text-white{% else %}text-slate-400 hover:text-white hover:bg-slate-800/50{% endif %}">
+                        <span class="hidden sm:inline">Trip </span>Plans
+                    </a>
                     <a href="/prices/" class="px-3 py-2 rounded-lg text-sm font-medium transition-colors
                         {% if request.url.path.startswith('/prices') %}bg-slate-800 text-white{% else %}text-slate-400 hover:text-white hover:bg-slate-800/50{% endif %}">
                         My Routes

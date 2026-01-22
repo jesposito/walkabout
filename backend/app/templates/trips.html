@@ -1,0 +1,379 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="bg-slate-900 min-h-full pb-12">
+    <!-- Header -->
+    <div class="bg-slate-800/50 border-b border-slate-800">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <h1 class="text-3xl font-bold text-white tracking-tight">Trip Plans</h1>
+            <p class="text-slate-400 mt-2">Tell us when you're free and where you want to go. We'll watch for deals that match.</p>
+        </div>
+    </div>
+
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 space-y-8">
+        
+        <!-- Create New Trip Form -->
+        <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-xl">
+            <div class="flex items-start gap-4 mb-6">
+                <div class="w-10 h-10 rounded-lg bg-cyan-500/10 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-5 h-5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                </div>
+                <div>
+                    <h2 class="text-lg font-semibold text-white">Create New Trip Plan</h2>
+                    <p class="text-sm text-slate-400 mt-1">Set your criteria and let the deals come to you</p>
+                </div>
+            </div>
+
+            <form id="create-trip-form" class="space-y-6">
+                <!-- Name & Budget -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="name" class="block text-sm font-medium text-slate-300 mb-2">Trip Name</label>
+                        <input type="text" id="name" name="name" required
+                               class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                               placeholder="e.g. August Japan Trip">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="budget_max" class="block text-sm font-medium text-slate-300 mb-2">Max Budget</label>
+                            <input type="number" id="budget_max" name="budget_max" required
+                                   class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                                   placeholder="2000">
+                        </div>
+                        <div>
+                            <label for="budget_currency" class="block text-sm font-medium text-slate-300 mb-2">Currency</label>
+                            <select id="budget_currency" name="budget_currency"
+                                    class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
+                                <option value="NZD">NZD</option>
+                                <option value="AUD">AUD</option>
+                                <option value="USD">USD</option>
+                                <option value="EUR">EUR</option>
+                                <option value="GBP">GBP</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dates & Duration -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="available_from" class="block text-sm font-medium text-slate-300 mb-2">Earliest Departure</label>
+                            <input type="date" id="available_from" name="available_from" required
+                                   class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent [color-scheme:dark]">
+                        </div>
+                        <div>
+                            <label for="available_to" class="block text-sm font-medium text-slate-300 mb-2">Latest Return</label>
+                            <input type="date" id="available_to" name="available_to" required
+                                   class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent [color-scheme:dark]">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="trip_duration_min" class="block text-sm font-medium text-slate-300 mb-2">Min Days</label>
+                            <input type="number" id="trip_duration_min" name="trip_duration_min" value="5" min="1"
+                                   class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
+                        </div>
+                        <div>
+                            <label for="trip_duration_max" class="block text-sm font-medium text-slate-300 mb-2">Max Days</label>
+                            <input type="number" id="trip_duration_max" name="trip_duration_max" value="14" min="1"
+                                   class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Destination Types -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-3">Destination Vibes (Select all that apply)</label>
+                    <div class="flex flex-wrap gap-2" id="destination-chips">
+                        {% set types = [
+                            ('tropical', '🏝️ Tropical'),
+                            ('pacific_islands', '🌺 Pacific Islands'),
+                            ('australia', '🦘 Australia'),
+                            ('japan', '🗾 Japan'),
+                            ('southeast_asia', '🛕 SE Asia'),
+                            ('europe', '🏰 Europe'),
+                            ('uk', '🇬🇧 UK'),
+                            ('usa_west', '🌉 USA West'),
+                            ('usa_east', '🗽 USA East'),
+                            ('hawaii', '🌴 Hawaii'),
+                            ('family', '👨‍👩‍👧‍👦 Family'),
+                            ('adventure', '🏔️ Adventure'),
+                            ('city_break', '🌆 City Break'),
+                            ('honeymoon', '💑 Honeymoon')
+                        ] %}
+                        {% for type_code, type_label in types %}
+                        <button type="button" 
+                                data-value="{{ type_code }}"
+                                class="destination-chip px-3 py-2 rounded-full border border-slate-700 bg-slate-900 text-slate-400 text-sm font-medium transition-all hover:bg-slate-800 hover:border-slate-500">
+                            {{ type_label }}
+                        </button>
+                        {% endfor %}
+                    </div>
+                    <input type="hidden" name="destination_types" id="destination_types_input">
+                </div>
+
+                <!-- Submit -->
+                <div class="pt-4 flex justify-end">
+                    <button type="submit" 
+                            class="px-6 py-3 bg-cyan-500 hover:bg-cyan-400 text-white font-semibold rounded-lg shadow-lg shadow-cyan-500/25 transition-all flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        Create Trip Plan
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Existing Trips List -->
+        <div class="space-y-6">
+            <h2 class="text-xl font-bold text-white pl-1">Your Trip Plans</h2>
+            
+            {% if trips %}
+                {% for item in trips %}
+                {% set trip = item.trip %}
+                {% set matches = item.top_matches %}
+                
+                <div class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden transition-all hover:border-slate-600" id="trip-card-{{ trip.id }}">
+                    <!-- Trip Header -->
+                    <div class="p-6 border-b border-slate-700/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div class="flex items-start gap-4">
+                            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border border-violet-500/20 flex items-center justify-center flex-shrink-0">
+                                <span class="text-2xl">
+                                    {% if 'japan' in trip.destination_types %}🗾
+                                    {% elif 'tropical' in trip.destination_types %}🏝️
+                                    {% elif 'europe' in trip.destination_types %}🏰
+                                    {% elif 'usa_west' in trip.destination_types %}🌉
+                                    {% else %}✈️{% endif %}
+                                </span>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold text-white">{{ trip.name }}</h3>
+                                <div class="flex flex-wrap items-center gap-x-4 gap-y-2 mt-1 text-sm text-slate-400">
+                                    <span class="flex items-center gap-1.5">
+                                        <svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                        {{ trip.available_from.strftime('%d %b') }} - {{ trip.available_to.strftime('%d %b %Y') }}
+                                    </span>
+                                    <span class="flex items-center gap-1.5">
+                                        <svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        {{ trip.trip_duration_min }}-{{ trip.trip_duration_max }} days
+                                    </span>
+                                    <span class="flex items-center gap-1.5">
+                                        <svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <span class="font-mono">{{ trip.budget_currency }}</span> {{ trip.budget_max }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-4 pl-16 sm:pl-0">
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" class="sr-only peer" 
+                                       onchange="toggleTrip('{{ trip.id }}')"
+                                       {% if trip.is_active %}checked{% endif %}>
+                                <div class="w-11 h-6 bg-slate-700 rounded-full peer peer-focus:ring-2 peer-focus:ring-cyan-500/50 
+                                            peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] 
+                                            after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 
+                                            after:border after:rounded-full after:h-5 after:w-5 after:transition-all 
+                                            peer-checked:bg-cyan-500"></div>
+                                <span class="ml-2 text-sm font-medium text-slate-400">Active</span>
+                            </label>
+                            
+                            <button onclick="deleteTrip('{{ trip.id }}')" 
+                                    class="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                                    title="Delete Trip Plan">
+                                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Tags & Details -->
+                    <div class="px-6 py-4 bg-slate-800/50 flex flex-wrap gap-2">
+                        {% for type in trip.destination_types %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-700 text-slate-300 border border-slate-600">
+                            {{ type }}
+                        </span>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Matches Section -->
+                    {% if matches %}
+                    <div class="px-6 py-4 bg-slate-900/30 border-t border-slate-700/50">
+                        <h4 class="text-sm font-semibold text-emerald-400 mb-3 flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            {{ matches|length }} Matching Deals Found
+                        </h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {% for deal, score in matches[:5] %}
+                            <a href="{{ deal.link }}" target="_blank" 
+                               class="group block p-3 rounded-lg bg-slate-800 border border-slate-700 hover:border-emerald-500/50 hover:bg-slate-700/50 transition-all">
+                                <div class="flex justify-between items-start mb-1">
+                                    <span class="font-bold text-white text-sm truncate">{{ deal.parsed_destination or 'Unknown' }}</span>
+                                    {% if deal.parsed_price %}
+                                    <span class="font-mono text-emerald-400 text-sm">{{ deal.parsed_price|int }} {{ deal.parsed_currency or 'USD' }}</span>
+                                    {% endif %}
+                                </div>
+                                <div class="text-xs text-slate-500 flex items-center justify-between">
+                                    <span>{{ deal.parsed_airline or deal.source.value }}</span>
+                                    <span>Match: {{ (score)|int }}%</span>
+                                </div>
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="px-6 py-4 bg-slate-900/30 border-t border-slate-700/50 text-center">
+                        <p class="text-sm text-slate-500 italic">No matches found yet. We're watching the skies...</p>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="text-center py-12 bg-slate-800/30 rounded-xl border border-dashed border-slate-700">
+                    <div class="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0121 18.382V7.618a1 1 0 01-.447-.894L15 7m0 13V7" />
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-medium text-white">No trip plans yet</h3>
+                    <p class="text-slate-500 mt-1">Create your first trip plan above to start finding deals.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    // Chip Selection Logic
+    const chips = document.querySelectorAll('.destination-chip');
+    const hiddenInput = document.getElementById('destination_types_input');
+    const selectedTypes = new Set();
+
+    chips.forEach(chip => {
+        chip.addEventListener('click', () => {
+            const value = chip.dataset.value;
+            
+            if (selectedTypes.has(value)) {
+                selectedTypes.delete(value);
+                chip.classList.remove('bg-cyan-500/20', 'text-cyan-400', 'border-cyan-500/50');
+                chip.classList.add('bg-slate-900', 'text-slate-400', 'border-slate-700');
+            } else {
+                selectedTypes.add(value);
+                chip.classList.remove('bg-slate-900', 'text-slate-400', 'border-slate-700');
+                chip.classList.add('bg-cyan-500/20', 'text-cyan-400', 'border-cyan-500/50');
+            }
+            hiddenInput.value = Array.from(selectedTypes).join(',');
+        });
+    });
+
+    // Create Trip
+    document.getElementById('create-trip-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const submitBtn = form.querySelector('button[type="submit"]');
+        
+        // Validation
+        if (selectedTypes.size === 0) {
+            alert('Please select at least one destination vibe');
+            return;
+        }
+
+        // Loading state
+        const originalBtnContent = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Creating...';
+
+        const data = {
+            name: form.name.value,
+            budget_max: parseInt(form.budget_max.value),
+            budget_currency: form.budget_currency.value,
+            available_from: form.available_from.value,
+            available_to: form.available_to.value,
+            trip_duration_min: parseInt(form.trip_duration_min.value),
+            trip_duration_max: parseInt(form.trip_duration_max.value),
+            destination_types: Array.from(selectedTypes),
+            is_active: true
+        };
+
+        try {
+            const response = await fetch('/trips/api/trips', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                const error = await response.json();
+                alert('Error creating trip: ' + (error.detail || 'Unknown error'));
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Failed to connect to server');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnContent;
+        }
+    });
+
+    // Toggle Trip
+    async function toggleTrip(id) {
+        try {
+            const response = await fetch(`/trips/api/trips/${id}/toggle`, {
+                method: 'PUT'
+            });
+            if (!response.ok) {
+                // Revert toggle if failed (simplified, effectively just reloads or alerts)
+                alert('Failed to update status');
+                window.location.reload();
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Connection error');
+        }
+    }
+
+    // Delete Trip
+    async function deleteTrip(id) {
+        if (!confirm('Are you sure you want to delete this trip plan?')) return;
+        
+        const card = document.getElementById(`trip-card-${id}`);
+        card.style.opacity = '0.5';
+        
+        try {
+            const response = await fetch(`/trips/api/trips/${id}`, {
+                method: 'DELETE'
+            });
+            
+            if (response.ok) {
+                card.remove();
+                // If no trips left, reload to show empty state (optional optimization)
+                if (document.querySelectorAll('[id^="trip-card-"]').length === 0) {
+                    window.location.reload();
+                }
+            } else {
+                alert('Failed to delete trip');
+                card.style.opacity = '1';
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Connection error');
+            card.style.opacity = '1';
+        }
+    }
+</script>
+{% endblock %}

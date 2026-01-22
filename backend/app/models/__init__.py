@@ -6,6 +6,7 @@ from app.models.route import Route
 from app.models.deal import Deal, DealSource, ParseStatus
 from app.models.feed_health import FeedHealth
 from app.models.user_settings import UserSettings
+from app.models.trip_plan import TripPlan
 
 __all__ = [
     "SearchDefinition",
@@ -18,6 +19,7 @@ __all__ = [
     "ParseStatus",
     "FeedHealth",
     "UserSettings",
+    "TripPlan",
     "TripType",
     "CabinClass", 
     "StopsFilter",

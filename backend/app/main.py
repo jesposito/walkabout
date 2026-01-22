@@ -5,13 +5,13 @@ from contextlib import asynccontextmanager
 import logging
 import os
 
-from app.api import routes, prices, health, status, notifications, deals
+from app.api import routes, prices, health, status, notifications, deals, trips
 from app.api import settings as settings_api
 from app.scheduler import start_scheduler, stop_scheduler
 from app.services.notification import InMemoryNotifier
 from app.config import get_settings
 from app.database import engine, Base
-from app.models import SearchDefinition, ScrapeHealth, FlightPrice, Route, Alert, Deal, FeedHealth
+from app.models import SearchDefinition, ScrapeHealth, FlightPrice, Route, Alert, Deal, FeedHealth, TripPlan
 
 settings = get_settings()
 
@@ -86,6 +86,7 @@ if os.path.exists(static_dir):
 
 app.include_router(deals.router, prefix="/deals", tags=["deals"])
 app.include_router(settings_api.router, prefix="/settings", tags=["settings"])
+app.include_router(trips.router, prefix="/trips", tags=["trips"])
 app.include_router(status.router, tags=["status"])
 app.include_router(health.router, tags=["health"])  
 app.include_router(routes.router, prefix="/api/routes", tags=["routes"])
