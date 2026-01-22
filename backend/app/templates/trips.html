@@ -115,6 +115,32 @@
                     <input type="hidden" name="destination_types" id="destination_types_input">
                 </div>
 
+                <!-- Specific Destinations (Optional) -->
+                <div class="pt-6 border-t border-slate-700/50">
+                    <label class="block text-sm font-medium text-slate-300 mb-1">Specific Destinations <span class="text-slate-500 font-normal">(Optional)</span></label>
+                    <p class="text-xs text-slate-500 mb-3">Add specific airports if you have particular places in mind</p>
+                    
+                    <input type="hidden" id="destinations_input" name="destinations">
+                    
+                    <div class="relative group">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-slate-500 group-focus-within:text-violet-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                        </div>
+                        <input type="text" id="destination_search" 
+                               class="w-full pl-11 pr-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white 
+                                      placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-violet-500 
+                                      focus:border-transparent font-sans transition-all"
+                               placeholder="Search by city or airport (e.g. Nadi, NAN)..."
+                               autocomplete="off">
+                        <div id="destination-dropdown" class="hidden absolute z-20 w-full mt-2 bg-slate-800 border border-slate-600 rounded-lg shadow-xl shadow-black/50 max-h-60 overflow-y-auto overflow-x-hidden"></div>
+                    </div>
+
+                    <div id="destinations-container" class="flex flex-wrap gap-2 mt-4 min-h-[32px]"></div>
+                </div>
+
                 <!-- Submit -->
                 <div class="pt-4 flex justify-end">
                     <button type="submit" 
@@ -279,15 +305,116 @@
         });
     });
 
+    // --- Specific Destinations Logic ---
+    const destInput = document.getElementById('destination_search');
+    const destDropdown = document.getElementById('destination-dropdown');
+    const destContainer = document.getElementById('destinations-container');
+    const destHidden = document.getElementById('destinations_input');
+    let selectedDestinations = [];
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        if (destInput && !destInput.contains(e.target) && !destDropdown.contains(e.target)) {
+            destDropdown.classList.add('hidden');
+        }
+    });
+
+    let destDebounceTimer;
+
+    if (destInput) {
+        destInput.addEventListener('input', (e) => {
+            clearTimeout(destDebounceTimer);
+            const query = e.target.value.trim();
+            
+            if (query.length < 2) {
+                destDropdown.classList.add('hidden');
+                return;
+            }
+            
+            destDebounceTimer = setTimeout(async () => {
+                try {
+                    const response = await fetch(`/settings/api/airports/search?q=${encodeURIComponent(query)}&limit=8`);
+                    const data = await response.json();
+                    
+                    if (data.results && data.results.length > 0) {
+                        // Filter out already selected
+                        const available = data.results.filter(r => !selectedDestinations.find(s => s.code === r.code));
+                        
+                        if (available.length === 0) {
+                            destDropdown.innerHTML = `<div class="px-4 py-3 text-sm text-slate-500 italic">Already added</div>`;
+                        } else {
+                            destDropdown.innerHTML = available.map(a => `
+                                <button type="button" 
+                                        class="w-full px-4 py-3 text-left hover:bg-slate-700 flex items-center justify-between group transition-colors border-b border-slate-700/50 last:border-0"
+                                        onclick="addDestination('${a.code}', '${a.city}', '${a.country}')">
+                                    <div class="flex flex-col">
+                                        <span class="font-bold text-white group-hover:text-violet-400 transition-colors">${a.city}</span>
+                                        <span class="text-xs text-slate-400">${a.country}</span>
+                                    </div>
+                                    <span class="font-mono text-sm font-bold text-slate-500 group-hover:text-white bg-slate-900 px-2 py-1 rounded">${a.code}</span>
+                                </button>
+                            `).join('');
+                        }
+                        destDropdown.classList.remove('hidden');
+                    } else {
+                        destDropdown.innerHTML = `<div class="px-4 py-3 text-sm text-slate-500">No results found</div>`;
+                        destDropdown.classList.remove('hidden');
+                    }
+                } catch (err) {
+                    console.error('Search failed:', err);
+                }
+            }, 200);
+        });
+    }
+
+    function addDestination(code, city, country) {
+        if (selectedDestinations.some(d => d.code === code)) return;
+        
+        selectedDestinations.push({ code, name: city });
+        updateDestinations();
+        destInput.value = '';
+        destInput.focus();
+        destDropdown.classList.add('hidden');
+    }
+    
+    // Make globally accessible for onclick handlers
+    window.addDestination = addDestination;
+
+    function removeDestination(code) {
+        selectedDestinations = selectedDestinations.filter(d => d.code !== code);
+        updateDestinations();
+    }
+    window.removeDestination = removeDestination;
+
+    function updateDestinations() {
+        destHidden.value = selectedDestinations.map(d => d.code).join(',');
+        destContainer.innerHTML = selectedDestinations.map(dest => `
+            <div class="inline-flex items-center pl-3 pr-2 py-1.5 rounded-lg bg-slate-800 border border-slate-700 group hover:border-violet-500/50 transition-all shadow-sm">
+                <span class="text-sm font-medium text-slate-200 mr-2">
+                    <span class="font-mono text-violet-400 font-bold mr-1.5">${dest.code}</span>
+                    <span class="text-slate-400 border-l border-slate-700 pl-1.5">${dest.name}</span>
+                </span>
+                <button type="button" 
+                        onclick="removeDestination('${dest.code}')"
+                        class="p-1 rounded-md text-slate-500 hover:text-red-400 hover:bg-slate-700/50 transition-colors"
+                        aria-label="Remove ${dest.code}">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+        `).join('');
+    }
+
     // Create Trip
     document.getElementById('create-trip-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const form = e.target;
         const submitBtn = form.querySelector('button[type="submit"]');
         
-        // Validation
-        if (selectedTypes.size === 0) {
-            alert('Please select at least one destination vibe');
+        // Validation: Require at least one criteria (vibe OR destination)
+        if (selectedTypes.size === 0 && selectedDestinations.length === 0) {
+            alert('Please select at least one destination vibe OR specific destination');
             return;
         }
 
@@ -305,6 +432,7 @@
             trip_duration_min: parseInt(form.trip_duration_min.value),
             trip_duration_max: parseInt(form.trip_duration_max.value),
             destination_types: Array.from(selectedTypes),
+            destinations: selectedDestinations.map(d => d.code),
             is_active: true
         };
 

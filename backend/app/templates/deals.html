@@ -146,15 +146,24 @@
                     </div>
                 </div>
 
-                <!-- Hover Link Overlay -->
-                <a href="{{ deal.link }}" target="_blank" rel="noopener noreferrer" class="absolute inset-0 z-10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/60 backdrop-blur-[2px]">
-                    <span class="px-6 py-2 bg-cyan-500 hover:bg-cyan-400 text-white font-semibold rounded-full shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-all duration-200 flex items-center gap-2">
+                <div class="absolute inset-0 z-10 flex items-center justify-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/60 backdrop-blur-[2px]">
+                    <a href="{{ deal.link }}" target="_blank" rel="noopener noreferrer" 
+                       class="px-5 py-2 bg-cyan-500 hover:bg-cyan-400 text-white font-semibold rounded-full shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-all duration-200 flex items-center gap-2">
                         View Deal 
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                         </svg>
-                    </span>
-                </a>
+                    </a>
+                    {% if deal.parsed_origin and deal.parsed_destination %}
+                    <button onclick="event.stopPropagation(); trackRoute('{{ deal.parsed_origin }}', '{{ deal.parsed_destination }}', '{{ deal.parsed_cabin_class or "economy" }}')"
+                            class="px-5 py-2 bg-violet-500 hover:bg-violet-400 text-white font-semibold rounded-full shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-all duration-200 delay-75 flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Track Route
+                    </button>
+                    {% endif %}
+                </div>
             </article>
             {% endfor %}
         </div>
@@ -185,4 +194,63 @@
         {% endif %}
     </div>
 </div>
+
+<div id="track-toast" class="hidden fixed bottom-6 right-6 z-50 px-6 py-4 rounded-xl shadow-2xl transition-all transform translate-y-4 opacity-0">
+</div>
+
+<script>
+async function trackRoute(origin, destination, cabinClass) {
+    const toast = document.getElementById('track-toast');
+    
+    try {
+        const response = await fetch('/prices/searches', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                origin: origin.toUpperCase(),
+                destination: destination.toUpperCase(),
+                cabin_class: cabinClass.toLowerCase(),
+                trip_type: 'round_trip',
+                adults: 2,
+                children: 0,
+            })
+        });
+        
+        if (response.ok) {
+            toast.className = 'fixed bottom-6 right-6 z-50 px-6 py-4 rounded-xl shadow-2xl bg-emerald-500/90 text-white backdrop-blur-sm';
+            toast.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    <div>
+                        <p class="font-semibold">Route Added!</p>
+                        <p class="text-sm opacity-90">${origin} → ${destination} is now being tracked</p>
+                    </div>
+                    <a href="/prices/" class="ml-4 px-3 py-1 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium">View</a>
+                </div>
+            `;
+        } else {
+            const err = await response.json();
+            throw new Error(err.detail || 'Failed to save');
+        }
+    } catch (e) {
+        toast.className = 'fixed bottom-6 right-6 z-50 px-6 py-4 rounded-xl shadow-2xl bg-red-500/90 text-white backdrop-blur-sm';
+        toast.innerHTML = `
+            <div class="flex items-center gap-3">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                <p class="font-semibold">Failed to track route</p>
+            </div>
+        `;
+    }
+    
+    toast.classList.remove('hidden', 'translate-y-4', 'opacity-0');
+    setTimeout(() => {
+        toast.classList.add('translate-y-4', 'opacity-0');
+        setTimeout(() => toast.classList.add('hidden'), 300);
+    }, 4000);
+}
+</script>
 {% endblock %}

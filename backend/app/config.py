@@ -12,6 +12,11 @@ class Settings(BaseSettings):
     seats_aero_api_key: str = ""
     anthropic_api_key: str = ""
     
+    serpapi_key: str = ""
+    skyscanner_api_key: str = ""
+    amadeus_client_id: str = ""
+    amadeus_client_secret: str = ""
+    
     ntfy_url: str = "http://localhost:8080"
     ntfy_topic: str = "walkabout-deals"
     base_url: str = "http://localhost:8000"

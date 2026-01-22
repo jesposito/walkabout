@@ -10,7 +10,8 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 
 from app.models import SearchDefinition, ScrapeHealth, FlightPrice
-from app.scrapers.google_flights import GoogleFlightsScraper, ScrapeResult
+from app.scrapers.google_flights import GoogleFlightsScraper, ScrapeResult, FlightResult
+from app.services.flight_price_fetcher import FlightPriceFetcher
 from app.services.price_analyzer import PriceAnalyzer
 from app.services.notification import NtfyNotifier
 from app.config import get_settings
@@ -32,6 +33,7 @@ class ScrapingService:
     def __init__(self, db: Session):
         self.db = db
         self.scraper = GoogleFlightsScraper()
+        self.api_fetcher = FlightPriceFetcher()
         self.price_analyzer = PriceAnalyzer(db)
         self.notifier = NtfyNotifier()
     

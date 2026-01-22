@@ -16,6 +16,11 @@ class UserSettings(Base):
     
     preferred_currency = Column(String(3), default="NZD")
     
+    serpapi_key = Column(String(100), nullable=True)
+    skyscanner_api_key = Column(String(100), nullable=True)
+    amadeus_client_id = Column(String(100), nullable=True)
+    amadeus_client_secret = Column(String(100), nullable=True)
+    
     notifications_enabled = Column(Boolean, default=False)
     notification_min_discount_percent = Column(Integer, default=20)
     

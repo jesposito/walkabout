@@ -237,3 +237,77 @@ async def get_latest_prices(
     return db.query(FlightPrice).filter(
         FlightPrice.search_definition_id == search_id,
     ).order_by(FlightPrice.scraped_at.desc()).limit(limit).all()
+
+
+class FrequencyUpdate(BaseModel):
+    frequency_hours: int
+
+
+@router.put("/searches/{search_id}/frequency")
+async def update_search_frequency(
+    search_id: int,
+    update: FrequencyUpdate,
+    db: Session = Depends(get_db),
+):
+    definition = db.query(SearchDefinition).filter(SearchDefinition.id == search_id).first()
+    if not definition:
+        raise HTTPException(status_code=404, detail="Search definition not found")
+    
+    definition.scrape_frequency_hours = update.frequency_hours
+    db.commit()
+    return {"status": "updated", "frequency_hours": update.frequency_hours}
+
+
+@router.post("/searches/{search_id}/refresh")
+async def refresh_search_prices(
+    search_id: int,
+    db: Session = Depends(get_db),
+):
+    from app.services.flight_price_fetcher import FlightPriceFetcher
+    
+    definition = db.query(SearchDefinition).filter(SearchDefinition.id == search_id).first()
+    if not definition:
+        raise HTTPException(status_code=404, detail="Search definition not found")
+    
+    fetcher = FlightPriceFetcher()
+    
+    departure_date = date.today() + timedelta(days=60)
+    return_date = departure_date + timedelta(days=7) if definition.trip_type.value == "round_trip" else None
+    
+    result = await fetcher.fetch_prices(
+        origin=definition.origin,
+        destination=definition.destination,
+        departure_date=departure_date,
+        return_date=return_date,
+        adults=definition.adults,
+        children=definition.children,
+        cabin_class=definition.cabin_class.value,
+        currency=definition.currency,
+    )
+    
+    if result.success:
+        for price_result in result.prices:
+            flight_price = FlightPrice(
+                search_definition_id=search_id,
+                departure_date=departure_date,
+                return_date=return_date,
+                price_nzd=price_result.price,
+                airline=price_result.airline,
+                stops=price_result.stops,
+                duration_minutes=price_result.duration_minutes,
+            )
+            db.add(flight_price)
+        db.commit()
+        
+        return {
+            "success": True,
+            "prices_found": len(result.prices),
+            "source": result.source,
+            "min_price": float(min(p.price for p in result.prices)) if result.prices else None,
+        }
+    else:
+        return {
+            "success": False,
+            "error": result.error,
+            "source": result.source,
+        }

@@ -22,24 +22,6 @@
     </div>
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
-        
-        <!-- Info Banner -->
-        <div class="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 mb-8">
-            <div class="flex items-start gap-3">
-                <svg class="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <div class="text-sm">
-                    <p class="text-amber-200 font-medium">About Route Tracking</p>
-                    <p class="text-amber-200/70 mt-1">
-                        This feature lets you save specific routes you're interested in. 
-                        Price tracking requires a flight price API integration (coming in a future update). 
-                        For now, use <a href="/deals/" class="underline hover:text-amber-200">Flight Deals</a> to find current deals.
-                    </p>
-                </div>
-            </div>
-        </div>
-
         <div id="searches-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {% for search in searches %}
             <div class="bg-slate-800 rounded-xl overflow-hidden border border-slate-700 group" data-search-id="{{ search.id }}">
@@ -75,13 +57,28 @@
                         </span>
                     </div>
                     
-                    <div id="stats-{{ search.id }}" class="border-t border-slate-700 pt-4 mt-4">
-                        <div class="text-sm text-slate-500 text-center py-4">
-                            <svg class="w-8 h-8 mx-auto mb-2 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                            </svg>
-                            <p>Price tracking coming soon</p>
+                    <div class="border-t border-slate-700 pt-4 mt-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-xs text-slate-500 font-medium">Check Frequency</span>
+                            <select onchange="updateFrequency({{ search.id }}, this.value)" 
+                                    class="text-xs bg-slate-700 border border-slate-600 rounded px-2 py-1 text-slate-300 focus:ring-1 focus:ring-cyan-500">
+                                <option value="1" {% if search.scrape_frequency_hours == 1 %}selected{% endif %}>Hourly</option>
+                                <option value="6" {% if search.scrape_frequency_hours == 6 %}selected{% endif %}>Every 6 hours</option>
+                                <option value="12" {% if search.scrape_frequency_hours == 12 %}selected{% endif %}>Twice daily</option>
+                                <option value="24" {% if search.scrape_frequency_hours == 24 %}selected{% endif %}>Daily</option>
+                                <option value="168" {% if search.scrape_frequency_hours == 168 %}selected{% endif %}>Weekly</option>
+                            </select>
                         </div>
+                        <div id="stats-{{ search.id }}" class="text-center py-2">
+                            <p class="text-xs text-slate-500">Loading prices...</p>
+                        </div>
+                        <button onclick="refreshPrices({{ search.id }})" 
+                                class="w-full mt-2 px-3 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-medium rounded-lg transition-colors flex items-center justify-center gap-2">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            Check Now
+                        </button>
                     </div>
                 </div>
             </div>
@@ -253,5 +250,78 @@ async function deleteSearch(id) {
         alert('Error: ' + err.message);
     }
 }
+
+async function updateFrequency(id, hours) {
+    try {
+        await fetch(`/prices/searches/${id}/frequency`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ frequency_hours: parseInt(hours) })
+        });
+    } catch (err) {
+        console.error('Failed to update frequency:', err);
+    }
+}
+
+async function refreshPrices(id) {
+    const statsEl = document.getElementById(`stats-${id}`);
+    statsEl.innerHTML = '<p class="text-xs text-cyan-400 animate-pulse">Fetching prices...</p>';
+    
+    try {
+        const response = await fetch(`/prices/searches/${id}/refresh`, { method: 'POST' });
+        const data = await response.json();
+        
+        if (data.success) {
+            loadStats(id);
+        } else {
+            statsEl.innerHTML = `<p class="text-xs text-amber-400">${data.error || 'No prices found'}</p>`;
+        }
+    } catch (err) {
+        statsEl.innerHTML = '<p class="text-xs text-red-400">Failed to fetch</p>';
+    }
+}
+
+async function loadStats(id) {
+    const statsEl = document.getElementById(`stats-${id}`);
+    
+    try {
+        const response = await fetch(`/prices/searches/${id}/stats`);
+        const stats = await response.json();
+        
+        if (stats.price_count > 0) {
+            const trend = stats.price_trend === 'down' ? '↓' : stats.price_trend === 'up' ? '↑' : '→';
+            const trendColor = stats.price_trend === 'down' ? 'text-emerald-400' : stats.price_trend === 'up' ? 'text-red-400' : 'text-slate-400';
+            
+            statsEl.innerHTML = `
+                <div class="grid grid-cols-3 gap-2 text-center">
+                    <div>
+                        <p class="text-lg font-bold text-emerald-400">$${Math.round(stats.min_price)}</p>
+                        <p class="text-[10px] text-slate-500 uppercase">Low</p>
+                    </div>
+                    <div>
+                        <p class="text-lg font-bold text-white">$${Math.round(stats.current_price || stats.avg_price)}</p>
+                        <p class="text-[10px] text-slate-500 uppercase">Current</p>
+                    </div>
+                    <div>
+                        <p class="text-lg font-bold ${trendColor}">${trend}</p>
+                        <p class="text-[10px] text-slate-500 uppercase">Trend</p>
+                    </div>
+                </div>
+                <p class="text-[10px] text-slate-600 mt-2">${stats.price_count} data points</p>
+            `;
+        } else {
+            statsEl.innerHTML = '<p class="text-xs text-slate-500">No price data yet. Click "Check Now" to fetch.</p>';
+        }
+    } catch (err) {
+        statsEl.innerHTML = '<p class="text-xs text-slate-500">No price data yet</p>';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('[data-search-id]').forEach(card => {
+        const id = card.dataset.searchId;
+        loadStats(id);
+    });
+});
 </script>
 {% endblock %}
