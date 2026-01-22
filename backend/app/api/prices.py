@@ -82,12 +82,23 @@ class SearchDefinitionCreate(BaseModel):
 
 @router.get("/", response_class=HTMLResponse)
 async def prices_page(request: Request, db: Session = Depends(get_db)):
+    from app.services.flight_price_fetcher import FlightPriceFetcher
+    
     searches = db.query(SearchDefinition).filter(
         SearchDefinition.is_active == True
     ).order_by(SearchDefinition.created_at.desc()).all()
+    
+    fetcher = FlightPriceFetcher()
+    source_status = fetcher.get_status()
+    
     return templates.TemplateResponse(
         "prices.html",
-        {"request": request, "searches": searches}
+        {
+            "request": request,
+            "searches": searches,
+            "available_sources": source_status["sources"],
+            "ai_enabled": source_status["ai_enabled"],
+        }
     )
 
 

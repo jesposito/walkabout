@@ -22,6 +22,19 @@
     </div>
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+        {% set unconfigured_count = (1 if not available_sources.serpapi.available else 0) + (1 if not available_sources.skyscanner.available else 0) + (1 if not available_sources.amadeus.available else 0) %}
+        {% if unconfigured_count > 0 %}
+        <div class="mb-6 px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-lg flex items-center gap-3">
+            <svg class="w-5 h-5 text-amber-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p class="text-sm text-slate-400">
+                <a href="/settings/" class="text-cyan-400 hover:underline">Add API keys</a> in Settings to unlock faster price sources 
+                ({% if not available_sources.serpapi.available %}SerpAPI{% endif %}{% if not available_sources.serpapi.available and not available_sources.skyscanner.available %}, {% endif %}{% if not available_sources.skyscanner.available %}Skyscanner{% endif %}{% if (not available_sources.serpapi.available or not available_sources.skyscanner.available) and not available_sources.amadeus.available %}, {% endif %}{% if not available_sources.amadeus.available %}Amadeus{% endif %}).
+                Browser scraping is always available as fallback.
+            </p>
+        </div>
+        {% endif %}
         <div id="searches-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {% for search in searches %}
             <div class="bg-slate-800 rounded-xl overflow-hidden border border-slate-700 group" data-search-id="{{ search.id }}">
@@ -74,9 +87,15 @@
                             <select onchange="updateSource({{ search.id }}, this.value)" 
                                     class="text-xs bg-slate-700 border border-slate-600 rounded px-2 py-1 text-slate-300 focus:ring-1 focus:ring-cyan-500">
                                 <option value="auto" {% if (search.preferred_source or 'auto') == 'auto' %}selected{% endif %}>Auto (best available)</option>
+                                {% if available_sources.serpapi.available %}
                                 <option value="serpapi" {% if search.preferred_source == 'serpapi' %}selected{% endif %}>SerpAPI (Google)</option>
+                                {% endif %}
+                                {% if available_sources.skyscanner.available %}
                                 <option value="skyscanner" {% if search.preferred_source == 'skyscanner' %}selected{% endif %}>Skyscanner</option>
+                                {% endif %}
+                                {% if available_sources.amadeus.available %}
                                 <option value="amadeus" {% if search.preferred_source == 'amadeus' %}selected{% endif %}>Amadeus</option>
+                                {% endif %}
                                 <option value="playwright" {% if search.preferred_source == 'playwright' %}selected{% endif %}>Browser (free)</option>
                             </select>
                         </div>
