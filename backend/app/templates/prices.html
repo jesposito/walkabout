@@ -69,6 +69,17 @@
                                 <option value="168" {% if search.scrape_frequency_hours == 168 %}selected{% endif %}>Weekly</option>
                             </select>
                         </div>
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-xs text-slate-500 font-medium">Price Source</span>
+                            <select onchange="updateSource({{ search.id }}, this.value)" 
+                                    class="text-xs bg-slate-700 border border-slate-600 rounded px-2 py-1 text-slate-300 focus:ring-1 focus:ring-cyan-500">
+                                <option value="auto" {% if (search.preferred_source or 'auto') == 'auto' %}selected{% endif %}>Auto (best available)</option>
+                                <option value="serpapi" {% if search.preferred_source == 'serpapi' %}selected{% endif %}>SerpAPI (Google)</option>
+                                <option value="skyscanner" {% if search.preferred_source == 'skyscanner' %}selected{% endif %}>Skyscanner</option>
+                                <option value="amadeus" {% if search.preferred_source == 'amadeus' %}selected{% endif %}>Amadeus</option>
+                                <option value="playwright" {% if search.preferred_source == 'playwright' %}selected{% endif %}>Browser (free)</option>
+                            </select>
+                        </div>
                         <div id="stats-{{ search.id }}" class="text-center py-2">
                             <p class="text-xs text-slate-500">Loading prices...</p>
                         </div>
@@ -260,6 +271,18 @@ async function updateFrequency(id, hours) {
         });
     } catch (err) {
         console.error('Failed to update frequency:', err);
+    }
+}
+
+async function updateSource(id, source) {
+    try {
+        await fetch(`/prices/searches/${id}/source`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ preferred_source: source })
+        });
+    } catch (err) {
+        console.error('Failed to update source:', err);
     }
 }
 

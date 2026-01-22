@@ -243,6 +243,10 @@ class FrequencyUpdate(BaseModel):
     frequency_hours: int
 
 
+class SourceUpdate(BaseModel):
+    preferred_source: str
+
+
 @router.put("/searches/{search_id}/frequency")
 async def update_search_frequency(
     search_id: int,
@@ -256,6 +260,25 @@ async def update_search_frequency(
     definition.scrape_frequency_hours = update.frequency_hours
     db.commit()
     return {"status": "updated", "frequency_hours": update.frequency_hours}
+
+
+@router.put("/searches/{search_id}/source")
+async def update_search_source(
+    search_id: int,
+    update: SourceUpdate,
+    db: Session = Depends(get_db),
+):
+    definition = db.query(SearchDefinition).filter(SearchDefinition.id == search_id).first()
+    if not definition:
+        raise HTTPException(status_code=404, detail="Search definition not found")
+    
+    valid_sources = ["auto", "serpapi", "skyscanner", "amadeus", "playwright"]
+    if update.preferred_source not in valid_sources:
+        raise HTTPException(status_code=400, detail=f"Invalid source. Must be one of: {valid_sources}")
+    
+    definition.preferred_source = update.preferred_source
+    db.commit()
+    return {"status": "updated", "preferred_source": update.preferred_source}
 
 
 @router.post("/searches/{search_id}/refresh")
@@ -274,6 +297,7 @@ async def refresh_search_prices(
     departure_date = date.today() + timedelta(days=60)
     return_date = departure_date + timedelta(days=7) if definition.trip_type.value == "round_trip" else None
     
+    preferred = definition.preferred_source if hasattr(definition, 'preferred_source') else "auto"
     result = await fetcher.fetch_prices(
         origin=definition.origin,
         destination=definition.destination,
@@ -283,6 +307,7 @@ async def refresh_search_prices(
         children=definition.children,
         cabin_class=definition.cabin_class.value,
         currency=definition.currency,
+        preferred_source=preferred if preferred != "auto" else None,
     )
     
     if result.success:

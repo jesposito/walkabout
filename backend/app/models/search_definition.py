@@ -79,6 +79,7 @@ class SearchDefinition(Base):
     name = Column(String(100), nullable=True)  # Human-friendly name
     is_active = Column(Boolean, default=True, nullable=False)
     scrape_frequency_hours = Column(Integer, default=12, nullable=False)
+    preferred_source = Column(String(20), default="auto", nullable=False)  # auto, serpapi, skyscanner, amadeus, playwright
     
     # Version tracking - if parameters change, create new definition
     version = Column(Integer, default=1, nullable=False)
