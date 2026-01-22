@@ -3,136 +3,248 @@
 {% block content %}
 <div class="bg-slate-900 min-h-full pb-12">
     <div class="bg-slate-800/50 border-b border-slate-800">
-        <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <h1 class="text-3xl font-bold text-white tracking-tight">Settings</h1>
-            <p class="text-slate-400 mt-1">Configure your home airport and deal preferences</p>
+            <p class="text-slate-400 mt-2">Personalize Walkabout to show deals relevant to you</p>
         </div>
     </div>
 
     <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
         <form id="settings-form" class="space-y-8">
+            
+            <!-- Home Airport Section -->
             <div class="bg-slate-800 rounded-xl p-6 border border-slate-700">
-                <h2 class="text-lg font-semibold text-white mb-4">Home Location</h2>
+                <div class="flex items-start gap-4 mb-6">
+                    <div class="w-10 h-10 rounded-lg bg-cyan-500/10 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-5 h-5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-semibold text-white">Your Home Airport</h2>
+                        <p class="text-sm text-slate-400 mt-1">Deals departing from here will be highlighted as most relevant to you</p>
+                    </div>
+                </div>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label for="home_airport" class="block text-sm font-medium text-slate-300 mb-2">
-                            Home Airport (IATA Code)
+                            Airport
                         </label>
-                        <input type="text" id="home_airport" name="home_airport" 
-                               value="{{ settings.home_airport }}"
-                               maxlength="3"
-                               class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white 
-                                      placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 
-                                      focus:border-transparent uppercase font-mono text-lg tracking-wider"
-                               placeholder="AKL">
-                        <p class="mt-1 text-xs text-slate-500">e.g., AKL, SYD, LAX</p>
+                        <div class="relative">
+                            <input type="text" id="home_airport" name="home_airport" 
+                                   value="{{ settings.home_airport }}"
+                                   autocomplete="off"
+                                   class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white 
+                                          placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 
+                                          focus:border-transparent uppercase font-mono text-lg tracking-wider"
+                                   placeholder="Type city or code...">
+                            <div id="airport-dropdown" class="hidden absolute z-10 w-full mt-1 bg-slate-800 border border-slate-600 rounded-lg shadow-xl max-h-60 overflow-y-auto"></div>
+                        </div>
+                        <p id="airport-hint" class="mt-2 text-xs text-slate-500">Start typing a city name or airport code</p>
                     </div>
                     
                     <div>
                         <label for="home_region" class="block text-sm font-medium text-slate-300 mb-2">
-                            Home Region
+                            Region
                         </label>
                         <select id="home_region" name="home_region"
                                 class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white 
                                        focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
-                            <option value="Oceania" {% if settings.home_region == 'Oceania' %}selected{% endif %}>Oceania</option>
+                            <option value="Oceania" {% if settings.home_region == 'Oceania' %}selected{% endif %}>Oceania (NZ/AU/Pacific)</option>
                             <option value="North America" {% if settings.home_region == 'North America' %}selected{% endif %}>North America</option>
                             <option value="Europe" {% if settings.home_region == 'Europe' %}selected{% endif %}>Europe</option>
                             <option value="Asia" {% if settings.home_region == 'Asia' %}selected{% endif %}>Asia</option>
                             <option value="South America" {% if settings.home_region == 'South America' %}selected{% endif %}>South America</option>
                             <option value="Africa" {% if settings.home_region == 'Africa' %}selected{% endif %}>Africa</option>
                         </select>
+                        <p class="mt-2 text-xs text-slate-500">Deals from nearby airports in your region are also highlighted</p>
                     </div>
                 </div>
             </div>
 
+            <!-- Watched Destinations Section -->
             <div class="bg-slate-800 rounded-xl p-6 border border-slate-700">
-                <h2 class="text-lg font-semibold text-white mb-4">Watched Destinations</h2>
-                <p class="text-sm text-slate-400 mb-4">Deals to these airports will be marked as relevant</p>
+                <div class="flex items-start gap-4 mb-6">
+                    <div class="w-10 h-10 rounded-lg bg-violet-500/10 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-5 h-5 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-semibold text-white">Dream Destinations</h2>
+                        <p class="text-sm text-slate-400 mt-1">Add places you'd love to visit — we'll flag deals to these destinations and similar alternatives</p>
+                    </div>
+                </div>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label for="watched_destinations" class="block text-sm font-medium text-slate-300 mb-2">
+                            Destinations (comma-separated airport codes)
+                        </label>
+                        <input type="text" id="watched_destinations" name="watched_destinations" 
+                               value="{{ settings.watched_destinations | join(', ') }}"
+                               class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white 
+                                      placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 
+                                      focus:border-transparent uppercase font-mono"
+                               placeholder="SYD, NAN, TYO, HNL">
+                        <p class="mt-2 text-xs text-slate-500">
+                            Example: SYD (Sydney), NAN (Fiji), TYO (Tokyo), HNL (Hawaii), SIN (Singapore)
+                        </p>
+                    </div>
+                    
+                    <div class="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
+                        <p class="text-sm text-slate-400">
+                            <span class="text-violet-400 font-medium">💡 Smart matching:</span> 
+                            If you add "NAN" (Fiji), we'll also show deals to similar destinations like Rarotonga, Samoa, and Tahiti.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Currency Section -->
+            <div class="bg-slate-800 rounded-xl p-6 border border-slate-700">
+                <div class="flex items-start gap-4 mb-6">
+                    <div class="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-semibold text-white">Currency Preference</h2>
+                        <p class="text-sm text-slate-400 mt-1">See prices converted to your preferred currency</p>
+                    </div>
+                </div>
                 
                 <div>
-                    <label for="watched_destinations" class="block text-sm font-medium text-slate-300 mb-2">
-                        Airport Codes (comma-separated)
+                    <label for="preferred_currency" class="block text-sm font-medium text-slate-300 mb-2">
+                        Display Currency
                     </label>
-                    <input type="text" id="watched_destinations" name="watched_destinations" 
-                           value="{{ settings.watched_destinations | join(', ') }}"
-                           class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white 
-                                  placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 
-                                  focus:border-transparent uppercase font-mono"
-                           placeholder="SYD, MEL, NAN, TYO, SIN">
-                    <p class="mt-1 text-xs text-slate-500">e.g., SYD, MEL, NAN, RAR, HNL, TYO, SIN</p>
-                </div>
-                
-                <div class="mt-4">
-                    <label for="watched_regions" class="block text-sm font-medium text-slate-300 mb-2">
-                        Watched Regions
-                    </label>
-                    <div class="flex flex-wrap gap-2">
-                        {% for region in ['Pacific', 'Asia', 'Australia', 'Europe', 'North America', 'South America'] %}
-                        <label class="inline-flex items-center">
-                            <input type="checkbox" name="watched_regions" value="{{ region }}"
-                                   {% if region in (settings.watched_regions or []) %}checked{% endif %}
-                                   class="w-4 h-4 rounded border-slate-600 bg-slate-900 text-cyan-500 
-                                          focus:ring-cyan-500 focus:ring-offset-slate-800">
-                            <span class="ml-2 text-sm text-slate-300">{{ region }}</span>
-                        </label>
-                        {% endfor %}
-                    </div>
+                    <select id="preferred_currency" name="preferred_currency"
+                            class="w-full max-w-xs px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white 
+                                   focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
+                        <option value="NZD" {% if (settings.preferred_currency or 'NZD') == 'NZD' %}selected{% endif %}>🇳🇿 NZD - New Zealand Dollar</option>
+                        <option value="AUD" {% if settings.preferred_currency == 'AUD' %}selected{% endif %}>🇦🇺 AUD - Australian Dollar</option>
+                        <option value="USD" {% if settings.preferred_currency == 'USD' %}selected{% endif %}>🇺🇸 USD - US Dollar</option>
+                        <option value="EUR" {% if settings.preferred_currency == 'EUR' %}selected{% endif %}>🇪🇺 EUR - Euro</option>
+                        <option value="GBP" {% if settings.preferred_currency == 'GBP' %}selected{% endif %}>🇬🇧 GBP - British Pound</option>
+                        <option value="SGD" {% if settings.preferred_currency == 'SGD' %}selected{% endif %}>🇸🇬 SGD - Singapore Dollar</option>
+                        <option value="JPY" {% if settings.preferred_currency == 'JPY' %}selected{% endif %}>🇯🇵 JPY - Japanese Yen</option>
+                        <option value="CAD" {% if settings.preferred_currency == 'CAD' %}selected{% endif %}>🇨🇦 CAD - Canadian Dollar</option>
+                    </select>
+                    <p class="mt-2 text-xs text-slate-500">Original price is always shown alongside the conversion</p>
                 </div>
             </div>
 
-            <div class="bg-slate-800 rounded-xl p-6 border border-slate-700">
-                <h2 class="text-lg font-semibold text-white mb-4">Notifications</h2>
-                
-                <div class="flex items-center justify-between mb-4">
-                    <div>
-                        <span class="text-sm font-medium text-slate-300">Enable Notifications</span>
-                        <p class="text-xs text-slate-500">Get alerts for relevant deals</p>
+            <!-- Notifications Section -->
+            <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 opacity-60">
+                <div class="flex items-start gap-4 mb-6">
+                    <div class="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                        </svg>
                     </div>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="notifications_enabled" name="notifications_enabled"
+                    <div>
+                        <h2 class="text-lg font-semibold text-white">Notifications</h2>
+                        <p class="text-sm text-slate-400 mt-1">Coming soon — get push alerts for hot deals</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center justify-between">
+                    <div>
+                        <span class="text-sm font-medium text-slate-400">Push Notifications</span>
+                        <p class="text-xs text-slate-600">Not yet implemented</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-not-allowed">
+                        <input type="checkbox" id="notifications_enabled" name="notifications_enabled" disabled
                                {% if settings.notifications_enabled %}checked{% endif %}
                                class="sr-only peer">
-                        <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-2 
-                                    peer-focus:ring-cyan-500 rounded-full peer 
-                                    peer-checked:after:translate-x-full peer-checked:after:border-white 
+                        <div class="w-11 h-6 bg-slate-700 rounded-full peer peer-checked:bg-slate-600
                                     after:content-[''] after:absolute after:top-[2px] after:left-[2px] 
-                                    after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all 
-                                    peer-checked:bg-cyan-500"></div>
+                                    after:bg-slate-500 after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
                     </label>
-                </div>
-                
-                <div>
-                    <label for="notification_min_discount_percent" class="block text-sm font-medium text-slate-300 mb-2">
-                        Minimum Discount to Notify (%)
-                    </label>
-                    <input type="number" id="notification_min_discount_percent" name="notification_min_discount_percent"
-                           value="{{ settings.notification_min_discount_percent }}"
-                           min="5" max="90" step="5"
-                           class="w-32 px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white 
-                                  focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
-                    <p class="mt-1 text-xs text-slate-500">Only notify for deals this % below average</p>
                 </div>
             </div>
 
-            <div class="flex items-center justify-between">
-                <a href="/deals/" class="text-slate-400 hover:text-white transition-colors">
-                    ← Back to Deals
+            <!-- Save Button -->
+            <div class="flex items-center justify-between pt-4">
+                <a href="/deals/" class="text-slate-400 hover:text-white transition-colors flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                    </svg>
+                    Back to Deals
                 </a>
                 <button type="submit" 
-                        class="px-6 py-3 bg-cyan-500 hover:bg-cyan-400 text-white font-semibold rounded-lg 
-                               shadow-lg shadow-cyan-500/25 transition-all">
+                        class="px-8 py-3 bg-cyan-500 hover:bg-cyan-400 text-white font-semibold rounded-lg 
+                               shadow-lg shadow-cyan-500/25 transition-all flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
                     Save Settings
                 </button>
             </div>
         </form>
         
-        <div id="save-status" class="hidden mt-4 p-4 rounded-lg text-center"></div>
+        <div id="save-status" class="hidden mt-6 p-4 rounded-lg text-center"></div>
     </div>
 </div>
 
 <script>
+// Airport search autocomplete
+const airportInput = document.getElementById('home_airport');
+const dropdown = document.getElementById('airport-dropdown');
+const hint = document.getElementById('airport-hint');
+let debounceTimer;
+
+airportInput.addEventListener('input', (e) => {
+    clearTimeout(debounceTimer);
+    const query = e.target.value.trim();
+    
+    if (query.length < 2) {
+        dropdown.classList.add('hidden');
+        hint.textContent = 'Start typing a city name or airport code';
+        return;
+    }
+    
+    debounceTimer = setTimeout(async () => {
+        try {
+            const response = await fetch(`/settings/api/airports/search?q=${encodeURIComponent(query)}&limit=8`);
+            const data = await response.json();
+            
+            if (data.results && data.results.length > 0) {
+                dropdown.innerHTML = data.results.map(a => `
+                    <button type="button" 
+                            class="w-full px-4 py-3 text-left hover:bg-slate-700 flex items-center gap-3 border-b border-slate-700 last:border-0"
+                            onclick="selectAirport('${a.code}', '${a.city}', '${a.country}')">
+                        <span class="font-mono font-bold text-cyan-400">${a.code}</span>
+                        <span class="text-slate-300">${a.city}, ${a.country}</span>
+                    </button>
+                `).join('');
+                dropdown.classList.remove('hidden');
+            } else {
+                dropdown.classList.add('hidden');
+            }
+        } catch (err) {
+            console.error('Airport search failed:', err);
+        }
+    }, 200);
+});
+
+function selectAirport(code, city, country) {
+    airportInput.value = code;
+    dropdown.classList.add('hidden');
+    hint.innerHTML = `<span class="text-cyan-400">${city}, ${country}</span>`;
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+    if (!airportInput.contains(e.target) && !dropdown.contains(e.target)) {
+        dropdown.classList.add('hidden');
+    }
+});
+
+// Form submission
 document.getElementById('settings-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     
@@ -141,23 +253,18 @@ document.getElementById('settings-form').addEventListener('submit', async (e) =>
     const submitBtn = form.querySelector('button[type="submit"]');
     
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Saving...';
+    submitBtn.innerHTML = '<svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Saving...';
     
     const watchedDests = form.watched_destinations.value
         .split(',')
         .map(s => s.trim().toUpperCase())
         .filter(s => s.length > 0);
     
-    const watchedRegions = Array.from(form.querySelectorAll('input[name="watched_regions"]:checked'))
-        .map(cb => cb.value);
-    
     const data = {
         home_airport: form.home_airport.value.toUpperCase().trim(),
         home_region: form.home_region.value,
         watched_destinations: watchedDests,
-        watched_regions: watchedRegions,
-        notifications_enabled: form.notifications_enabled.checked,
-        notification_min_discount_percent: parseInt(form.notification_min_discount_percent.value),
+        preferred_currency: form.preferred_currency.value,
     };
     
     try {
@@ -168,20 +275,20 @@ document.getElementById('settings-form').addEventListener('submit', async (e) =>
         });
         
         if (response.ok) {
-            statusEl.className = 'mt-4 p-4 rounded-lg text-center bg-green-500/10 text-green-400 border border-green-500/20';
-            statusEl.textContent = '✓ Settings saved! Deal relevance has been recalculated.';
+            statusEl.className = 'mt-6 p-4 rounded-lg text-center bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+            statusEl.textContent = '✓ Settings saved! Your deal feed has been updated.';
             statusEl.classList.remove('hidden');
-            setTimeout(() => statusEl.classList.add('hidden'), 3000);
+            setTimeout(() => statusEl.classList.add('hidden'), 4000);
         } else {
             throw new Error('Failed to save');
         }
     } catch (err) {
-        statusEl.className = 'mt-4 p-4 rounded-lg text-center bg-red-500/10 text-red-400 border border-red-500/20';
+        statusEl.className = 'mt-6 p-4 rounded-lg text-center bg-red-500/10 text-red-400 border border-red-500/20';
         statusEl.textContent = '✗ Failed to save settings. Please try again.';
         statusEl.classList.remove('hidden');
     } finally {
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Save Settings';
+        submitBtn.innerHTML = '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg> Save Settings';
     }
 });
 </script>

@@ -6,7 +6,7 @@ from app.services.feeds.base import BaseFeedParser, ParsedDeal, ParseResult
 
 class SecretFlyingParser(BaseFeedParser):
     
-    FEED_URL = "https://www.secretflying.com/posts/feed/"
+    FEED_URL = "https://www.secretflying.com/feed/"
     
     HOTEL_KEYWORDS = ['hotel', 'per night', 'stars*', 'resort', 'hostel', 'accommodation']
     
@@ -30,7 +30,7 @@ class SecretFlyingParser(BaseFeedParser):
         
         if any(kw in title_lower for kw in self.HOTEL_KEYWORDS):
             return ParseResult(
-                parse_status=ParseStatus.FAILED,
+                status=ParseStatus.FAILED,
                 reasons=["Hotel deal, not a flight"],
                 parser_used="regex_secret_flying",
             )

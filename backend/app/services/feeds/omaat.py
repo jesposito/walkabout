@@ -32,7 +32,7 @@ class OMAATParser(BaseFeedParser):
         
         if any(skip in title_lower for skip in self.SKIP_KEYWORDS):
             return ParseResult(
-                parse_status=ParseStatus.FAILED,
+                status=ParseStatus.FAILED,
                 reasons=["Not a deal post"],
                 parser_used="regex_omaat",
             )
@@ -42,7 +42,7 @@ class OMAATParser(BaseFeedParser):
         
         if not is_deal and not has_price:
             return ParseResult(
-                parse_status=ParseStatus.FAILED,
+                status=ParseStatus.FAILED,
                 reasons=["No deal indicators found"],
                 parser_used="regex_omaat",
             )

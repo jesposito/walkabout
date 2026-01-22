@@ -17,10 +17,10 @@ class FeedConfig:
 FEED_CONFIGS: dict[DealSource, FeedConfig] = {
     DealSource.TPG: FeedConfig(
         source=DealSource.TPG,
-        feed_url="https://thepointsguy.com/news/deals/feed/",
+        feed_url="https://thepointsguy.com/feed/",
         deal_keywords=['deal', 'fare', 'sale', 'cheap', 'price drop', 'award', 'miles'],
         skip_keywords=['review', 'credit card', 'hotel review', 'lounge'],
-        require_keywords=False,
+        require_keywords=True,
     ),
     DealSource.THE_FLIGHT_DEAL: FeedConfig(
         source=DealSource.THE_FLIGHT_DEAL,

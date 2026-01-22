@@ -3,93 +3,137 @@
 {% block content %}
 <div class="bg-slate-900 min-h-full pb-12">
     <div class="bg-slate-800/50 border-b border-slate-800">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
-                    <h1 class="text-3xl font-bold text-white tracking-tight">Price Tracker</h1>
-                    <p class="text-slate-400 mt-1">Monitor prices for your routes over time</p>
+                    <h1 class="text-3xl font-bold text-white tracking-tight">My Routes</h1>
+                    <p class="text-slate-400 mt-2">Track prices for specific routes you're planning to fly</p>
                 </div>
                 <button onclick="openAddModal()" 
-                        class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-white font-semibold rounded-lg 
+                        class="px-5 py-2.5 bg-cyan-500 hover:bg-cyan-400 text-white font-semibold rounded-lg 
                                shadow-lg shadow-cyan-500/25 transition-all flex items-center gap-2">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                     </svg>
-                    Add Route
+                    Track New Route
                 </button>
             </div>
         </div>
     </div>
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+        
+        <!-- Info Banner -->
+        <div class="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 mb-8">
+            <div class="flex items-start gap-3">
+                <svg class="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div class="text-sm">
+                    <p class="text-amber-200 font-medium">About Route Tracking</p>
+                    <p class="text-amber-200/70 mt-1">
+                        This feature lets you save specific routes you're interested in. 
+                        Price tracking requires a flight price API integration (coming in a future update). 
+                        For now, use <a href="/deals/" class="underline hover:text-amber-200">Flight Deals</a> to find current deals.
+                    </p>
+                </div>
+            </div>
+        </div>
+
         <div id="searches-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {% for search in searches %}
-            <div class="bg-slate-800 rounded-xl p-6 border border-slate-700" data-search-id="{{ search.id }}">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="flex items-baseline gap-2 text-2xl font-bold text-white">
-                        <span>{{ search.origin }}</span>
-                        <span class="text-slate-600 text-lg">{% if search.trip_type == 'round_trip' %}⇄{% else %}→{% endif %}</span>
-                        <span class="text-cyan-400">{{ search.destination }}</span>
+            <div class="bg-slate-800 rounded-xl overflow-hidden border border-slate-700 group" data-search-id="{{ search.id }}">
+                <div class="h-1.5 bg-gradient-to-r from-cyan-500 to-blue-600"></div>
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-baseline gap-2 text-2xl font-bold text-white">
+                            <span>{{ search.origin }}</span>
+                            <span class="text-slate-600 text-lg">{% if search.trip_type == 'round_trip' %}⇄{% else %}→{% endif %}</span>
+                            <span class="text-cyan-400">{{ search.destination }}</span>
+                        </div>
+                        <button onclick="deleteSearch({{ search.id }})" 
+                                class="text-slate-500 hover:text-red-400 transition-colors p-1 rounded hover:bg-slate-700"
+                                title="Remove route">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </button>
                     </div>
-                    <button onclick="deleteSearch({{ search.id }})" class="text-slate-500 hover:text-red-400 transition-colors">
-                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                    </button>
-                </div>
-                
-                <div class="flex flex-wrap gap-2 mb-4">
-                    <span class="px-2 py-1 rounded text-[10px] font-mono font-bold tracking-wider uppercase bg-slate-700 text-slate-300 border border-slate-600">
-                        {{ search.cabin_class }}
-                    </span>
-                    <span class="px-2 py-1 rounded text-[10px] font-mono tracking-wider uppercase bg-slate-700 text-slate-300 border border-slate-600">
-                        {{ search.adults + search.children }} pax
-                    </span>
-                    <span class="px-2 py-1 rounded text-[10px] font-mono tracking-wider uppercase bg-slate-700 text-slate-300 border border-slate-600">
-                        {{ search.currency }}
-                    </span>
-                </div>
-                
-                <div id="stats-{{ search.id }}" class="border-t border-slate-700 pt-4 mt-4">
-                    <div class="text-sm text-slate-500">Loading stats...</div>
+                    
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <span class="px-2 py-1 rounded text-[10px] font-mono font-bold tracking-wider uppercase 
+                            {% if search.cabin_class == 'business' %}bg-amber-500/10 text-amber-400 border border-amber-500/20
+                            {% elif search.cabin_class == 'first' %}bg-purple-500/10 text-purple-400 border border-purple-500/20
+                            {% else %}bg-slate-700 text-slate-300 border border-slate-600{% endif %}">
+                            {{ search.cabin_class }}
+                        </span>
+                        <span class="px-2 py-1 rounded text-[10px] font-mono tracking-wider uppercase bg-slate-700 text-slate-300 border border-slate-600">
+                            {{ search.adults }}{% if search.children > 0 %}+{{ search.children }}{% endif %} travelers
+                        </span>
+                        <span class="px-2 py-1 rounded text-[10px] font-mono tracking-wider uppercase bg-slate-700 text-slate-300 border border-slate-600">
+                            {{ search.trip_type | replace('_', ' ') }}
+                        </span>
+                    </div>
+                    
+                    <div id="stats-{{ search.id }}" class="border-t border-slate-700 pt-4 mt-4">
+                        <div class="text-sm text-slate-500 text-center py-4">
+                            <svg class="w-8 h-8 mx-auto mb-2 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                            </svg>
+                            <p>Price tracking coming soon</p>
+                        </div>
+                    </div>
                 </div>
             </div>
             {% else %}
-            <div class="col-span-full flex flex-col items-center justify-center py-20 text-center">
-                <div class="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mb-6">
-                    <svg class="w-10 h-10 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
+            <div class="col-span-full">
+                <div class="flex flex-col items-center justify-center py-16 text-center">
+                    <div class="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mb-6">
+                        <svg class="w-10 h-10 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-2">No routes saved yet</h3>
+                    <p class="text-slate-400 max-w-md mx-auto mb-6">
+                        Save routes you're interested in flying. When price tracking is enabled, 
+                        you'll see historical prices and trends here.
+                    </p>
+                    <button onclick="openAddModal()" 
+                            class="px-6 py-3 bg-cyan-500 hover:bg-cyan-400 text-white font-semibold rounded-lg shadow-lg shadow-cyan-500/25">
+                        Save Your First Route
+                    </button>
                 </div>
-                <h3 class="text-xl font-bold text-white mb-2">No routes tracked</h3>
-                <p class="text-slate-400 max-w-md mx-auto mb-6">Add a route to start monitoring prices over time.</p>
-                <button onclick="openAddModal()" class="px-6 py-3 bg-cyan-500 hover:bg-cyan-400 text-white font-semibold rounded-lg">
-                    Add Your First Route
-                </button>
             </div>
             {% endfor %}
         </div>
     </div>
 </div>
 
+<!-- Add Route Modal -->
 <div id="add-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm">
-    <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 w-full max-w-md mx-4">
-        <h2 class="text-xl font-bold text-white mb-6">Add Route to Track</h2>
-        <form id="add-form" class="space-y-4">
+    <div class="bg-slate-800 rounded-xl border border-slate-700 w-full max-w-md mx-4 overflow-hidden">
+        <div class="bg-slate-700/50 px-6 py-4 border-b border-slate-700">
+            <h2 class="text-xl font-bold text-white">Track a Route</h2>
+            <p class="text-sm text-slate-400 mt-1">Save a route you're planning to fly</p>
+        </div>
+        
+        <form id="add-form" class="p-6 space-y-5">
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-2">Origin</label>
+                    <label class="block text-sm font-medium text-slate-300 mb-2">From</label>
                     <input type="text" name="origin" required maxlength="3"
                            class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white 
-                                  uppercase font-mono text-lg tracking-wider focus:ring-2 focus:ring-cyan-500"
+                                  uppercase font-mono text-lg tracking-wider focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
                            placeholder="AKL">
+                    <p class="mt-1 text-xs text-slate-500">Airport code</p>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-2">Destination</label>
+                    <label class="block text-sm font-medium text-slate-300 mb-2">To</label>
                     <input type="text" name="destination" required maxlength="3"
                            class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white 
-                                  uppercase font-mono text-lg tracking-wider focus:ring-2 focus:ring-cyan-500"
+                                  uppercase font-mono text-lg tracking-wider focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
                            placeholder="SYD">
+                    <p class="mt-1 text-xs text-slate-500">Airport code</p>
                 </div>
             </div>
             
@@ -97,18 +141,18 @@
                 <div>
                     <label class="block text-sm font-medium text-slate-300 mb-2">Adults</label>
                     <input type="number" name="adults" value="2" min="1" max="9"
-                           class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-cyan-500">
+                           class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-slate-300 mb-2">Children</label>
-                    <input type="number" name="children" value="2" min="0" max="9"
-                           class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-cyan-500">
+                    <input type="number" name="children" value="0" min="0" max="9"
+                           class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
                 </div>
             </div>
             
             <div>
                 <label class="block text-sm font-medium text-slate-300 mb-2">Cabin Class</label>
-                <select name="cabin_class" class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-cyan-500">
+                <select name="cabin_class" class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
                     <option value="economy">Economy</option>
                     <option value="premium_economy">Premium Economy</option>
                     <option value="business">Business</option>
@@ -118,20 +162,20 @@
             
             <div>
                 <label class="block text-sm font-medium text-slate-300 mb-2">Trip Type</label>
-                <select name="trip_type" class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-cyan-500">
+                <select name="trip_type" class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
                     <option value="round_trip">Round Trip</option>
                     <option value="one_way">One Way</option>
                 </select>
             </div>
             
-            <div class="flex gap-3 pt-4">
+            <div class="flex gap-3 pt-2">
                 <button type="button" onclick="closeAddModal()" 
                         class="flex-1 px-4 py-3 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors">
                     Cancel
                 </button>
                 <button type="submit" 
                         class="flex-1 px-4 py-3 bg-cyan-500 hover:bg-cyan-400 text-white font-semibold rounded-lg transition-colors">
-                    Add Route
+                    Save Route
                 </button>
             </div>
         </form>
@@ -147,9 +191,23 @@ function closeAddModal() {
     document.getElementById('add-modal').classList.add('hidden');
 }
 
+document.getElementById('add-modal').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('add-modal')) {
+        closeAddModal();
+    }
+});
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeAddModal();
+});
+
 document.getElementById('add-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const form = e.target;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Saving...';
+    
     const data = {
         origin: form.origin.value.toUpperCase(),
         destination: form.destination.value.toUpperCase(),
@@ -169,65 +227,31 @@ document.getElementById('add-form').addEventListener('submit', async (e) => {
         if (response.ok) {
             window.location.reload();
         } else {
-            alert('Failed to add route');
+            const error = await response.json();
+            alert(error.detail || 'Failed to save route');
         }
     } catch (err) {
         alert('Error: ' + err.message);
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Save Route';
     }
 });
 
 async function deleteSearch(id) {
-    if (!confirm('Remove this route from tracking?')) return;
+    if (!confirm('Remove this route?')) return;
     
     try {
         const response = await fetch(`/prices/searches/${id}`, { method: 'DELETE' });
         if (response.ok) {
-            document.querySelector(`[data-search-id="${id}"]`).remove();
+            const card = document.querySelector(`[data-search-id="${id}"]`);
+            card.style.opacity = '0';
+            card.style.transform = 'scale(0.95)';
+            setTimeout(() => card.remove(), 200);
         }
     } catch (err) {
         alert('Error: ' + err.message);
     }
 }
-
-async function loadStats() {
-    const cards = document.querySelectorAll('[data-search-id]');
-    for (const card of cards) {
-        const id = card.dataset.searchId;
-        try {
-            const response = await fetch(`/prices/searches/${id}/stats`);
-            const stats = await response.json();
-            
-            const statsEl = document.getElementById(`stats-${id}`);
-            if (stats.price_count > 0) {
-                const trendIcon = stats.price_trend === 'down' ? '↓' : stats.price_trend === 'up' ? '↑' : '→';
-                const trendColor = stats.price_trend === 'down' ? 'text-green-400' : stats.price_trend === 'up' ? 'text-red-400' : 'text-slate-400';
-                
-                statsEl.innerHTML = `
-                    <div class="grid grid-cols-3 gap-4 text-center">
-                        <div>
-                            <div class="text-xs text-slate-500 uppercase mb-1">Low</div>
-                            <div class="text-lg font-bold text-green-400">$${Math.round(stats.min_price)}</div>
-                        </div>
-                        <div>
-                            <div class="text-xs text-slate-500 uppercase mb-1">Avg</div>
-                            <div class="text-lg font-bold text-slate-300">$${Math.round(stats.avg_price)}</div>
-                        </div>
-                        <div>
-                            <div class="text-xs text-slate-500 uppercase mb-1">Current</div>
-                            <div class="text-lg font-bold ${trendColor}">${stats.current_price ? '$' + Math.round(stats.current_price) : 'N/A'} ${trendIcon}</div>
-                        </div>
-                    </div>
-                    <div class="text-xs text-slate-500 text-center mt-2">${stats.price_count} price points</div>
-                `;
-            } else {
-                statsEl.innerHTML = '<div class="text-sm text-slate-500 text-center">No price data yet</div>';
-            }
-        } catch (err) {
-            console.error(`Failed to load stats for ${id}:`, err);
-        }
-    }
-}
-
-loadStats();
 </script>
 {% endblock %}

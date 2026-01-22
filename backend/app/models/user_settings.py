@@ -14,6 +14,8 @@ class UserSettings(Base):
     watched_destinations = Column(JSON, default=list)
     watched_regions = Column(JSON, default=list)
     
+    preferred_currency = Column(String(3), default="NZD")
+    
     notifications_enabled = Column(Boolean, default=False)
     notification_min_discount_percent = Column(Integer, default=20)
     

@@ -9,6 +9,7 @@ import os
 from app.database import get_db
 from app.models.user_settings import UserSettings
 from app.services.relevance import RelevanceService
+from app.services.airports import AirportService
 
 router = APIRouter()
 
@@ -21,6 +22,7 @@ class SettingsUpdate(BaseModel):
     home_region: Optional[str] = None
     watched_destinations: Optional[list[str]] = None
     watched_regions: Optional[list[str]] = None
+    preferred_currency: Optional[str] = None
     notifications_enabled: Optional[bool] = None
     notification_min_discount_percent: Optional[int] = None
 
@@ -30,6 +32,7 @@ class SettingsResponse(BaseModel):
     home_region: str
     watched_destinations: list[str]
     watched_regions: list[str]
+    preferred_currency: str
     notifications_enabled: bool
     notification_min_discount_percent: int
     
@@ -45,6 +48,7 @@ async def get_settings(db: Session = Depends(get_db)):
         home_region=settings.home_region,
         watched_destinations=settings.watched_destinations or [],
         watched_regions=settings.watched_regions or [],
+        preferred_currency=settings.preferred_currency or "NZD",
         notifications_enabled=settings.notifications_enabled,
         notification_min_discount_percent=settings.notification_min_discount_percent,
     )
@@ -65,6 +69,8 @@ async def update_settings(
         settings.watched_destinations = [d.upper().strip() for d in updates.watched_destinations]
     if updates.watched_regions is not None:
         settings.watched_regions = updates.watched_regions
+    if updates.preferred_currency is not None:
+        settings.preferred_currency = updates.preferred_currency.upper().strip()
     if updates.notifications_enabled is not None:
         settings.notifications_enabled = updates.notifications_enabled
     if updates.notification_min_discount_percent is not None:
@@ -81,6 +87,7 @@ async def update_settings(
         home_region=settings.home_region,
         watched_destinations=settings.watched_destinations or [],
         watched_regions=settings.watched_regions or [],
+        preferred_currency=settings.preferred_currency or "NZD",
         notifications_enabled=settings.notifications_enabled,
         notification_min_discount_percent=settings.notification_min_discount_percent,
     )
@@ -96,3 +103,35 @@ async def settings_page(request: Request, db: Session = Depends(get_db)):
             "settings": settings,
         }
     )
+
+
+@router.get("/api/airports/search")
+async def search_airports(q: str, limit: int = 10):
+    results = AirportService.search(q, limit)
+    return {
+        "results": [
+            {
+                "code": a.code,
+                "name": a.name,
+                "city": a.city,
+                "country": a.country,
+                "region": a.region,
+                "label": f"{a.code} - {a.city}, {a.country}",
+            }
+            for a in results
+        ]
+    }
+
+
+@router.get("/api/airports/{code}")
+async def get_airport(code: str):
+    airport = AirportService.get(code)
+    if not airport:
+        return {"error": "Airport not found"}
+    return {
+        "code": airport.code,
+        "name": airport.name,
+        "city": airport.city,
+        "country": airport.country,
+        "region": airport.region,
+    }
