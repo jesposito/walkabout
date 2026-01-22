@@ -79,6 +79,22 @@ AIRLINES = [
 ]
 
 
+# Regex to match emoji and other non-ASCII symbols
+EMOJI_PATTERN = re.compile(
+    "["
+    "\U0001F600-\U0001F64F"  # emoticons
+    "\U0001F300-\U0001F5FF"  # symbols & pictographs
+    "\U0001F680-\U0001F6FF"  # transport & map symbols
+    "\U0001F1E0-\U0001F1FF"  # flags
+    "\U00002702-\U000027B0"  # dingbats
+    "\U000024C2-\U0001F251"  # misc
+    "\U0001F900-\U0001F9FF"  # supplemental symbols
+    "\U00002600-\U000026FF"  # misc symbols (sun, etc)
+    "]+",
+    flags=re.UNICODE
+)
+
+
 class GenericFeedParser(BaseFeedParser):
     
     ROUTE_PATTERNS = [
@@ -125,8 +141,12 @@ class GenericFeedParser(BaseFeedParser):
         )
     
     def _extract_route(self, title: str) -> tuple[Optional[str], Optional[str]]:
+        # Strip emojis before parsing to avoid regex issues
+        clean_title = EMOJI_PATTERN.sub(' ', title)
+        clean_title = re.sub(r'\s+', ' ', clean_title)  # normalize whitespace
+        
         for pattern in self.ROUTE_PATTERNS:
-            match = pattern.search(title)
+            match = pattern.search(clean_title)
             if match:
                 origin_raw = match.group('origin').strip()
                 dest_raw = match.group('dest').strip()
@@ -137,7 +157,7 @@ class GenericFeedParser(BaseFeedParser):
                 if origin and dest and origin != dest:
                     return (origin, dest)
         
-        airports = self._extract_airports(title)
+        airports = self._extract_airports(clean_title)
         if len(airports) >= 2:
             return (airports[0], airports[1])
         
