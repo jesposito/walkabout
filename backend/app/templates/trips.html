@@ -260,12 +260,22 @@
                     <!-- Matches Section -->
                     {% if matches %}
                     <div class="px-6 py-4 bg-slate-900/30 border-t border-slate-700/50">
-                        <h4 class="text-sm font-semibold text-emerald-400 mb-3 flex items-center gap-2">
-                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                            </svg>
-                            {{ matches|length }} Matching Deals Found
-                        </h4>
+                        <div class="flex items-center justify-between mb-3">
+                            <h4 class="text-sm font-semibold text-emerald-400 flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                </svg>
+                                {{ matches|length }} Matching Deals from RSS
+                            </h4>
+                            <button onclick="searchPrices({{ trip.id }})" 
+                                    id="search-btn-{{ trip.id }}"
+                                    class="px-3 py-1.5 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 text-xs font-medium rounded-lg transition-all inline-flex items-center gap-1.5 border border-cyan-500/30">
+                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                                Search Google Flights
+                            </button>
+                        </div>
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                             {% for deal, score in matches[:5] %}
                             <a href="{{ deal.link }}" target="_blank" 
@@ -281,9 +291,14 @@
                                     <span class="font-mono text-emerald-400 text-sm">{{ deal.parsed_price|int }} {{ deal.parsed_currency or 'USD' }}</span>
                                     {% endif %}
                                 </div>
+                                {% if deal.parsed_travel_dates %}
+                                <div class="text-xs text-cyan-400/80 mb-1 truncate" title="{{ deal.parsed_travel_dates }}">
+                                    📅 {{ deal.parsed_travel_dates }}
+                                </div>
+                                {% endif %}
                                 <div class="text-xs text-slate-500 flex items-center justify-between">
                                     <span>{{ deal.parsed_airline or deal.source.value }}</span>
-                                    <span>Match: {{ (score)|int }}%</span>
+                                    <span class="text-emerald-400/60">{{ (score)|int }}% match</span>
                                 </div>
                             </a>
                             {% endfor %}
@@ -292,23 +307,29 @@
                     {% else %}
                     <div class="px-6 py-4 bg-slate-900/30 border-t border-slate-700/50 text-center">
                         <p class="text-sm text-slate-500 italic mb-3">No matches found yet. We're watching the skies...</p>
-                        <div class="flex gap-3 justify-center">
-                            <button onclick="checkMatches({{ trip.id }})" 
-                                    id="check-btn-{{ trip.id }}"
-                                    class="px-4 py-2 bg-violet-500 hover:bg-violet-400 text-white text-sm font-semibold rounded-lg shadow-lg shadow-violet-500/25 transition-all inline-flex items-center gap-2">
-                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
-                                Check Deals
-                            </button>
-                            <button onclick="searchPrices({{ trip.id }})" 
-                                    id="search-btn-{{ trip.id }}"
-                                    class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-white text-sm font-semibold rounded-lg shadow-lg shadow-cyan-500/25 transition-all inline-flex items-center gap-2">
-                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                Search Live Prices
-                            </button>
+                        <div class="flex flex-col sm:flex-row gap-3 justify-center items-center">
+                            <div class="text-center">
+                                <button onclick="checkMatches({{ trip.id }})" 
+                                        id="check-btn-{{ trip.id }}"
+                                        class="px-4 py-2 bg-violet-500 hover:bg-violet-400 text-white text-sm font-semibold rounded-lg shadow-lg shadow-violet-500/25 transition-all inline-flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+                                    </svg>
+                                    Check Deal Sites
+                                </button>
+                                <p class="text-[10px] text-slate-600 mt-1">Fly4Free, SecretFlying, etc.</p>
+                            </div>
+                            <div class="text-center">
+                                <button onclick="searchPrices({{ trip.id }})" 
+                                        id="search-btn-{{ trip.id }}"
+                                        class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-white text-sm font-semibold rounded-lg shadow-lg shadow-cyan-500/25 transition-all inline-flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                    Search Google Flights
+                                </button>
+                                <p class="text-[10px] text-slate-600 mt-1">Live prices with booking links</p>
+                            </div>
                         </div>
                     </div>
                     {% endif %}

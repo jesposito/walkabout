@@ -338,12 +338,41 @@ async function loadStats(id) {
     const statsEl = document.getElementById(`stats-${id}`);
     
     try {
-        const response = await fetch(`/prices/searches/${id}/stats`);
-        const stats = await response.json();
+        const [statsRes, optionsRes] = await Promise.all([
+            fetch(`/prices/searches/${id}/stats`),
+            fetch(`/prices/searches/${id}/options?limit=3`)
+        ]);
+        const stats = await statsRes.json();
+        const optionsData = await optionsRes.json();
         
         if (stats.price_count > 0) {
             const trend = stats.price_trend === 'down' ? '↓' : stats.price_trend === 'up' ? '↑' : '→';
             const trendColor = stats.price_trend === 'down' ? 'text-emerald-400' : stats.price_trend === 'up' ? 'text-red-400' : 'text-slate-400';
+            
+            let optionsHtml = '';
+            if (optionsData.options && optionsData.options.length > 0) {
+                optionsHtml = `
+                    <div class="mt-3 pt-3 border-t border-slate-700/50 space-y-2">
+                        <p class="text-[10px] text-slate-500 uppercase mb-2">Best Options</p>
+                        ${optionsData.options.map(opt => `
+                            <a href="${opt.booking_url}" target="_blank" rel="noopener"
+                               class="block p-2 rounded bg-slate-700/50 hover:bg-slate-600/50 transition-colors group">
+                                <div class="flex justify-between items-center">
+                                    <div class="text-xs">
+                                        <span class="text-slate-300">${formatDate(opt.departure_date)}</span>
+                                        ${opt.return_date ? `<span class="text-slate-500 mx-1">→</span><span class="text-slate-300">${formatDate(opt.return_date)}</span>` : ''}
+                                    </div>
+                                    <span class="font-mono font-bold text-emerald-400 text-sm">$${Math.round(opt.price_nzd)}</span>
+                                </div>
+                                <div class="flex justify-between items-center mt-1">
+                                    <span class="text-[10px] text-slate-500">${opt.airline}${opt.stops > 0 ? ' · ' + opt.stops + ' stop' + (opt.stops > 1 ? 's' : '') : ' · Direct'}</span>
+                                    <span class="text-[10px] text-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity">Book →</span>
+                                </div>
+                            </a>
+                        `).join('')}
+                    </div>
+                `;
+            }
             
             statsEl.innerHTML = `
                 <div class="grid grid-cols-3 gap-2 text-center">
@@ -360,6 +389,7 @@ async function loadStats(id) {
                         <p class="text-[10px] text-slate-500 uppercase">Trend</p>
                     </div>
                 </div>
+                ${optionsHtml}
                 <p class="text-[10px] text-slate-600 mt-2">${stats.price_count} data points</p>
             `;
         } else {
@@ -368,6 +398,11 @@ async function loadStats(id) {
     } catch (err) {
         statsEl.innerHTML = '<p class="text-xs text-slate-500">No price data yet</p>';
     }
+}
+
+function formatDate(dateStr) {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('en-NZ', { day: 'numeric', month: 'short' });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
