@@ -39,6 +39,7 @@ class TripPlanCreate(BaseModel):
     travelers_adults: int = 2
     travelers_children: int = 0
     notify_on_match: bool = True
+    check_frequency_hours: int = 12
     notes: Optional[str] = None
 
 
@@ -59,6 +60,7 @@ class TripPlanResponse(BaseModel):
     travelers_children: int
     is_active: bool
     notify_on_match: bool
+    check_frequency_hours: int
     match_count: int
     last_match_at: Optional[datetime]
     notes: Optional[str]
@@ -126,6 +128,7 @@ async def create_trip(
         travelers_adults=trip.travelers_adults,
         travelers_children=trip.travelers_children,
         notify_on_match=trip.notify_on_match,
+        check_frequency_hours=trip.check_frequency_hours,
         notes=trip.notes,
     )
     db.add(new_trip)

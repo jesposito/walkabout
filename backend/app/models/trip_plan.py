@@ -31,6 +31,9 @@ class TripPlan(Base):
     is_active = Column(Boolean, default=True)
     notify_on_match = Column(Boolean, default=True)
     
+    # How often to check for matching deals (hours)
+    check_frequency_hours = Column(Integer, default=12)
+    
     notes = Column(Text, nullable=True)
     
     match_count = Column(Integer, default=0)
