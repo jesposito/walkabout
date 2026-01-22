@@ -115,14 +115,13 @@ class TripPlanSearchService:
                 errors=["No destinations configured - add destination types or specific destinations"]
             )
         
-        # Generate date combinations
-        date_combos = self._generate_date_combinations(trip)
+        date_combos, date_error = self._generate_date_combinations(trip)
         if not date_combos:
             return TripPlanSearchSummary(
                 trip_plan_id=trip_plan_id,
                 searches_attempted=0,
                 searches_successful=0,
-                errors=["No valid date range - check available_from and available_to"]
+                errors=[date_error or "No valid date range"]
             )
         
         # Generate search combinations (limited)
@@ -229,7 +228,7 @@ class TripPlanSearchService:
         
         return list(destinations)
     
-    def _generate_date_combinations(self, trip: TripPlan) -> list[tuple[date, Optional[date]]]:
+    def _generate_date_combinations(self, trip: TripPlan) -> tuple[list[tuple[date, Optional[date]]], Optional[str]]:
         combos = []
         today = date.today()
         
@@ -246,8 +245,13 @@ class TripPlanSearchService:
         effective_start = max(start, min_search_date)
         effective_end = min(end, max_search_date)
         
+        if start > max_search_date:
+            days_until = (start - today).days
+            searchable_date = start.strftime('%b %d, %Y')
+            return [], f"Trip starts {searchable_date} ({days_until} days away). Google Flights only has data ~10 months out. We'll start monitoring when dates become available."
+        
         if effective_start > effective_end:
-            return []
+            return [], "No overlap between your travel window and searchable dates (next 10 months)"
         
         min_days = trip.trip_duration_min or 5
         max_days = trip.trip_duration_max or 14
@@ -256,7 +260,7 @@ class TripPlanSearchService:
         window_days = (effective_end - effective_start).days
         
         if window_days < mid_days:
-            return []
+            return [], f"Searchable window ({window_days} days) is shorter than minimum trip duration ({mid_days} days)"
         
         dep1 = effective_start + timedelta(days=14)
         if dep1 + timedelta(days=mid_days) <= effective_end:
@@ -278,7 +282,7 @@ class TripPlanSearchService:
             if ret2 <= effective_end and (mid_point, ret2) not in combos:
                 combos.append((mid_point, ret2))
         
-        return combos[:5]
+        return combos[:5], None
     
     def _generate_search_combinations(
         self,
