@@ -16,6 +16,7 @@ class UserSettings(Base):
     
     preferred_currency = Column(String(3), default="NZD")
     
+    anthropic_api_key = Column(String(200), nullable=True)
     serpapi_key = Column(String(100), nullable=True)
     skyscanner_api_key = Column(String(100), nullable=True)
     amadeus_client_id = Column(String(100), nullable=True)

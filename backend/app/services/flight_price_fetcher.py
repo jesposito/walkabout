@@ -1,9 +1,10 @@
 import asyncio
 import httpx
 import logging
+import random
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import List, Optional, Literal
 
@@ -26,17 +27,20 @@ class PriceResult:
     source: str = "unknown"
 
 
-@dataclass
+@dataclass 
 class FetchResult:
     success: bool
     prices: List[PriceResult] = field(default_factory=list)
     source: str = "unknown"
     error: Optional[str] = None
     fallback_used: bool = False
+    attempts: int = 1
 
 
 class PriceSource(ABC):
     name: str = "base"
+    max_retries: int = 2
+    retry_delay: float = 1.0
     
     @abstractmethod
     async def fetch_prices(
@@ -55,6 +59,46 @@ class PriceSource(ABC):
     @abstractmethod
     def is_available(self) -> bool:
         pass
+    
+    async def fetch_with_retry(
+        self,
+        origin: str,
+        destination: str,
+        departure_date: date,
+        return_date: Optional[date],
+        adults: int,
+        children: int,
+        cabin_class: str,
+        currency: str,
+    ) -> FetchResult:
+        last_error = None
+        
+        for attempt in range(self.max_retries + 1):
+            if attempt > 0:
+                delay = self.retry_delay * (2 ** (attempt - 1)) + random.uniform(0, 1)
+                logger.info(f"{self.name}: Retry {attempt}/{self.max_retries} after {delay:.1f}s")
+                await asyncio.sleep(delay)
+            
+            result = await self.fetch_prices(
+                origin, destination, departure_date, return_date,
+                adults, children, cabin_class, currency
+            )
+            result.attempts = attempt + 1
+            
+            if result.success:
+                return result
+            
+            last_error = result.error
+            
+            if "not configured" in (result.error or ""):
+                break
+        
+        return FetchResult(
+            success=False,
+            source=self.name,
+            error=last_error,
+            attempts=self.max_retries + 1
+        )
 
 
 class SerpAPISource(PriceSource):
@@ -103,22 +147,17 @@ class SerpAPISource(PriceSource):
             params["travel_class"] = cabin_map.get(cabin_class, "1")
             
             async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.get(
-                    "https://serpapi.com/search",
-                    params=params
-                )
+                response = await client.get("https://serpapi.com/search", params=params)
                 response.raise_for_status()
                 data = response.json()
             
             prices = []
-            
             for flight in data.get("best_flights", []) + data.get("other_flights", []):
                 try:
                     price_val = flight.get("price")
                     if price_val:
                         flights_info = flight.get("flights", [{}])
                         first_leg = flights_info[0] if flights_info else {}
-                        
                         prices.append(PriceResult(
                             price=Decimal(str(price_val)),
                             currency=currency,
@@ -129,21 +168,16 @@ class SerpAPISource(PriceSource):
                             arrival_time=first_leg.get("arrival_airport", {}).get("time"),
                             source=self.name,
                         ))
-                except (ValueError, KeyError) as e:
-                    logger.debug(f"Failed to parse SerpAPI flight: {e}")
+                except (ValueError, KeyError):
                     continue
             
             if prices:
-                logger.info(f"SerpAPI returned {len(prices)} prices for {origin}-{destination}")
                 return FetchResult(success=True, prices=prices, source=self.name)
-            else:
-                return FetchResult(success=False, source=self.name, error="No prices in response")
+            return FetchResult(success=False, source=self.name, error="No prices in response")
                 
         except httpx.HTTPStatusError as e:
-            logger.warning(f"SerpAPI HTTP error: {e.response.status_code}")
             return FetchResult(success=False, source=self.name, error=f"HTTP {e.response.status_code}")
         except Exception as e:
-            logger.warning(f"SerpAPI error: {e}")
             return FetchResult(success=False, source=self.name, error=str(e))
 
 
@@ -176,10 +210,6 @@ class SkyscannerSource(PriceSource):
                 "X-RapidAPI-Key": self.api_key,
                 "X-RapidAPI-Host": self.api_host,
             }
-            
-            cabin_map = {"economy": "economy", "premium_economy": "premium_economy", 
-                        "business": "business", "first": "first"}
-            
             params = {
                 "origin": origin,
                 "destination": destination,
@@ -187,9 +217,8 @@ class SkyscannerSource(PriceSource):
                 "adults": adults,
                 "children": children,
                 "currency": currency,
-                "cabinClass": cabin_map.get(cabin_class, "economy"),
+                "cabinClass": cabin_class,
             }
-            
             if return_date:
                 params["returnDate"] = return_date.isoformat()
             
@@ -203,16 +232,13 @@ class SkyscannerSource(PriceSource):
                 data = response.json()
             
             prices = []
-            
             for itinerary in data.get("itineraries", {}).get("results", []):
                 try:
                     price_info = itinerary.get("pricing_options", [{}])[0]
                     price_val = price_info.get("price", {}).get("amount")
-                    
                     if price_val:
                         leg = itinerary.get("legs", [{}])[0]
                         carriers = leg.get("carriers", {}).get("marketing", [{}])
-                        
                         prices.append(PriceResult(
                             price=Decimal(str(price_val)),
                             currency=currency,
@@ -222,21 +248,16 @@ class SkyscannerSource(PriceSource):
                             source=self.name,
                             booking_url=price_info.get("items", [{}])[0].get("url"),
                         ))
-                except (ValueError, KeyError, IndexError) as e:
-                    logger.debug(f"Failed to parse Skyscanner itinerary: {e}")
+                except (ValueError, KeyError, IndexError):
                     continue
             
             if prices:
-                logger.info(f"Skyscanner returned {len(prices)} prices for {origin}-{destination}")
                 return FetchResult(success=True, prices=prices, source=self.name)
-            else:
-                return FetchResult(success=False, source=self.name, error="No prices in response")
+            return FetchResult(success=False, source=self.name, error="No prices in response")
                 
         except httpx.HTTPStatusError as e:
-            logger.warning(f"Skyscanner HTTP error: {e.response.status_code}")
             return FetchResult(success=False, source=self.name, error=f"HTTP {e.response.status_code}")
         except Exception as e:
-            logger.warning(f"Skyscanner error: {e}")
             return FetchResult(success=False, source=self.name, error=str(e))
 
 
@@ -268,10 +289,8 @@ class AmadeusSource(PriceSource):
                 )
                 response.raise_for_status()
                 data = response.json()
-                
                 self._token = data["access_token"]
-                expires_in = data.get("expires_in", 1799)
-                self._token_expires = datetime.utcnow() + timedelta(seconds=expires_in - 60)
+                self._token_expires = datetime.utcnow() + timedelta(seconds=data.get("expires_in", 1799) - 60)
                 return self._token
         except Exception as e:
             logger.warning(f"Amadeus auth failed: {e}")
@@ -296,11 +315,8 @@ class AmadeusSource(PriceSource):
             return FetchResult(success=False, source=self.name, error="Failed to authenticate")
         
         try:
-            headers = {"Authorization": f"Bearer {token}"}
-            
             cabin_map = {"economy": "ECONOMY", "premium_economy": "PREMIUM_ECONOMY",
                         "business": "BUSINESS", "first": "FIRST"}
-            
             params = {
                 "originLocationCode": origin,
                 "destinationLocationCode": destination,
@@ -311,27 +327,24 @@ class AmadeusSource(PriceSource):
                 "currencyCode": currency,
                 "max": 20,
             }
-            
             if return_date:
                 params["returnDate"] = return_date.isoformat()
             
             async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.get(
                     "https://api.amadeus.com/v2/shopping/flight-offers",
-                    headers=headers,
+                    headers={"Authorization": f"Bearer {token}"},
                     params=params
                 )
                 response.raise_for_status()
                 data = response.json()
             
             prices = []
-            
             for offer in data.get("data", []):
                 try:
                     price_val = offer.get("price", {}).get("grandTotal")
                     if price_val:
                         segments = offer.get("itineraries", [{}])[0].get("segments", [])
-                        
                         prices.append(PriceResult(
                             price=Decimal(str(price_val)),
                             currency=offer.get("price", {}).get("currency", currency),
@@ -339,22 +352,133 @@ class AmadeusSource(PriceSource):
                             stops=len(segments) - 1 if segments else 0,
                             source=self.name,
                         ))
-                except (ValueError, KeyError, IndexError) as e:
-                    logger.debug(f"Failed to parse Amadeus offer: {e}")
+                except (ValueError, KeyError, IndexError):
                     continue
             
             if prices:
-                logger.info(f"Amadeus returned {len(prices)} prices for {origin}-{destination}")
                 return FetchResult(success=True, prices=prices, source=self.name)
-            else:
-                return FetchResult(success=False, source=self.name, error="No prices in response")
+            return FetchResult(success=False, source=self.name, error="No prices in response")
                 
         except httpx.HTTPStatusError as e:
-            logger.warning(f"Amadeus HTTP error: {e.response.status_code}")
             return FetchResult(success=False, source=self.name, error=f"HTTP {e.response.status_code}")
         except Exception as e:
-            logger.warning(f"Amadeus error: {e}")
             return FetchResult(success=False, source=self.name, error=str(e))
+
+
+class PlaywrightSource(PriceSource):
+    name = "playwright"
+    max_retries = 1
+    
+    def is_available(self) -> bool:
+        return True
+    
+    async def fetch_prices(
+        self,
+        origin: str,
+        destination: str,
+        departure_date: date,
+        return_date: Optional[date],
+        adults: int,
+        children: int,
+        cabin_class: str,
+        currency: str,
+    ) -> FetchResult:
+        try:
+            from app.scrapers.google_flights import GoogleFlightsScraper
+            
+            scraper = GoogleFlightsScraper()
+            result = await scraper.scrape_route(
+                search_definition_id=0,
+                origin=origin,
+                destination=destination,
+                departure_date=departure_date,
+                return_date=return_date,
+                adults=adults,
+                children=children,
+            )
+            
+            if result.is_success and result.prices:
+                prices = [
+                    PriceResult(
+                        price=p.price_nzd,
+                        currency=currency,
+                        airline=p.airline,
+                        stops=p.stops,
+                        duration_minutes=p.duration_minutes,
+                        source=self.name,
+                    )
+                    for p in result.prices
+                ]
+                return FetchResult(success=True, prices=prices, source=self.name)
+            
+            return FetchResult(
+                success=False,
+                source=self.name,
+                error=result.error_message or f"Scrape status: {result.status}"
+            )
+            
+        except ImportError:
+            return FetchResult(success=False, source=self.name, error="Playwright not available")
+        except Exception as e:
+            return FetchResult(success=False, source=self.name, error=str(e))
+
+
+class AIAnalyzer:
+    def __init__(self):
+        self.api_key = getattr(settings, 'anthropic_api_key', None) or ""
+    
+    def is_available(self) -> bool:
+        return bool(self.api_key)
+    
+    async def analyze_prices(
+        self,
+        prices: List[PriceResult],
+        route: str,
+        historical_avg: Optional[float] = None,
+    ) -> Optional[dict]:
+        if not self.is_available() or not prices:
+            return None
+        
+        try:
+            price_list = [float(p.price) for p in prices]
+            min_price = min(price_list)
+            avg_price = sum(price_list) / len(price_list)
+            
+            prompt = f"""Analyze these flight prices for {route}:
+Current prices: {price_list[:5]}
+Lowest: ${min_price:.0f}
+Average: ${avg_price:.0f}
+{"Historical average: $" + f"{historical_avg:.0f}" if historical_avg else "No historical data"}
+
+Provide a brief 1-2 sentence recommendation: Is this a good deal? Should they book now or wait?"""
+
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                response = await client.post(
+                    "https://api.anthropic.com/v1/messages",
+                    headers={
+                        "x-api-key": self.api_key,
+                        "anthropic-version": "2023-06-01",
+                        "content-type": "application/json",
+                    },
+                    json={
+                        "model": "claude-3-haiku-20240307",
+                        "max_tokens": 150,
+                        "messages": [{"role": "user", "content": prompt}]
+                    }
+                )
+                response.raise_for_status()
+                data = response.json()
+                
+                recommendation = data.get("content", [{}])[0].get("text", "")
+                
+                return {
+                    "recommendation": recommendation,
+                    "is_good_deal": min_price < (historical_avg * 0.85) if historical_avg else None,
+                    "savings_percent": ((historical_avg - min_price) / historical_avg * 100) if historical_avg else None,
+                }
+        except Exception as e:
+            logger.warning(f"AI analysis failed: {e}")
+            return None
 
 
 class FlightPriceFetcher:
@@ -363,10 +487,22 @@ class FlightPriceFetcher:
             SerpAPISource(),
             SkyscannerSource(),
             AmadeusSource(),
+            PlaywrightSource(),
         ]
+        self.ai_analyzer = AIAnalyzer()
     
     def get_available_sources(self) -> List[str]:
         return [s.name for s in self.sources if s.is_available()]
+    
+    def get_status(self) -> dict:
+        return {
+            "sources": {
+                s.name: {"available": s.is_available(), "type": "api" if s.name != "playwright" else "scraper"}
+                for s in self.sources
+            },
+            "ai_enabled": self.ai_analyzer.is_available(),
+            "total_available": sum(1 for s in self.sources if s.is_available()),
+        }
     
     async def fetch_prices(
         self,
@@ -379,6 +515,8 @@ class FlightPriceFetcher:
         cabin_class: str = "economy",
         currency: str = "NZD",
         preferred_source: Optional[str] = None,
+        include_ai_analysis: bool = True,
+        historical_avg: Optional[float] = None,
     ) -> FetchResult:
         sources_to_try = list(self.sources)
         
@@ -390,6 +528,7 @@ class FlightPriceFetcher:
         
         last_error = "No sources available"
         fallback_used = False
+        total_attempts = 0
         
         for i, source in enumerate(sources_to_try):
             if not source.is_available():
@@ -398,7 +537,7 @@ class FlightPriceFetcher:
             
             logger.info(f"Trying {source.name} for {origin}-{destination}")
             
-            result = await source.fetch_prices(
+            result = await source.fetch_with_retry(
                 origin=origin,
                 destination=destination,
                 departure_date=departure_date,
@@ -408,29 +547,31 @@ class FlightPriceFetcher:
                 cabin_class=cabin_class,
                 currency=currency,
             )
+            total_attempts += result.attempts
             
             if result.success:
                 result.fallback_used = (i > 0)
+                result.attempts = total_attempts
+                
+                if include_ai_analysis and self.ai_analyzer.is_available():
+                    ai_result = await self.ai_analyzer.analyze_prices(
+                        result.prices,
+                        f"{origin} → {destination}",
+                        historical_avg
+                    )
+                    if ai_result:
+                        result.ai_analysis = ai_result
+                
                 return result
             
             last_error = f"{source.name}: {result.error}"
             fallback_used = True
-            
             await asyncio.sleep(0.5)
-        
-        if not any(s.is_available() for s in self.sources):
-            return FetchResult(
-                success=False,
-                source="none",
-                error="No price sources configured. Add API keys in Settings.",
-            )
         
         return FetchResult(
             success=False,
             source="all_failed",
-            error=f"All sources failed. Last error: {last_error}",
+            error=f"All sources failed. Last: {last_error}",
             fallback_used=fallback_used,
+            attempts=total_attempts,
         )
-
-
-from datetime import timedelta

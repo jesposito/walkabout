@@ -17,6 +17,13 @@ template_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templat
 templates = Jinja2Templates(directory=template_dir)
 
 
+def mask_api_key(key: str | None) -> str | None:
+    """Mask API key for display, showing only last 4 chars."""
+    if not key or len(key) < 8:
+        return None
+    return f"{'*' * (len(key) - 4)}{key[-4:]}"
+
+
 class SettingsUpdate(BaseModel):
     home_airport: Optional[str] = None
     home_region: Optional[str] = None
@@ -25,6 +32,11 @@ class SettingsUpdate(BaseModel):
     preferred_currency: Optional[str] = None
     notifications_enabled: Optional[bool] = None
     notification_min_discount_percent: Optional[int] = None
+    anthropic_api_key: Optional[str] = None
+    serpapi_key: Optional[str] = None
+    skyscanner_api_key: Optional[str] = None
+    amadeus_client_id: Optional[str] = None
+    amadeus_client_secret: Optional[str] = None
 
 
 class SettingsResponse(BaseModel):
@@ -35,6 +47,11 @@ class SettingsResponse(BaseModel):
     preferred_currency: str
     notifications_enabled: bool
     notification_min_discount_percent: int
+    anthropic_api_key: Optional[str] = None
+    serpapi_key: Optional[str] = None
+    skyscanner_api_key: Optional[str] = None
+    amadeus_client_id: Optional[str] = None
+    amadeus_client_secret: Optional[str] = None
     
     class Config:
         from_attributes = True
@@ -51,6 +68,11 @@ async def get_settings(db: Session = Depends(get_db)):
         preferred_currency=settings.preferred_currency or "NZD",
         notifications_enabled=settings.notifications_enabled,
         notification_min_discount_percent=settings.notification_min_discount_percent,
+        anthropic_api_key=mask_api_key(settings.anthropic_api_key),
+        serpapi_key=mask_api_key(settings.serpapi_key),
+        skyscanner_api_key=mask_api_key(settings.skyscanner_api_key),
+        amadeus_client_id=mask_api_key(settings.amadeus_client_id),
+        amadeus_client_secret=mask_api_key(settings.amadeus_client_secret),
     )
 
 
@@ -76,6 +98,18 @@ async def update_settings(
     if updates.notification_min_discount_percent is not None:
         settings.notification_min_discount_percent = updates.notification_min_discount_percent
     
+    # Handle API keys - only update if a new value is provided (not masked placeholder)
+    if updates.anthropic_api_key is not None and not updates.anthropic_api_key.startswith("*"):
+        settings.anthropic_api_key = updates.anthropic_api_key.strip() if updates.anthropic_api_key else None
+    if updates.serpapi_key is not None and not updates.serpapi_key.startswith("*"):
+        settings.serpapi_key = updates.serpapi_key.strip() if updates.serpapi_key else None
+    if updates.skyscanner_api_key is not None and not updates.skyscanner_api_key.startswith("*"):
+        settings.skyscanner_api_key = updates.skyscanner_api_key.strip() if updates.skyscanner_api_key else None
+    if updates.amadeus_client_id is not None and not updates.amadeus_client_id.startswith("*"):
+        settings.amadeus_client_id = updates.amadeus_client_id.strip() if updates.amadeus_client_id else None
+    if updates.amadeus_client_secret is not None and not updates.amadeus_client_secret.startswith("*"):
+        settings.amadeus_client_secret = updates.amadeus_client_secret.strip() if updates.amadeus_client_secret else None
+    
     db.commit()
     db.refresh(settings)
     
@@ -90,6 +124,11 @@ async def update_settings(
         preferred_currency=settings.preferred_currency or "NZD",
         notifications_enabled=settings.notifications_enabled,
         notification_min_discount_percent=settings.notification_min_discount_percent,
+        anthropic_api_key=mask_api_key(settings.anthropic_api_key),
+        serpapi_key=mask_api_key(settings.serpapi_key),
+        skyscanner_api_key=mask_api_key(settings.skyscanner_api_key),
+        amadeus_client_id=mask_api_key(settings.amadeus_client_id),
+        amadeus_client_secret=mask_api_key(settings.amadeus_client_secret),
     )
 
 

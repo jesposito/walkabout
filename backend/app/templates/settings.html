@@ -168,7 +168,69 @@
                 </div>
             </div>
 
-            <!-- Notifications Section -->
+            <div class="bg-slate-800 rounded-xl p-6 border border-slate-700">
+                <div class="flex items-start gap-4 mb-6">
+                    <div class="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-5 h-5 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-semibold text-white">API Keys (Optional)</h2>
+                        <p class="text-sm text-slate-400 mt-1">Add API keys for better price tracking. Without keys, we'll use browser scraping as fallback.</p>
+                    </div>
+                </div>
+                
+                <div class="space-y-4">
+                    <div class="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50 mb-4">
+                        <p class="text-sm text-slate-400">
+                            <span class="text-cyan-400 font-medium">How it works:</span> 
+                            Price tracking tries API sources first (faster, more reliable), then falls back to browser scraping.
+                            AI analysis requires an Anthropic API key.
+                        </p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-2">
+                            Anthropic API Key <span class="text-violet-400">(enables AI recommendations)</span>
+                        </label>
+                        <input type="password" id="anthropic_api_key" name="anthropic_api_key" 
+                               value="{{ settings.anthropic_api_key or '' }}"
+                               class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white 
+                                      placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 
+                                      focus:border-transparent font-mono text-sm"
+                               placeholder="sk-ant-...">
+                        <p class="mt-1 text-xs text-slate-500">Get from <a href="https://console.anthropic.com/" target="_blank" class="text-cyan-400 hover:underline">console.anthropic.com</a></p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-2">
+                            SerpAPI Key <span class="text-emerald-400">(Google Flights data)</span>
+                        </label>
+                        <input type="password" id="serpapi_key" name="serpapi_key" 
+                               value="{{ settings.serpapi_key or '' }}"
+                               class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white 
+                                      placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 
+                                      focus:border-transparent font-mono text-sm"
+                               placeholder="your-serpapi-key">
+                        <p class="mt-1 text-xs text-slate-500">Get from <a href="https://serpapi.com/" target="_blank" class="text-cyan-400 hover:underline">serpapi.com</a> - 100 free searches/month</p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-2">
+                            Skyscanner RapidAPI Key
+                        </label>
+                        <input type="password" id="skyscanner_api_key" name="skyscanner_api_key" 
+                               value="{{ settings.skyscanner_api_key or '' }}"
+                               class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white 
+                                      placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 
+                                      focus:border-transparent font-mono text-sm"
+                               placeholder="your-rapidapi-key">
+                        <p class="mt-1 text-xs text-slate-500">Get from <a href="https://rapidapi.com/apiheya/api/sky-scanner3" target="_blank" class="text-cyan-400 hover:underline">RapidAPI</a> - free tier available</p>
+                    </div>
+                </div>
+            </div>
+
             <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 opacity-60">
                 <div class="flex items-start gap-4 mb-6">
                     <div class="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
@@ -532,6 +594,9 @@ document.getElementById('settings-form').addEventListener('submit', async (e) =>
         home_region: form.home_region.value,
         watched_destinations: watchedDests,
         preferred_currency: form.preferred_currency.value,
+        anthropic_api_key: form.anthropic_api_key.value,
+        serpapi_key: form.serpapi_key.value,
+        skyscanner_api_key: form.skyscanner_api_key.value,
     };
     
     try {
