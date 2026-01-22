@@ -20,6 +20,7 @@ from dataclasses import dataclass, field
 from sqlalchemy.orm import Session
 
 from app.models.trip_plan import TripPlan
+from app.models.trip_plan_match import TripPlanMatch, MatchSource
 from app.models.user_settings import UserSettings
 from app.scrapers.google_flights import GoogleFlightsScraper, ScrapeResult, FlightResult
 from app.services.destination_types import DestinationTypeService
@@ -180,8 +181,9 @@ class TripPlanSearchService:
             budget = Decimal(trip.budget_max)
             all_results = [r for r in all_results if r.price_nzd <= budget]
         
-        # Keep top 3 cheapest per destination
         top_results = self._keep_top_per_destination(all_results, top_n=3)
+        
+        self._persist_matches(trip, top_results, max_matches=5)
         
         duration_ms = int((datetime.utcnow() - start_time).total_seconds() * 1000)
         
@@ -361,6 +363,52 @@ class TripPlanSearchService:
         url += "&curr=NZD&hl=en"
         return url
     
+    def _persist_matches(
+        self,
+        trip: TripPlan,
+        results: list[TripPlanSearchResult],
+        max_matches: int = 5
+    ) -> int:
+        if not results:
+            return 0
+        
+        self.db.query(TripPlanMatch).filter(
+            TripPlanMatch.trip_plan_id == trip.id,
+            TripPlanMatch.source == MatchSource.GOOGLE_FLIGHTS.value
+        ).delete()
+        
+        sorted_results = sorted(results, key=lambda x: x.price_nzd)[:max_matches]
+        
+        for i, result in enumerate(sorted_results):
+            base_score = 80 - (i * 5)
+            
+            if trip.budget_max:
+                budget = Decimal(trip.budget_max)
+                if result.price_nzd < budget * Decimal("0.5"):
+                    base_score += 15
+                elif result.price_nzd < budget * Decimal("0.75"):
+                    base_score += 10
+                elif result.price_nzd < budget:
+                    base_score += 5
+            
+            match = TripPlanMatch(
+                trip_plan_id=trip.id,
+                source=MatchSource.GOOGLE_FLIGHTS.value,
+                origin=result.origin,
+                destination=result.destination,
+                departure_date=result.departure_date,
+                return_date=result.return_date,
+                price_nzd=result.price_nzd,
+                airline=result.airline,
+                stops=result.stops,
+                duration_minutes=result.duration_minutes,
+                booking_url=result.booking_url,
+                match_score=Decimal(str(min(100, max(0, base_score)))),
+            )
+            self.db.add(match)
+        
+        self.db.commit()
+        return len(sorted_results)
+    
     async def close(self):
-        """Clean up scraper resources."""
         await self.scraper.close()

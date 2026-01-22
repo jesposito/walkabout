@@ -7,6 +7,7 @@ from app.models.deal import Deal, DealSource, ParseStatus
 from app.models.feed_health import FeedHealth
 from app.models.user_settings import UserSettings
 from app.models.trip_plan import TripPlan
+from app.models.trip_plan_match import TripPlanMatch, MatchSource
 
 __all__ = [
     "SearchDefinition",
@@ -23,4 +24,6 @@ __all__ = [
     "TripType",
     "CabinClass", 
     "StopsFilter",
+    "TripPlanMatch",
+    "MatchSource",
 ]

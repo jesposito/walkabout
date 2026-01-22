@@ -285,6 +285,82 @@
                         {% endfor %}
                     </div>
 
+                    {% set flights = item.best_flights %}
+                    <!-- Best Flights Section -->
+                    <div class="px-6 py-4 bg-slate-900/30 border-t border-slate-700/50" id="best-flights-{{ trip.id }}">
+                        <div class="flex items-center justify-between mb-3">
+                            <h4 class="text-sm font-semibold text-cyan-400 flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                                </svg>
+                                Best Flights (Google)
+                            </h4>
+                            {% if flights %}
+                            <button onclick="searchPrices({{ trip.id }})" 
+                                    class="px-3 py-1.5 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 text-xs font-medium rounded-lg transition-all inline-flex items-center gap-1.5 border border-cyan-500/30">
+                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                                Refresh
+                            </button>
+                            {% endif %}
+                        </div>
+
+                        <div class="flights-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {% if flights %}
+                                {% for flight in flights %}
+                                <a href="{{ flight.booking_url }}" target="_blank" 
+                                   class="group block p-4 rounded-lg bg-slate-800 border border-slate-700 hover:border-cyan-500/50 hover:bg-slate-700/50 transition-all relative overflow-hidden">
+                                    <div class="absolute inset-0 bg-cyan-500/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none z-20">
+                                        <span class="px-3 py-1.5 bg-slate-900/90 rounded-lg text-cyan-400 text-sm font-bold shadow-xl transform translate-y-2 group-hover:translate-y-0 transition-transform">Book Now →</span>
+                                    </div>
+
+                                    <div class="flex justify-between items-start mb-2 gap-3 relative z-10">
+                                        <div class="min-w-0 flex-1">
+                                            <h5 class="font-bold text-white text-sm leading-tight mb-1 truncate" title="{{ flight.destination }}">
+                                                <span class="font-mono text-cyan-400">{{ flight.destination }}</span>
+                                                {% if airports.get(flight.destination) %}
+                                                <span class="text-slate-400 font-normal ml-1">{{ airports[flight.destination].city }}</span>
+                                                {% endif %}
+                                            </h5>
+                                            <div class="flex items-center text-xs text-slate-400 gap-2">
+                                                <span>{{ flight.airline }}</span>
+                                                <span class="w-1 h-1 rounded-full bg-slate-600"></span>
+                                                <span>{{ flight.stops }}</span>
+                                            </div>
+                                        </div>
+                                        <div class="flex flex-col items-end flex-shrink-0">
+                                            <span class="font-mono text-cyan-400 font-bold text-base">NZ${{ flight.price_nzd|int }}</span>
+                                            <span class="text-[10px] text-slate-500 uppercase">Google</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center justify-between text-xs text-slate-500 relative z-10 pt-2 border-t border-slate-700/50 mt-2">
+                                        <div class="flex items-center gap-3">
+                                            <span class="text-slate-300 flex items-center gap-1">
+                                                <svg class="w-3 h-3 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                                {{ flight.departure_date.strftime('%d %b') }} - {{ flight.return_date.strftime('%d %b %Y') }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </a>
+                                {% endfor %}
+                            {% else %}
+                                <div class="col-span-full text-center py-6">
+                                     <p class="text-sm text-slate-500 italic mb-3">No flight data yet - click 'Search Google Flights'</p>
+                                     <button onclick="searchPrices({{ trip.id }})" 
+                                            id="search-btn-flight-{{ trip.id }}"
+                                            class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-white text-sm font-semibold rounded-lg shadow-lg shadow-cyan-500/25 transition-all inline-flex items-center gap-2">
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                        </svg>
+                                        Search Google Flights
+                                    </button>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
                     <!-- Matches Section -->
                     {% if matches %}
                     <div class="px-6 py-4 bg-slate-900/30 border-t border-slate-700/50">
@@ -672,80 +748,80 @@
         }
     }
     
-    // Display search results in a modal
+    // Display search results in Best Flights section
     function showSearchResults(tripId, data) {
-        // Create or update results section
-        const card = document.getElementById(`trip-card-${tripId}`);
-        let resultsDiv = card.querySelector('.search-results');
-        
-        if (!resultsDiv) {
-            resultsDiv = document.createElement('div');
-            resultsDiv.className = 'search-results px-6 py-4 bg-cyan-900/20 border-t border-cyan-700/30';
-            card.appendChild(resultsDiv);
-        }
-        
-        const resultsHtml = data.results.map(r => {
-            const formatDate = (d) => {
-                if (!d) return '';
-                const date = new Date(d);
-                return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-            };
-            
-            let durationText = '';
-            if (r.departure_date && r.return_date) {
-                const start = new Date(r.departure_date);
-                const end = new Date(r.return_date);
-                const days = Math.round((end - start) / (1000 * 60 * 60 * 24));
-                durationText = `${days} days`;
-            }
+        const section = document.getElementById(`best-flights-${tripId}`);
+        if (!section) return;
 
+        const grid = section.querySelector('.flights-grid');
+        const header = section.querySelector('h4');
+        
+        // Update header to show success/count
+        header.innerHTML = `
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            </svg>
+            Best Flights (Google) - <span class="text-emerald-400 ml-1 text-xs">Updated just now (${data.results.length} found)</span>
+        `;
+        
+        const formatDate = (d, includeYear=false) => {
+            if (!d) return '';
+            const date = new Date(d);
+            const opts = { day: 'numeric', month: 'short' };
+            if (includeYear) opts.year = 'numeric';
+            return date.toLocaleDateString('en-GB', opts);
+        };
+
+        const resultsHtml = data.results.map(r => {
             return `
             <a href="${r.booking_url}" target="_blank" 
                class="group block p-4 rounded-lg bg-slate-800 border border-slate-700 hover:border-cyan-500/50 hover:bg-slate-700/50 transition-all relative overflow-hidden">
                 <div class="absolute inset-0 bg-cyan-500/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none z-20">
-                    <span class="px-3 py-1.5 bg-slate-900/90 rounded-lg text-cyan-400 text-sm font-bold shadow-xl transform translate-y-2 group-hover:translate-y-0 transition-transform">Book on Google →</span>
+                    <span class="px-3 py-1.5 bg-slate-900/90 rounded-lg text-cyan-400 text-sm font-bold shadow-xl transform translate-y-2 group-hover:translate-y-0 transition-transform">Book Now →</span>
                 </div>
 
-                <div class="flex justify-between items-start mb-2 relative z-10">
-                    <div>
-                        <div class="font-bold text-white text-sm flex items-center gap-2">
-                            ${r.destination} <span class="text-slate-400 font-normal">(${r.destination_city})</span>
-                        </div>
-                        <div class="text-xs text-slate-500 mt-0.5 flex items-center gap-2">
-                            <span>${r.airline || 'Unknown Airline'}</span>
+                <div class="flex justify-between items-start mb-2 gap-3 relative z-10">
+                    <div class="min-w-0 flex-1">
+                        <h5 class="font-bold text-white text-sm leading-tight mb-1 truncate" title="${r.destination}">
+                            <span class="font-mono text-cyan-400">${r.destination}</span>
+                            ${r.destination_city ? `<span class="text-slate-400 font-normal ml-1">${r.destination_city}</span>` : ''}
+                        </h5>
+                        <div class="flex items-center text-xs text-slate-400 gap-2">
+                            <span>${r.airline || 'Unknown'}</span>
                             <span class="w-1 h-1 rounded-full bg-slate-600"></span>
                             <span>${r.stops || 'Direct'}</span>
                         </div>
                     </div>
-                    <div class="text-right">
-                        <div class="font-mono text-cyan-400 text-lg font-bold">NZ$${r.price_nzd.toFixed(0)}</div>
-                        <div class="text-[10px] text-slate-500 uppercase">Live Price</div>
+                    <div class="flex flex-col items-end flex-shrink-0">
+                        <span class="font-mono text-cyan-400 font-bold text-base">NZ${Math.round(r.price_nzd)}</span>
+                        <span class="text-[10px] text-slate-500 uppercase">Live</span>
                     </div>
                 </div>
-                
-                <div class="mt-3 pt-3 border-t border-slate-700/50 flex items-center justify-between text-xs relative z-10">
-                    <div class="text-slate-300 flex items-center gap-2">
-                        <svg class="w-3.5 h-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                        ${formatDate(r.departure_date)} → ${formatDate(r.return_date)}
+
+                <div class="flex items-center justify-between text-xs text-slate-500 relative z-10 pt-2 border-t border-slate-700/50 mt-2">
+                    <div class="flex items-center gap-3">
+                        <span class="text-slate-300 flex items-center gap-1">
+                            <svg class="w-3 h-3 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                            ${formatDate(r.departure_date)} - ${formatDate(r.return_date, true)}
+                        </span>
                     </div>
-                    <div class="text-slate-500 font-medium">${durationText}</div>
                 </div>
             </a>
             `;
         }).join('');
-        
-        resultsDiv.innerHTML = `
-            <h4 class="text-sm font-semibold text-cyan-400 mb-3 flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Live Prices (${data.searches_successful}/${data.searches_attempted} searches successful)
-            </h4>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                ${resultsHtml}
-            </div>
-            <p class="text-xs text-slate-500 mt-2">Searched in ${(data.duration_ms / 1000).toFixed(1)}s. Click a result to book on Google Flights.</p>
-        `;
+
+        if (data.results.length > 0) {
+            grid.innerHTML = resultsHtml;
+        } else {
+             grid.innerHTML = `
+                <div class="col-span-full text-center py-6">
+                     <p class="text-sm text-slate-500 italic mb-3">No flights found matching criteria.</p>
+                     <button onclick="searchPrices(${tripId})" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm font-semibold rounded-lg transition-all inline-flex items-center gap-2">
+                        Try Again
+                    </button>
+                </div>
+             `;
+        }
     }
 
     // Check Matches for a Trip Plan

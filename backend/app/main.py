@@ -11,7 +11,7 @@ from app.scheduler import start_scheduler, stop_scheduler
 from app.services.notification import InMemoryNotifier
 from app.config import get_settings
 from app.database import engine, Base
-from app.models import SearchDefinition, ScrapeHealth, FlightPrice, Route, Alert, Deal, FeedHealth, TripPlan
+from app.models import SearchDefinition, ScrapeHealth, FlightPrice, Route, Alert, Deal, FeedHealth, TripPlan, TripPlanMatch
 
 settings = get_settings()
 

@@ -9,6 +9,7 @@ import os
 
 from app.database import get_db
 from app.models.trip_plan import TripPlan
+from app.models.trip_plan_match import TripPlanMatch
 from app.models.user_settings import UserSettings
 from app.services.trip_matcher import TripMatcher
 from app.services.currency import CurrencyService
@@ -79,10 +80,16 @@ async def trips_page(request: Request, db: Session = Depends(get_db)):
     trips_with_matches = []
     matcher = TripMatcher(db)
     for trip in trips:
-        matches = matcher.get_matches_for_plan(trip.id, limit=5)
+        rss_matches = matcher.get_matches_for_plan(trip.id, limit=5)
+        
+        best_flights = db.query(TripPlanMatch).filter(
+            TripPlanMatch.trip_plan_id == trip.id
+        ).order_by(TripPlanMatch.match_score.desc()).limit(5).all()
+        
         trips_with_matches.append({
             "trip": trip,
-            "top_matches": matches,
+            "top_matches": rss_matches,
+            "best_flights": best_flights,
         })
     
     return templates.TemplateResponse(

@@ -16,8 +16,9 @@ from apscheduler.jobstores.memory import MemoryJobStore
 from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
-from app.models import SearchDefinition, ScrapeHealth
+from app.models import SearchDefinition, ScrapeHealth, TripPlan
 from app.services.scraping_service import ScrapingService
+from app.services.trip_plan_search import TripPlanSearchService
 from app.config import get_settings
 
 # Configure logging
@@ -68,7 +69,6 @@ def _setup_scheduled_jobs():
         max_instances=1,
     )
     
-    # Health check job - runs every hour to check for stale data
     scheduler.add_job(
         check_scrape_health,
         trigger=IntervalTrigger(hours=1),
@@ -78,10 +78,20 @@ def _setup_scheduled_jobs():
         max_instances=1,
     )
     
+    scheduler.add_job(
+        search_active_trip_plans,
+        trigger=IntervalTrigger(hours=6),
+        id='trip_plan_search',
+        name='Trip Plan Google Flights Search',
+        replace_existing=True,
+        max_instances=1,
+    )
+    
     logger.info("Scheduled jobs configured:")
     logger.info("  - Morning scrape: 6:30 AM NZT daily")
     logger.info("  - Evening scrape: 6:30 PM NZT daily") 
     logger.info("  - Health check: Every hour")
+    logger.info("  - Trip Plan search: Every 6 hours")
 
 
 async def scrape_all_active_definitions():
@@ -180,6 +190,65 @@ async def check_scrape_health():
         
     except Exception as e:
         logger.error(f"Error in health check: {e}")
+        
+    finally:
+        db.close()
+
+
+async def search_active_trip_plans():
+    """Search Google Flights for active Trip Plans that are due for a search."""
+    logger.info("Starting scheduled Trip Plan searches")
+    
+    db = SessionLocal()
+    
+    try:
+        active_plans = db.query(TripPlan).filter(
+            TripPlan.is_active == True
+        ).all()
+        
+        if not active_plans:
+            logger.info("No active Trip Plans to search")
+            return
+        
+        logger.info(f"Found {len(active_plans)} active Trip Plans")
+        
+        now = datetime.utcnow()
+        searched = 0
+        skipped = 0
+        
+        for plan in active_plans:
+            hours_since_update = float('inf')
+            if plan.updated_at:
+                hours_since_update = (now - plan.updated_at).total_seconds() / 3600
+            
+            check_freq = plan.check_frequency_hours or 12
+            
+            if hours_since_update < check_freq:
+                skipped += 1
+                continue
+            
+            logger.info(f"Searching Trip Plan {plan.id}: {plan.name}")
+            
+            search_service = TripPlanSearchService(db)
+            try:
+                summary = await search_service.search_trip_plan(plan.id)
+                
+                if summary.searches_successful > 0:
+                    logger.info(f"  Found {len(summary.results)} results for {plan.name}")
+                else:
+                    logger.warning(f"  No results for {plan.name}")
+                
+                searched += 1
+                
+            except Exception as e:
+                logger.error(f"  Error searching {plan.name}: {e}")
+            finally:
+                await search_service.close()
+        
+        logger.info(f"Trip Plan search complete: {searched} searched, {skipped} skipped (not due)")
+        
+    except Exception as e:
+        logger.error(f"Error in Trip Plan search job: {e}")
         
     finally:
         db.close()

@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, DateTime, Boolean, JSON, Text
 from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
 from app.database import Base
 
 
@@ -41,3 +42,10 @@ class TripPlan(Base):
     
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    
+    matches = relationship(
+        "TripPlanMatch",
+        back_populates="trip_plan",
+        cascade="all, delete-orphan",
+        order_by="desc(TripPlanMatch.match_score)"
+    )
