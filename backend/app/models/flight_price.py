@@ -15,7 +15,7 @@ class FlightPrice(Base):
     """
     __tablename__ = "flight_prices"
     
-    id = Column(BigInteger, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, autoincrement=True, index=True)
     
     # Link to search definition (replaces route_id for proper comparability)
     search_definition_id = Column(
