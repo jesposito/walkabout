@@ -128,11 +128,11 @@ class GenericFeedParser(BaseFeedParser):
         for pattern in self.ROUTE_PATTERNS:
             match = pattern.search(title)
             if match:
-                origin = match.group('origin').strip()
-                dest = match.group('dest').strip()
+                origin_raw = match.group('origin').strip()
+                dest_raw = match.group('dest').strip()
                 
-                origin = self._normalize_location(origin)
-                dest = self._normalize_location(dest)
+                origin = self._resolve_location(origin_raw)
+                dest = self._resolve_location(dest_raw)
                 
                 if origin and dest and origin != dest:
                     return (origin, dest)
@@ -143,7 +143,21 @@ class GenericFeedParser(BaseFeedParser):
         
         return (None, None)
     
-    def _normalize_location(self, location: str) -> str:
+    def _resolve_location(self, location: str) -> Optional[str]:
+        if not location:
+            return None
+        location = location.strip()
+        upper = location.upper()
+        if len(upper) == 3 and upper.isalpha():
+            from app.services.feeds.base import VALID_AIRPORT_CODES
+            if upper in VALID_AIRPORT_CODES:
+                return upper
+        code = self._city_to_airport(location)
+        if code:
+            return code
+        return None
+    
+    def _normalize_location(self, location: str) -> Optional[str]:
         location = re.sub(r'\s*(roundtrip|one-?way|nonstop|deal|from|for).*$', '', location, flags=re.IGNORECASE)
         location = location.strip().upper()
         if len(location) == 3 and location.isalpha():

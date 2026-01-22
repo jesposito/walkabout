@@ -10,8 +10,47 @@ import logging
 import asyncio
 
 from app.models.deal import DealSource, ParseStatus
+from app.services.airports import AIRPORTS
 
 logger = logging.getLogger(__name__)
+
+VALID_AIRPORT_CODES = set(AIRPORTS.keys())
+
+CITY_TO_AIRPORT = {}
+COUNTRY_TO_AIRPORTS = {}
+for code, airport in AIRPORTS.items():
+    city_key = airport.city.lower()
+    if city_key not in CITY_TO_AIRPORT:
+        CITY_TO_AIRPORT[city_key] = code
+    country_key = airport.country.lower()
+    if country_key not in COUNTRY_TO_AIRPORTS:
+        COUNTRY_TO_AIRPORTS[country_key] = []
+    COUNTRY_TO_AIRPORTS[country_key].append(code)
+
+CITY_TO_AIRPORT.update({
+    'tokyo': 'NRT',
+    'london': 'LHR', 
+    'new york': 'JFK',
+    'nyc': 'JFK',
+    'la': 'LAX',
+    'los angeles': 'LAX',
+    'san francisco': 'SFO',
+    'sf': 'SFO',
+    'paris': 'CDG',
+    'hawaii': 'HNL',
+    'bali': 'DPS',
+    'phuket': 'HKT',
+    'fiji': 'NAN',
+    'rarotonga': 'RAR',
+    'cook islands': 'RAR',
+    'tahiti': 'PPT',
+    'japan': 'NRT',
+    'singapore': 'SIN',
+    'hong kong': 'HKG',
+    'dubai': 'DXB',
+    'bangkok': 'BKK',
+    'seoul': 'ICN',
+})
 
 MAX_RETRIES = 3
 RETRY_DELAY = 2.0
@@ -242,7 +281,19 @@ class BaseFeedParser(ABC):
         return deal
     
     def _extract_airports(self, text: str) -> list[str]:
-        return self.AIRPORT_PATTERN.findall(text)
+        candidates = self.AIRPORT_PATTERN.findall(text)
+        return [code for code in candidates if code in VALID_AIRPORT_CODES]
+    
+    def _city_to_airport(self, city: str) -> Optional[str]:
+        if not city:
+            return None
+        city_lower = city.lower().strip()
+        if city_lower in CITY_TO_AIRPORT:
+            return CITY_TO_AIRPORT[city_lower]
+        for city_name, code in CITY_TO_AIRPORT.items():
+            if city_name in city_lower or city_lower in city_name:
+                return code
+        return None
     
     def _extract_price(self, text: str) -> Optional[tuple[int, str]]:
         match = self.PRICE_PATTERN.search(text)
