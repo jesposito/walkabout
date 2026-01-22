@@ -4,7 +4,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 
 from app.database import get_db
@@ -219,20 +219,35 @@ async def get_trip_matches(
 
 @router.post("/api/trips/{trip_id}/search")
 async def search_trip_prices(trip_id: int, db: Session = Depends(get_db)):
-    """
-    Actively search Google Flights for prices matching this Trip Plan.
-    
-    This searches for real-time prices (not just RSS deal matches).
-    Results are sorted by price (cheapest first) and limited to top 3 per destination.
-    """
     trip = db.query(TripPlan).filter(TripPlan.id == trip_id).first()
     if not trip:
         return {"error": "Trip not found"}
+    
+    now = datetime.utcnow()
+    lock_timeout = timedelta(minutes=10)
+    
+    if trip.search_in_progress:
+        if trip.search_started_at and (now - trip.search_started_at) < lock_timeout:
+            return {
+                "status": "already_searching",
+                "message": "Search already in progress. Please wait for it to complete.",
+                "started_at": trip.search_started_at.isoformat() if trip.search_started_at else None,
+            }
+        trip.search_in_progress = False
+        db.commit()
+    
+    trip.search_in_progress = True
+    trip.search_started_at = now
+    db.commit()
     
     search_service = TripPlanSearchService(db)
     
     try:
         summary = await search_service.search_trip_plan(trip_id)
+        
+        trip.search_in_progress = False
+        trip.last_search_at = datetime.utcnow()
+        db.commit()
         
         return {
             "trip_id": trip_id,
@@ -257,6 +272,10 @@ async def search_trip_prices(trip_id: int, db: Session = Depends(get_db)):
             ],
             "errors": summary.errors,
         }
+    except Exception as e:
+        trip.search_in_progress = False
+        db.commit()
+        raise
     finally:
         await search_service.close()
 

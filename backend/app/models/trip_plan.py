@@ -40,6 +40,11 @@ class TripPlan(Base):
     match_count = Column(Integer, default=0)
     last_match_at = Column(DateTime, nullable=True)
     
+    # Search lock to prevent concurrent searches
+    search_in_progress = Column(Boolean, default=False)
+    search_started_at = Column(DateTime, nullable=True)
+    last_search_at = Column(DateTime, nullable=True)
+    
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
     

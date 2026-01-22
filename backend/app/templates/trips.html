@@ -693,7 +693,6 @@
         }
     }
 
-    // Search Live Prices for a Trip Plan
     async function searchPrices(id) {
         const btn = document.getElementById(`search-btn-${id}`);
         const originalContent = btn.innerHTML;
@@ -709,8 +708,20 @@
             if (response.ok) {
                 const data = await response.json();
                 
+                if (data.status === 'already_searching') {
+                    btn.innerHTML = '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> Search in progress...';
+                    btn.classList.remove('bg-cyan-500', 'hover:bg-cyan-400');
+                    btn.classList.add('bg-amber-600', 'hover:bg-amber-500');
+                    setTimeout(() => {
+                        btn.innerHTML = originalContent;
+                        btn.classList.remove('bg-amber-600', 'hover:bg-amber-500');
+                        btn.classList.add('bg-cyan-500', 'hover:bg-cyan-400');
+                        btn.disabled = false;
+                    }, 5000);
+                    return;
+                }
+                
                 if (data.results && data.results.length > 0) {
-                    // Show results in a modal or expand section
                     showSearchResults(id, data);
                     btn.innerHTML = `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg> Found ${data.results.length} prices!`;
                     btn.classList.remove('bg-cyan-500', 'hover:bg-cyan-400');
@@ -731,7 +742,7 @@
                 
                 setTimeout(() => {
                     btn.innerHTML = originalContent;
-                    btn.classList.remove('bg-emerald-500', 'hover:bg-emerald-400', 'bg-slate-600', 'hover:bg-slate-500');
+                    btn.classList.remove('bg-emerald-500', 'hover:bg-emerald-400', 'bg-slate-600', 'hover:bg-slate-500', 'bg-amber-600', 'hover:bg-amber-500');
                     btn.classList.add('bg-cyan-500', 'hover:bg-cyan-400');
                     btn.disabled = false;
                 }, 5000);
