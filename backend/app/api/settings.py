@@ -26,6 +26,7 @@ def mask_api_key(key: str | None) -> str | None:
 
 class SettingsUpdate(BaseModel):
     home_airport: Optional[str] = None
+    home_airports: Optional[list[str]] = None
     home_region: Optional[str] = None
     watched_destinations: Optional[list[str]] = None
     watched_regions: Optional[list[str]] = None
@@ -41,6 +42,7 @@ class SettingsUpdate(BaseModel):
 
 class SettingsResponse(BaseModel):
     home_airport: str
+    home_airports: list[str]
     home_region: str
     watched_destinations: list[str]
     watched_regions: list[str]
@@ -60,8 +62,12 @@ class SettingsResponse(BaseModel):
 @router.get("/api/settings", response_model=SettingsResponse)
 async def get_settings(db: Session = Depends(get_db)):
     settings = UserSettings.get_or_create(db)
+    home_airports = settings.home_airports or []
+    if not home_airports and settings.home_airport:
+        home_airports = [settings.home_airport]
     return SettingsResponse(
         home_airport=settings.home_airport,
+        home_airports=home_airports,
         home_region=settings.home_region,
         watched_destinations=settings.watched_destinations or [],
         watched_regions=settings.watched_regions or [],
@@ -85,6 +91,10 @@ async def update_settings(
     
     if updates.home_airport is not None:
         settings.home_airport = updates.home_airport.upper().strip()
+    if updates.home_airports is not None:
+        settings.home_airports = [a.upper().strip() for a in updates.home_airports]
+        if settings.home_airports:
+            settings.home_airport = settings.home_airports[0]
     if updates.home_region is not None:
         settings.home_region = updates.home_region
     if updates.watched_destinations is not None:
@@ -116,8 +126,12 @@ async def update_settings(
     relevance = RelevanceService(db)
     updated_count = relevance.update_all_deals()
     
+    home_airports = settings.home_airports or []
+    if not home_airports and settings.home_airport:
+        home_airports = [settings.home_airport]
     return SettingsResponse(
         home_airport=settings.home_airport,
+        home_airports=home_airports,
         home_region=settings.home_region,
         watched_destinations=settings.watched_destinations or [],
         watched_regions=settings.watched_regions or [],

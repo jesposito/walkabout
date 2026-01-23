@@ -22,27 +22,41 @@
                         </svg>
                     </div>
                     <div>
-                        <h2 class="text-lg font-semibold text-white">Your Home Airport</h2>
-                        <p class="text-sm text-slate-400 mt-1">Deals departing from here will be highlighted as most relevant to you</p>
+                        <h2 class="text-lg font-semibold text-white">Your Home Airports</h2>
+                        <p class="text-sm text-slate-400 mt-1">Deals departing from these airports will be highlighted as most relevant to you</p>
                     </div>
                 </div>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <label for="home_airport" class="block text-sm font-medium text-slate-300 mb-2">
-                            Airport
+                        <label class="block text-sm font-medium text-slate-300 mb-2">
+                            Home Airports
                         </label>
-                        <div class="relative">
-                            <input type="text" id="home_airport" name="home_airport" 
-                                   value="{{ settings.home_airport }}"
-                                   autocomplete="off"
-                                   class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white 
+                        <input type="hidden" id="home_airports" name="home_airports" 
+                               value="{{ settings.home_airports | join(',') if settings.home_airports else settings.home_airport }}">
+                        <input type="hidden" id="home_airport" name="home_airport" 
+                               value="{{ settings.home_airport }}">
+                        
+                        <div class="relative group">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <svg class="h-5 w-5 text-slate-500 group-focus-within:text-cyan-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </div>
+                            <input type="text" id="home_airport_search" 
+                                   class="w-full pl-11 pr-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white 
                                           placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 
-                                          focus:border-transparent uppercase font-mono text-lg tracking-wider"
-                                   placeholder="Type city or code...">
-                            <div id="airport-dropdown" class="hidden absolute z-10 w-full mt-1 bg-slate-800 border border-slate-600 rounded-lg shadow-xl max-h-60 overflow-y-auto"></div>
+                                          focus:border-transparent font-sans transition-all uppercase placeholder:normal-case"
+                                   placeholder="Search airport (e.g. SYD, MEL)..."
+                                   autocomplete="off">
+                            <div id="home-airport-dropdown" class="hidden absolute z-20 w-full mt-2 bg-slate-800 border border-slate-600 rounded-lg shadow-xl shadow-black/50 max-h-60 overflow-y-auto overflow-x-hidden"></div>
                         </div>
-                        <p id="airport-hint" class="mt-2 text-xs text-slate-500">Start typing a city name or airport code</p>
+
+                        <div id="home-airports-container" class="flex flex-wrap gap-2 mt-4 min-h-[32px]">
+                        </div>
+                        <p class="mt-2 text-xs text-slate-500">
+                            Add multiple airports to track deals from all of them.
+                        </p>
                     </div>
                     
                     <div>
@@ -267,67 +281,7 @@
 </div>
 
 <script>
-// Airport search autocomplete
-const airportInput = document.getElementById('home_airport');
-const dropdown = document.getElementById('airport-dropdown');
-const hint = document.getElementById('airport-hint');
-let debounceTimer;
-
-airportInput.addEventListener('input', (e) => {
-    clearTimeout(debounceTimer);
-    const query = e.target.value.trim();
-    
-    if (query.length < 2) {
-        dropdown.classList.add('hidden');
-        hint.textContent = 'Start typing a city name or airport code';
-        return;
-    }
-    
-    debounceTimer = setTimeout(async () => {
-        try {
-            const response = await fetch(`/settings/api/airports/search?q=${encodeURIComponent(query)}&limit=8`);
-            const data = await response.json();
-            
-            if (data.results && data.results.length > 0) {
-                dropdown.innerHTML = data.results.map(a => `
-                    <button type="button" 
-                            class="w-full px-4 py-3 text-left hover:bg-slate-700 flex items-center gap-3 border-b border-slate-700 last:border-0"
-                            onclick="selectAirport('${a.code}', '${a.city}', '${a.country}')">
-                        <span class="font-mono font-bold text-cyan-400">${a.code}</span>
-                        <span class="text-slate-300">${a.city}, ${a.country}</span>
-                    </button>
-                `).join('');
-                dropdown.classList.remove('hidden');
-            } else {
-                dropdown.classList.add('hidden');
-            }
-        } catch (err) {
-            console.error('Airport search failed:', err);
-        }
-    }, 200);
-});
-
-function selectAirport(code, city, country) {
-    airportInput.value = code;
-    dropdown.classList.add('hidden');
-    hint.innerHTML = `<span class="text-cyan-400">${city}, ${country}</span>`;
-}
-
-// Close dropdown when clicking outside
-document.addEventListener('click', (e) => {
-    if (!airportInput.contains(e.target) && !dropdown.contains(e.target)) {
-        dropdown.classList.add('hidden');
-    }
-    if (!destInput.contains(e.target) && !destDropdown.contains(e.target)) {
-        destDropdown.classList.add('hidden');
-    }
-});
-
-const destInput = document.getElementById('destination_search');
-const destDropdown = document.getElementById('destination-dropdown');
-const destContainer = document.getElementById('destinations-container');
-const destHidden = document.getElementById('watched_destinations');
-
+// Shared Data
 const airportNames = {
     'SYD': 'Sydney', 'MEL': 'Melbourne', 'AKL': 'Auckland', 'CHC': 'Christchurch',
     'NAN': 'Nadi', 'HNL': 'Honolulu', 'SIN': 'Singapore', 'BNE': 'Brisbane',
@@ -336,6 +290,124 @@ const airportNames = {
     'JFK': 'New York JFK', 'DXB': 'Dubai', 'BKK': 'Bangkok', 'DPS': 'Bali',
     'RAR': 'Rarotonga', 'WLG': 'Wellington', 'ZQN': 'Queenstown'
 };
+
+// --- Home Airport Logic ---
+const homeInput = document.getElementById('home_airport_search');
+const homeDropdown = document.getElementById('home-airport-dropdown');
+const homeContainer = document.getElementById('home-airports-container');
+const homeHidden = document.getElementById('home_airports');
+const homeLegacyHidden = document.getElementById('home_airport');
+
+let selectedHomeAirports = homeHidden.value
+    .split(',')
+    .map(s => s.trim())
+    .filter(s => s)
+    .map(code => ({
+        code: code,
+        name: airportNames[code] || code 
+    }));
+
+renderHomeAirports();
+
+let homeDebounceTimer;
+
+homeInput.addEventListener('input', (e) => {
+    clearTimeout(homeDebounceTimer);
+    const query = e.target.value.trim();
+    
+    if (query.length < 2) {
+        homeDropdown.classList.add('hidden');
+        return;
+    }
+    
+    homeDebounceTimer = setTimeout(async () => {
+        try {
+            const response = await fetch(`/settings/api/airports/search?q=${encodeURIComponent(query)}&limit=8`);
+            const data = await response.json();
+            
+            if (data.results && data.results.length > 0) {
+                const available = data.results.filter(r => !selectedHomeAirports.find(s => s.code === r.code));
+                
+                if (available.length === 0) {
+                    homeDropdown.innerHTML = `<div class="px-4 py-3 text-sm text-slate-500 italic">Already added</div>`;
+                } else {
+                    homeDropdown.innerHTML = available.map(a => `
+                        <button type="button" 
+                                class="w-full px-4 py-3 text-left hover:bg-slate-700 flex items-center justify-between group transition-colors border-b border-slate-700/50 last:border-0"
+                                onclick="addHomeAirport('${a.code}', '${a.city}', '${a.country}')">
+                            <div class="flex flex-col">
+                                <span class="font-bold text-white group-hover:text-cyan-400 transition-colors">${a.city}</span>
+                                <span class="text-xs text-slate-400">${a.country}</span>
+                            </div>
+                            <span class="font-mono text-sm font-bold text-slate-500 group-hover:text-white bg-slate-900 px-2 py-1 rounded">${a.code}</span>
+                        </button>
+                    `).join('');
+                }
+                homeDropdown.classList.remove('hidden');
+            } else {
+                homeDropdown.innerHTML = `<div class="px-4 py-3 text-sm text-slate-500">No results found</div>`;
+                homeDropdown.classList.remove('hidden');
+            }
+        } catch (err) {
+            console.error('Home airport search failed:', err);
+        }
+    }, 200);
+});
+
+function addHomeAirport(code, city, country) {
+    if (selectedHomeAirports.some(d => d.code === code)) return;
+    
+    selectedHomeAirports.push({
+        code: code,
+        name: city
+    });
+    
+    updateHomeAirports();
+    homeInput.value = '';
+    homeInput.focus();
+    homeDropdown.classList.add('hidden');
+}
+
+function removeHomeAirport(code) {
+    selectedHomeAirports = selectedHomeAirports.filter(d => d.code !== code);
+    updateHomeAirports();
+}
+
+function updateHomeAirports() {
+    // Update main list
+    homeHidden.value = selectedHomeAirports.map(d => d.code).join(',');
+    
+    // Update legacy field (first airport or empty)
+    homeLegacyHidden.value = selectedHomeAirports.length > 0 ? selectedHomeAirports[0].code : '';
+    
+    renderHomeAirports();
+}
+
+function renderHomeAirports() {
+    homeContainer.innerHTML = selectedHomeAirports.map(dest => `
+        <div class="inline-flex items-center pl-3 pr-2 py-1.5 rounded-lg bg-slate-800 border border-slate-700 group hover:border-cyan-500/50 transition-all shadow-sm">
+            <span class="text-sm font-medium text-slate-200 mr-2">
+                <span class="font-mono text-cyan-400 font-bold mr-1.5">${dest.code}</span>
+                ${dest.name !== dest.code ? `<span class="text-slate-400 border-l border-slate-700 pl-1.5">${dest.name}</span>` : ''}
+            </span>
+            <button type="button" 
+                    onclick="removeHomeAirport('${dest.code}')"
+                    class="p-1 rounded-md text-slate-500 hover:text-red-400 hover:bg-slate-700/50 transition-colors"
+                    aria-label="Remove ${dest.code}">
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+    `).join('');
+}
+
+
+// --- Destinations Logic ---
+const destInput = document.getElementById('destination_search');
+const destDropdown = document.getElementById('destination-dropdown');
+const destContainer = document.getElementById('destinations-container');
+const destHidden = document.getElementById('watched_destinations');
 
 let selectedDestinations = destHidden.value
     .split(',')
@@ -436,7 +508,19 @@ function renderDestinations() {
     `).join('');
 }
 
-// Form submission
+
+// --- Global Click Handler ---
+document.addEventListener('click', (e) => {
+    if (homeInput && !homeInput.contains(e.target) && !homeDropdown.contains(e.target)) {
+        homeDropdown.classList.add('hidden');
+    }
+    if (destInput && !destInput.contains(e.target) && !destDropdown.contains(e.target)) {
+        destDropdown.classList.add('hidden');
+    }
+});
+
+
+// --- Form Submission ---
 document.getElementById('settings-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     
@@ -451,9 +535,18 @@ document.getElementById('settings-form').addEventListener('submit', async (e) =>
         .split(',')
         .map(s => s.trim().toUpperCase())
         .filter(s => s.length > 0);
+        
+    const homeAirports = form.home_airports.value
+        .split(',')
+        .map(s => s.trim().toUpperCase())
+        .filter(s => s.length > 0);
+    
+    // Fallback to single airport if none selected (should ideally have validation)
+    const primaryHomeAirport = homeAirports.length > 0 ? homeAirports[0] : '';
     
     const data = {
-        home_airport: form.home_airport.value.toUpperCase().trim(),
+        home_airport: primaryHomeAirport,
+        home_airports: homeAirports,
         home_region: form.home_region.value,
         watched_destinations: watchedDests,
         preferred_currency: form.preferred_currency.value,

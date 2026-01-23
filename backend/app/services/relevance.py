@@ -30,19 +30,27 @@ class RelevanceService:
         self.db = db
         self.settings = UserSettings.get_or_create(db)
     
+    def _get_home_airports(self) -> set[str]:
+        airports = self.settings.home_airports or []
+        if not airports and self.settings.home_airport:
+            airports = [self.settings.home_airport]
+        return {a.upper() for a in airports}
+    
     def score_deal(self, deal: Deal) -> tuple[bool, Optional[str]]:
         title_lower = deal.raw_title.lower()
         origin = (deal.parsed_origin or '').upper()
         dest = (deal.parsed_destination or '').upper()
         
-        if origin == self.settings.home_airport:
-            return (True, f"Departs from {self.settings.home_airport}")
+        home_airports = self._get_home_airports()
+        
+        if origin in home_airports:
+            return (True, f"Departs from {origin}")
         
         if origin in OCEANIA_AIRPORTS:
             return (True, f"Departs from Oceania ({origin})")
         
-        if dest == self.settings.home_airport:
-            return (True, f"Arrives at {self.settings.home_airport}")
+        if dest in home_airports:
+            return (True, f"Arrives at {dest}")
         
         watched = self.settings.watched_destinations or []
         watched_upper = [w.upper() for w in watched]

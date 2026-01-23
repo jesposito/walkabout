@@ -8,7 +8,8 @@ class UserSettings(Base):
     
     id = Column(Integer, primary_key=True, default=1)
     
-    home_airport = Column(String(10), default="AKL")
+    home_airport = Column(String(10), default="AKL")  # Legacy - kept for backward compat
+    home_airports = Column(JSON, default=list)  # New: list of home airport codes
     home_region = Column(String(50), default="Oceania")
     
     watched_destinations = Column(JSON, default=list)
@@ -37,11 +38,16 @@ class UserSettings(Base):
             settings = cls(
                 id=1,
                 home_airport="AKL",
+                home_airports=["AKL"],
                 home_region="Oceania",
                 watched_destinations=["SYD", "MEL", "NAN", "RAR", "HNL", "TYO", "SIN"],
                 watched_regions=["Pacific", "Asia", "Australia"],
             )
             db.add(settings)
+            db.commit()
+            db.refresh(settings)
+        elif not settings.home_airports:
+            settings.home_airports = [settings.home_airport] if settings.home_airport else ["AKL"]
             db.commit()
             db.refresh(settings)
         return settings
