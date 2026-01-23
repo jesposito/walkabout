@@ -207,6 +207,11 @@ CITY_ALIASES = {
     'maldives': 'male',
     'mauritius': 'port louis',
     'seychelles': 'mahe island',
+    'kauai': 'lihue',
+    'maui': 'kahului',
+    'st. maarten': 'philipsburg',
+    'st maarten': 'philipsburg',
+    'puerto rico': 'san juan',
 }
 
 PREFERRED_AIRPORT = {
@@ -224,6 +229,28 @@ PREFERRED_AIRPORT = {
     'moscow': 'SVO',
     'sao paulo': 'GRU',
     'buenos aires': 'EZE',
+    'bangkok': 'BKK',
+    'dallas': 'DFW',
+    'houston': 'IAH',
+    'san juan': 'SJU',
+    'lihue': 'LIH',
+    'kahului': 'OGG',
+    'philipsburg': 'SXM',
+    'denver': 'DEN',
+    'phoenix': 'PHX',
+    'seattle': 'SEA',
+    'portland': 'PDX',
+    'miami': 'MIA',
+    'atlanta': 'ATL',
+    'boston': 'BOS',
+    'detroit': 'DTW',
+    'minneapolis': 'MSP',
+    'san francisco': 'SFO',
+    'honolulu': 'HNL',
+    'singapore': 'SIN',
+    'hong kong': 'HKG',
+    'dubai': 'DXB',
+    'doha': 'DOH',
 }
 
 SKIP_WORDS = {
