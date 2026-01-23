@@ -7,6 +7,7 @@ import os
 
 from app.database import get_db
 from app.services.feeds import FeedService
+from app.services.relevance import RelevanceService, MAJOR_HUBS
 from app.models.deal import DealSource
 from app.utils.template_helpers import get_airports_dict
 
@@ -48,6 +49,11 @@ async def deals_page(
     all_count = len(service.get_deals(relevant_only=False, limit=500))
     relevant_count = len(service.get_deals(relevant_only=True, limit=500))
     
+    # Get hub deals for the Major Hubs section
+    relevance_service = RelevanceService(db)
+    hub_deals = relevance_service.get_hub_deals(limit=50)
+    hub_counts = relevance_service.get_hub_counts()
+    
     return templates.TemplateResponse(
         "deals.html",
         {
@@ -63,6 +69,9 @@ async def deals_page(
             "all_count": all_count,
             "relevant_count": relevant_count,
             "airports": get_airports_dict(),
+            "hub_deals": hub_deals,
+            "hub_counts": hub_counts,
+            "major_hubs": MAJOR_HUBS,
         }
     )
 
@@ -112,6 +121,14 @@ async def trigger_ingest(db: Session = Depends(get_db)):
     service = FeedService(db)
     results = await service.ingest_all_feeds()
     return {"results": results}
+
+
+@router.post("/api/recalculate-relevance")
+async def recalculate_relevance(db: Session = Depends(get_db)):
+    """Recalculate relevance scores for all deals based on current settings."""
+    service = RelevanceService(db)
+    updated = service.update_all_deals()
+    return {"updated": updated, "message": f"Updated relevance for {updated} deals"}
 
 
 @router.get("/api/insights")

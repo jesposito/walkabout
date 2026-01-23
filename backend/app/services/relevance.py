@@ -1,5 +1,6 @@
 from typing import Optional
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 
 from app.models.deal import Deal
 from app.models.user_settings import UserSettings
@@ -8,6 +9,26 @@ OCEANIA_AIRPORTS = {
     'AKL', 'WLG', 'CHC', 'ZQN', 'ROT', 'NPE', 'NSN', 'DUD', 'PMR',
     'SYD', 'MEL', 'BNE', 'PER', 'ADL', 'CBR', 'OOL', 'CNS', 'HBA',
     'NAN', 'SUV', 'APW', 'PPT', 'RAR', 'TBU', 'VLI', 'NOU',
+}
+
+MAJOR_HUBS = {
+    'LAX': 'Los Angeles',
+    'SFO': 'San Francisco',
+    'SEA': 'Seattle',
+    'JFK': 'New York',
+    'ORD': 'Chicago',
+    'SIN': 'Singapore',
+    'HKG': 'Hong Kong',
+    'NRT': 'Tokyo Narita',
+    'HND': 'Tokyo Haneda',
+    'BKK': 'Bangkok',
+    'KUL': 'Kuala Lumpur',
+    'DOH': 'Doha',
+    'DXB': 'Dubai',
+    'LHR': 'London',
+    'FRA': 'Frankfurt',
+    'AMS': 'Amsterdam',
+    'CDG': 'Paris',
 }
 
 
@@ -37,7 +58,19 @@ class RelevanceService:
         if origin in OCEANIA_AIRPORTS:
             return (True, f"From {origin}")
         
+        if origin in MAJOR_HUBS:
+            return (True, f"Hub: {MAJOR_HUBS[origin]}")
+        
         return (False, None)
+    
+    def is_hub_deal(self, deal: Deal) -> bool:
+        origin = (deal.parsed_origin or '').upper()
+        return origin in MAJOR_HUBS
+    
+    def is_home_deal(self, deal: Deal) -> bool:
+        origin = (deal.parsed_origin or '').upper()
+        home_airports = self._get_home_airports()
+        return origin in home_airports or origin in OCEANIA_AIRPORTS
     
     def update_deal_relevance(self, deal: Deal) -> Deal:
         is_relevant, reason = self.score_deal(deal)
@@ -68,3 +101,30 @@ class RelevanceService:
         return self.db.query(Deal).filter(
             Deal.parsed_origin.in_(home_airports)
         ).order_by(Deal.published_at.desc()).limit(limit).all()
+    
+    def get_home_deals(self, limit: int = 50) -> list[Deal]:
+        home_airports = list(self._get_home_airports())
+        oceania = list(OCEANIA_AIRPORTS)
+        all_home = list(set(home_airports + oceania))
+        if not all_home:
+            return []
+        return self.db.query(Deal).filter(
+            Deal.parsed_origin.in_(all_home)
+        ).order_by(Deal.published_at.desc()).limit(limit).all()
+    
+    def get_hub_deals(self, limit: int = 50) -> list[Deal]:
+        hub_codes = list(MAJOR_HUBS.keys())
+        return self.db.query(Deal).filter(
+            Deal.parsed_origin.in_(hub_codes)
+        ).order_by(Deal.published_at.desc()).limit(limit).all()
+    
+    def get_hub_counts(self) -> dict[str, int]:
+        hub_codes = list(MAJOR_HUBS.keys())
+        results = self.db.query(
+            Deal.parsed_origin,
+            func.count(Deal.id)
+        ).filter(
+            Deal.parsed_origin.in_(hub_codes)
+        ).group_by(Deal.parsed_origin).all()
+        
+        return {row[0]: row[1] for row in results}
