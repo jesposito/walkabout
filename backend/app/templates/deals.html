@@ -11,7 +11,7 @@
                         {% if current_relevant %}For You{% else %}All Deals{% endif %}
                     </h1>
                     <p class="text-slate-600 dark:text-slate-400 mt-1">
-                        {% if current_relevant %}Deals relevant to your home airports and watched destinations
+                        {% if current_relevant %}Deals departing from NZ, Australia & Pacific
                         {% else %}All flight deals from {{ feed_health|length }} sources{% endif %}
                     </p>
                 </div>
@@ -248,7 +248,7 @@
             <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">No deals found</h3>
             <p class="text-slate-600 dark:text-slate-400 max-w-md mx-auto">
                 {% if current_relevant %}
-                    No relevant deals yet. <a href="?relevant=false" class="text-cyan-400 hover:underline">View all deals</a> or check back later.
+                    No deals from your region yet. {% if hub_deals %}Check the <strong>Major Hubs</strong> section above for connecting flights, or {% endif %}<a href="?relevant=false" class="text-cyan-400 hover:underline">view all deals</a>.
                 {% else %}
                     No deals ingested yet. Trigger an ingest to fetch the latest deals.
                 {% endif %}

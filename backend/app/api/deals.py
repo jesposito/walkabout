@@ -27,14 +27,14 @@ async def deals_page(
     db: Session = Depends(get_db),
 ):
     service = FeedService(db)
+    relevance_service = RelevanceService(db)
     
     use_relevant = relevant if relevant is not None else True
     
-    deals = service.get_deals(
-        relevant_only=use_relevant,
-        limit=100,
-        sort_by=sort or "score",
-    )
+    if use_relevant:
+        deals = relevance_service.get_home_deals(limit=100)
+    else:
+        deals = service.get_deals(relevant_only=False, limit=100, sort_by=sort or "score")
     
     if source:
         deals = [d for d in deals if d.source.value == source]
@@ -47,10 +47,8 @@ async def deals_page(
     cabins = ["economy", "premium_economy", "business", "first"]
     
     all_count = len(service.get_deals(relevant_only=False, limit=500))
-    relevant_count = len(service.get_deals(relevant_only=True, limit=500))
+    home_deals_count = len(relevance_service.get_home_deals(limit=500))
     
-    # Get hub deals for the Major Hubs section
-    relevance_service = RelevanceService(db)
     hub_deals = relevance_service.get_hub_deals(limit=50)
     hub_counts = relevance_service.get_hub_counts()
     
@@ -67,7 +65,7 @@ async def deals_page(
             "current_relevant": relevant,
             "current_sort": sort or "score",
             "all_count": all_count,
-            "relevant_count": relevant_count,
+            "relevant_count": home_deals_count,
             "airports": get_airports_dict(),
             "hub_deals": hub_deals,
             "hub_counts": hub_counts,
