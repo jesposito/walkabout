@@ -292,6 +292,51 @@ async def toggle_trip(trip_id: int, db: Session = Depends(get_db)):
     return {"is_active": trip.is_active}
 
 
+@router.put("/api/trips/{trip_id}")
+async def update_trip(trip_id: int, trip_data: TripPlanCreate, db: Session = Depends(get_db)):
+    trip = db.query(TripPlan).filter(TripPlan.id == trip_id).first()
+    if not trip:
+        raise HTTPException(status_code=404, detail="Trip not found")
+    
+    invalid_origins = []
+    for o in trip_data.origins:
+        valid, error = AirportService.validate(o)
+        if not valid:
+            invalid_origins.append(f"{o}: {error}")
+    if invalid_origins:
+        raise HTTPException(status_code=400, detail=f"Invalid origin(s): {'; '.join(invalid_origins)}")
+    
+    invalid_dests = []
+    for d in trip_data.destinations:
+        valid, error = AirportService.validate(d)
+        if not valid:
+            invalid_dests.append(f"{d}: {error}")
+    if invalid_dests:
+        raise HTTPException(status_code=400, detail=f"Invalid destination(s): {'; '.join(invalid_dests)}")
+    
+    trip.name = trip_data.name
+    trip.origins = [o.upper() for o in trip_data.origins]
+    trip.destinations = [d.upper() for d in trip_data.destinations]
+    trip.destination_types = trip_data.destination_types
+    trip.available_from = trip_data.available_from
+    trip.available_to = trip_data.available_to
+    trip.trip_duration_min = trip_data.trip_duration_min
+    trip.trip_duration_max = trip_data.trip_duration_max
+    trip.budget_max = trip_data.budget_max
+    trip.budget_currency = trip_data.budget_currency.upper()
+    trip.travelers_adults = trip_data.travelers_adults
+    trip.travelers_children = trip_data.travelers_children
+    trip.check_frequency_hours = trip_data.check_frequency_hours
+    
+    db.commit()
+    db.refresh(trip)
+    
+    matcher = TripMatcher(db)
+    matcher.update_plan_matches(trip)
+    
+    return TripPlanResponse.model_validate(trip)
+
+
 @router.delete("/api/trips/{trip_id}")
 async def delete_trip(trip_id: int, db: Session = Depends(get_db)):
     trip = db.query(TripPlan).filter(TripPlan.id == trip_id).first()

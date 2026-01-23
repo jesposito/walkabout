@@ -41,8 +41,8 @@
                         </svg>
                     </div>
                     <div>
-                        <h2 class="text-lg font-semibold text-white group-hover:text-cyan-400 transition-colors">Create New Trip Plan</h2>
-                        <p class="text-sm text-slate-400 mt-1">Set your criteria and let the deals come to you</p>
+                        <h2 id="form-title" class="text-lg font-semibold text-white group-hover:text-cyan-400 transition-colors">Create New Trip Plan</h2>
+                        <p id="form-subtitle" class="text-sm text-slate-400 mt-1">Set your criteria and let the deals come to you</p>
                     </div>
                 </div>
                 <div class="text-slate-500 group-hover:text-cyan-400 transition-colors transform group-open:rotate-180 duration-200">
@@ -54,6 +54,7 @@
 
             <div class="px-6 pb-6 border-t border-slate-700/50 pt-6">
                 <form id="create-trip-form" class="space-y-6">
+                <input type="hidden" id="editing_trip_id" name="editing_trip_id" value="">
                 <!-- Name & Budget -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
@@ -230,13 +231,17 @@
                 <div id="form-error" class="hidden p-4 bg-red-500/20 border border-red-500/50 rounded-lg text-red-400 text-sm"></div>
 
                 <!-- Submit -->
-                <div class="pt-4 flex justify-end">
-                    <button type="submit" 
+                <div class="pt-4 flex justify-end gap-3">
+                    <button type="button" id="cancel-edit-btn" onclick="cancelEdit()" 
+                            class="hidden px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-lg transition-all">
+                        Cancel
+                    </button>
+                    <button type="submit" id="submit-btn"
                             class="px-6 py-3 bg-cyan-500 hover:bg-cyan-400 text-white font-semibold rounded-lg shadow-lg shadow-cyan-500/25 transition-all flex items-center gap-2">
-                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg id="submit-icon" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                         </svg>
-                        Create Trip Plan
+                        <span id="submit-text">Create Trip Plan</span>
                     </button>
                 </div>
             </form>
@@ -319,6 +324,13 @@
                                 <span class="ml-2 text-sm font-medium text-slate-400">Active</span>
                             </label>
                             
+                            <button onclick="editTrip({{ trip.id }}, {{ trip | tojson | safe }})" 
+                                    class="p-2 text-slate-500 hover:text-cyan-400 hover:bg-cyan-500/10 rounded-lg transition-colors"
+                                    title="Edit Trip Plan">
+                                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                            </button>
                             <button onclick="deleteTrip('{{ trip.id }}')" 
                                     class="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
                                     title="Delete Trip Plan">
@@ -750,9 +762,12 @@
             return;
         }
 
+        const editingId = form.editing_trip_id.value;
+        const isEditing = !!editingId;
+        
         const originalBtnContent = submitBtn.innerHTML;
         submitBtn.disabled = true;
-        submitBtn.innerHTML = '<svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Creating...';
+        submitBtn.innerHTML = `<svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> ${isEditing ? 'Saving...' : 'Creating...'}`;
 
         const data = {
             name: form.name.value,
@@ -772,8 +787,11 @@
         };
 
         try {
-            const response = await fetch('/trips/api/trips', {
-                method: 'POST',
+            const url = isEditing ? `/trips/api/trips/${editingId}` : '/trips/api/trips';
+            const method = isEditing ? 'PUT' : 'POST';
+            
+            const response = await fetch(url, {
+                method: method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
@@ -782,7 +800,7 @@
                 window.location.reload();
             } else {
                 const error = await response.json();
-                alert('Error creating trip: ' + (error.detail || 'Unknown error'));
+                alert(`Error ${isEditing ? 'updating' : 'creating'} trip: ` + (error.detail || 'Unknown error'));
             }
         } catch (err) {
             console.error(err);
@@ -837,6 +855,75 @@
             alert('Connection error');
             card.style.opacity = '1';
         }
+    }
+
+    function editTrip(id, trip) {
+        const form = document.getElementById('create-trip-form');
+        const details = form.closest('details');
+        
+        document.getElementById('editing_trip_id').value = id;
+        document.getElementById('form-title').textContent = 'Edit Trip Plan';
+        document.getElementById('form-subtitle').textContent = 'Update your trip criteria';
+        document.getElementById('submit-text').textContent = 'Save Changes';
+        document.getElementById('submit-icon').innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />';
+        document.getElementById('cancel-edit-btn').classList.remove('hidden');
+        
+        form.name.value = trip.name || '';
+        form.budget_max.value = trip.budget_max || '';
+        form.budget_currency.value = trip.budget_currency || 'NZD';
+        form.available_from.value = trip.available_from ? trip.available_from.split('T')[0] : '';
+        form.available_to.value = trip.available_to ? trip.available_to.split('T')[0] : '';
+        form.trip_duration_min.value = trip.trip_duration_min || 5;
+        form.trip_duration_max.value = trip.trip_duration_max || 14;
+        form.travelers_adults.value = trip.travelers_adults || 2;
+        form.travelers_children.value = trip.travelers_children || 0;
+        form.check_frequency_hours.value = trip.check_frequency_hours || 12;
+        
+        selectedOrigins = (trip.origins || []).map(code => ({ code, name: code }));
+        updateOrigins();
+        
+        selectedDestinations = (trip.destinations || []).map(code => ({ code, name: code }));
+        updateDestinations();
+        
+        selectedTypes.clear();
+        (trip.destination_types || []).forEach(t => {
+            selectedTypes.add(t);
+            const chip = document.querySelector(`.destination-chip[data-value="${t}"]`);
+            if (chip) {
+                chip.classList.remove('bg-slate-900', 'text-slate-400', 'border-slate-700');
+                chip.classList.add('bg-cyan-500/20', 'text-cyan-400', 'border-cyan-500/50');
+            }
+        });
+        document.getElementById('destination_types_input').value = Array.from(selectedTypes).join(',');
+        
+        details.open = true;
+        details.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function cancelEdit() {
+        const form = document.getElementById('create-trip-form');
+        
+        document.getElementById('editing_trip_id').value = '';
+        document.getElementById('form-title').textContent = 'Create New Trip Plan';
+        document.getElementById('form-subtitle').textContent = 'Set your criteria and let the deals come to you';
+        document.getElementById('submit-text').textContent = 'Create Trip Plan';
+        document.getElementById('submit-icon').innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />';
+        document.getElementById('cancel-edit-btn').classList.add('hidden');
+        
+        form.reset();
+        
+        selectedOrigins = [];
+        updateOrigins();
+        
+        selectedDestinations = [];
+        updateDestinations();
+        
+        selectedTypes.clear();
+        document.querySelectorAll('.destination-chip').forEach(chip => {
+            chip.classList.remove('bg-cyan-500/20', 'text-cyan-400', 'border-cyan-500/50');
+            chip.classList.add('bg-slate-900', 'text-slate-400', 'border-slate-700');
+        });
+        document.getElementById('destination_types_input').value = '';
     }
 
     async function searchPrices(id) {
