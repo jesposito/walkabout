@@ -69,6 +69,7 @@ class TripPlanResponse(BaseModel):
     last_match_at: Optional[datetime]
     notes: Optional[str]
     created_at: datetime
+    search_in_progress: bool = False
     
     class Config:
         from_attributes = True
