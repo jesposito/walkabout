@@ -1,17 +1,16 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="bg-slate-900 min-h-full pb-12">
+<div class="bg-slate-100 dark:bg-slate-900 min-h-full pb-12">
     
-    <!-- Filter / Title Bar -->
-    <div class="bg-slate-800/50 border-b border-slate-800">
+    <div class="bg-white/50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
-                    <h1 class="text-3xl font-bold text-white tracking-tight">
+                    <h1 class="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
                         {% if current_relevant %}For You{% else %}All Deals{% endif %}
                     </h1>
-                    <p class="text-slate-400 mt-1">
+                    <p class="text-slate-600 dark:text-slate-400 mt-1">
                         {% if current_relevant %}Deals relevant to your home airports and watched destinations
                         {% else %}All flight deals from {{ feed_health|length }} sources{% endif %}
                     </p>
@@ -22,13 +21,13 @@
                         <a href="?relevant=true&sort={{ current_sort }}" 
                            class="px-4 py-2 rounded-lg text-sm font-medium transition-all
                                   {% if current_relevant %}bg-cyan-500 text-white shadow-lg shadow-cyan-500/25
-                                  {% else %}bg-slate-700 hover:bg-slate-600 text-slate-300 border border-slate-600{% endif %}">
+                                  {% else %}bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600{% endif %}">
                             For You <span class="ml-1 opacity-75">({{ relevant_count }})</span>
                         </a>
                         <a href="?relevant=false&sort={{ current_sort }}" 
                            class="px-4 py-2 rounded-lg text-sm font-medium transition-all
                                   {% if not current_relevant %}bg-slate-600 text-white
-                                  {% else %}bg-slate-700/50 hover:bg-slate-700 text-slate-400 border border-slate-700{% endif %}">
+                                  {% else %}bg-slate-200/50 dark:bg-slate-700/50 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700{% endif %}">
                             All Deals <span class="ml-1 opacity-75">({{ all_count }})</span>
                         </a>
                     </div>
@@ -37,17 +36,17 @@
                         <span class="text-slate-500 mr-1">Sort:</span>
                         <a href="?relevant={{ current_relevant }}&sort=score" 
                            class="px-2 py-1 rounded transition-all
-                                  {% if current_sort == 'score' %}bg-slate-600 text-white{% else %}text-slate-400 hover:text-white{% endif %}">
+                                  {% if current_sort == 'score' %}bg-slate-300 dark:bg-slate-600 text-slate-900 dark:text-white{% else %}text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white{% endif %}">
                             Best
                         </a>
                         <a href="?relevant={{ current_relevant }}&sort=date" 
                            class="px-2 py-1 rounded transition-all
-                                  {% if current_sort == 'date' %}bg-slate-600 text-white{% else %}text-slate-400 hover:text-white{% endif %}">
+                                  {% if current_sort == 'date' %}bg-slate-300 dark:bg-slate-600 text-slate-900 dark:text-white{% else %}text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white{% endif %}">
                             Newest
                         </a>
                         <a href="?relevant={{ current_relevant }}&sort=price" 
                            class="px-2 py-1 rounded transition-all
-                                  {% if current_sort == 'price' %}bg-slate-600 text-white{% else %}text-slate-400 hover:text-white{% endif %}">
+                                  {% if current_sort == 'price' %}bg-slate-300 dark:bg-slate-600 text-slate-900 dark:text-white{% else %}text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white{% endif %}">
                             Cheapest
                         </a>
                     </div>
@@ -58,14 +57,14 @@
 
     {% if current_relevant and hub_deals %}
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
-        <div class="bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden">
-            <button onclick="toggleHubs()" class="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-slate-800/30 transition-colors">
+        <div class="bg-white/50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+            <button onclick="toggleHubs()" class="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-slate-100 dark:hover:bg-slate-800/30 transition-colors">
                 <div class="flex items-center gap-3">
-                    <svg class="w-5 h-5 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg class="w-5 h-5 text-violet-500 dark:text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <span class="text-white font-semibold">From Major Hubs</span>
-                    <span class="text-slate-400 text-sm">({{ hub_deals|length }} deals from connecting cities)</span>
+                    <span class="text-slate-900 dark:text-white font-semibold">From Major Hubs</span>
+                    <span class="text-slate-500 dark:text-slate-400 text-sm">({{ hub_deals|length }} deals from connecting cities)</span>
                 </div>
                 <svg id="hub-chevron" class="w-5 h-5 text-slate-400 transform rotate-0 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
@@ -76,8 +75,8 @@
                 <div class="px-6 pb-2 flex flex-wrap gap-2">
                     {% for code, city in major_hubs.items() %}
                     {% if hub_counts.get(code, 0) > 0 %}
-                    <span class="px-3 py-1 bg-violet-500/10 text-violet-300 border border-violet-500/20 rounded-full text-xs font-medium">
-                        {{ code }} <span class="text-violet-400/70">({{ hub_counts.get(code, 0) }})</span>
+                    <span class="px-3 py-1 bg-violet-100 dark:bg-violet-500/10 text-violet-600 dark:text-violet-300 border border-violet-200 dark:border-violet-500/20 rounded-full text-xs font-medium">
+                        {{ code }} <span class="text-violet-500 dark:text-violet-400/70">({{ hub_counts.get(code, 0) }})</span>
                     </span>
                     {% endif %}
                     {% endfor %}
@@ -86,15 +85,15 @@
                 <div class="px-6 pb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {% for deal in hub_deals[:6] %}
                     <a href="{{ deal.link }}" target="_blank" rel="noopener noreferrer" 
-                       class="block p-4 bg-slate-900/50 rounded-lg border border-slate-700 hover:border-violet-500/50 transition-colors group">
-                        <div class="flex items-baseline gap-2 text-lg font-bold text-white mb-1">
+                       class="block p-4 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-violet-400 dark:hover:border-violet-500/50 transition-colors group">
+                        <div class="flex items-baseline gap-2 text-lg font-bold text-slate-900 dark:text-white mb-1">
                             <span>{{ deal.parsed_origin }}</span>
-                            <span class="text-slate-600">→</span>
-                            <span class="text-violet-400">{{ deal.parsed_destination }}</span>
+                            <span class="text-slate-400 dark:text-slate-600">→</span>
+                            <span class="text-violet-600 dark:text-violet-400">{{ deal.parsed_destination }}</span>
                         </div>
                         <div class="text-xs text-slate-500">{{ major_hubs.get(deal.parsed_origin, deal.parsed_origin) }}</div>
                         <div class="mt-2 flex items-center justify-between">
-                            <span class="text-white font-semibold">
+                            <span class="text-slate-900 dark:text-white font-semibold">
                                 {% if deal.parsed_price %}{{ deal.parsed_currency }} {{ deal.parsed_price }}{% else %}See Deal{% endif %}
                             </span>
                             <span class="text-xs text-slate-500">{{ deal.source.value|replace('_', ' ')|title }}</span>
@@ -111,22 +110,22 @@
         {% if deals %}
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {% for deal in deals %}
-            <article class="deal-card relative bg-slate-800 rounded-xl overflow-hidden border border-slate-700 group flex flex-col h-full">
-                <div class="h-2 {% if deal.is_relevant %}bg-gradient-to-r from-cyan-500 to-blue-600{% else %}bg-slate-700{% endif %}"></div>
+            <article class="deal-card relative bg-white dark:bg-slate-800 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 group flex flex-col h-full shadow-sm">
+                <div class="h-2 {% if deal.is_relevant %}bg-gradient-to-r from-cyan-500 to-blue-600{% else %}bg-slate-200 dark:bg-slate-700{% endif %}"></div>
                 
                 <div class="p-6 flex-grow flex flex-col">
                     <div class="flex items-center justify-between mb-4">
                         <div class="flex items-center gap-2">
                             <span class="px-2 py-1 rounded text-[10px] font-mono font-bold tracking-wider uppercase 
-                                {% if deal.parsed_cabin_class == 'BUSINESS' %}bg-amber-500/10 text-amber-400 border border-amber-500/20
-                                {% elif deal.parsed_cabin_class == 'FIRST' %}bg-purple-500/10 text-purple-400 border border-purple-500/20
-                                {% else %}bg-slate-700 text-slate-300 border border-slate-600{% endif %}">
+                                {% if deal.parsed_cabin_class == 'BUSINESS' %}bg-amber-100 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20
+                                {% elif deal.parsed_cabin_class == 'FIRST' %}bg-purple-100 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-500/20
+                                {% else %}bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600{% endif %}">
                                 {{ deal.parsed_cabin_class or 'ECONOMY' }}
                             </span>
                             {% if deal.is_relevant and deal.relevance_reason %}
                             <span class="px-2 py-1 rounded text-[10px] font-medium 
-                                {% if 'Similar to' in deal.relevance_reason %}bg-violet-500/10 text-violet-400 border border-violet-500/20
-                                {% else %}bg-cyan-500/10 text-cyan-400 border border-cyan-500/20{% endif %}">
+                                {% if 'Similar to' in deal.relevance_reason %}bg-violet-100 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-500/20
+                                {% else %}bg-cyan-100 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-200 dark:border-cyan-500/20{% endif %}">
                                 {{ deal.relevance_reason }}
                             </span>
                             {% endif %}
@@ -141,40 +140,40 @@
                         {% set has_route = origin_valid or dest_valid %}
                         
                         {% if has_route %}
-                        <div class="flex items-baseline gap-2 text-2xl font-bold text-white">
+                        <div class="flex items-baseline gap-2 text-2xl font-bold text-slate-900 dark:text-white">
                             {% if origin_valid %}
                             <span title="{{ airports[deal.parsed_origin].city if airports.get(deal.parsed_origin) else deal.parsed_origin }}">{{ deal.parsed_origin }}</span>
-                            <span class="text-slate-600 text-lg">→</span>
+                            <span class="text-slate-400 dark:text-slate-600 text-lg">→</span>
                             {% endif %}
-                            <span class="text-cyan-400" title="{{ airports[deal.parsed_destination].city if airports.get(deal.parsed_destination) else deal.parsed_destination }}">{{ deal.parsed_destination if dest_valid else '???' }}</span>
+                            <span class="text-cyan-600 dark:text-cyan-400" title="{{ airports[deal.parsed_destination].city if airports.get(deal.parsed_destination) else deal.parsed_destination }}">{{ deal.parsed_destination if dest_valid else '???' }}</span>
                         </div>
                         <div class="text-xs text-slate-500 mt-1">
                             {% if origin_valid and airports.get(deal.parsed_origin) %}{{ airports[deal.parsed_origin].city }} to {% endif %}
                             {% if dest_valid and airports.get(deal.parsed_destination) %}{{ airports[deal.parsed_destination].city }}{% elif dest_valid %}{{ deal.parsed_destination }}{% else %}Various{% endif %}
                         </div>
                         {% else %}
-                        <div class="text-lg font-semibold text-white line-clamp-2" title="{{ deal.raw_title }}">
+                        <div class="text-lg font-semibold text-slate-900 dark:text-white line-clamp-2" title="{{ deal.raw_title }}">
                             {{ deal.raw_title[:80] }}{% if deal.raw_title|length > 80 %}...{% endif %}
                         </div>
                         {% if deal.relevance_reason %}
-                        <div class="text-xs text-cyan-400 mt-1">
+                        <div class="text-xs text-cyan-600 dark:text-cyan-400 mt-1">
                             {{ deal.relevance_reason }}
                         </div>
                         {% endif %}
                         {% endif %}
                         
                         {% if deal.parsed_airline %}
-                        <div class="text-sm text-slate-400 mt-1 truncate" title="{{ deal.raw_title }}">
+                        <div class="text-sm text-slate-500 dark:text-slate-400 mt-1 truncate" title="{{ deal.raw_title }}">
                             {{ deal.parsed_airline }}
                         </div>
                         {% endif %}
                     </div>
 
                     <!-- Price Section -->
-                    <div class="mt-auto pt-4 border-t border-slate-700/50 flex items-end justify-between">
+                    <div class="mt-auto pt-4 border-t border-slate-100 dark:border-slate-700/50 flex items-end justify-between">
                         <div>
                             <span class="block text-xs text-slate-500 font-mono mb-0.5">EST. PRICE</span>
-                            <span class="text-2xl font-bold text-white tracking-tight">
+                            <span class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
                                 {% if deal.parsed_price %}
                                     {{ deal.parsed_currency }} {{ deal.parsed_price }}
                                 {% else %}
@@ -185,7 +184,7 @@
                         
                         <div class="text-right">
                             <span class="text-[10px] uppercase tracking-wider text-slate-500 font-mono block mb-1">Source</span>
-                            <span class="inline-flex items-center gap-1.5 text-xs font-medium text-slate-300">
+                            <span class="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-300">
                                 {% if deal.source.value == 'secret_flying' %}
                                     <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> Secret Flying
                                 {% elif deal.source.value == 'omaat' %}
@@ -210,7 +209,7 @@
                     </div>
                 </div>
 
-                <div class="absolute inset-0 z-10 flex items-center justify-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900/60 backdrop-blur-[2px]">
+                <div class="absolute inset-0 z-10 flex items-center justify-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white/60 dark:bg-slate-900/60 backdrop-blur-[2px]">
                     <a href="{{ deal.link }}" target="_blank" rel="noopener noreferrer" 
                        class="px-5 py-2 bg-cyan-500 hover:bg-cyan-400 text-white font-semibold rounded-full shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-all duration-200 flex items-center gap-2">
                         View Deal 
@@ -234,20 +233,20 @@
         
         <!-- Pagination / Load More (Static for now) -->
         <div class="mt-12 flex justify-center">
-            <button class="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-lg font-medium transition-colors">
+            <button class="px-6 py-3 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-lg font-medium transition-colors shadow-sm">
                 Load More Deals
             </button>
         </div>
 
         {% else %}
         <div class="flex flex-col items-center justify-center py-20 text-center">
-            <div class="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mb-6">
-                <svg class="w-10 h-10 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div class="w-20 h-20 bg-slate-200 dark:bg-slate-800 rounded-full flex items-center justify-center mb-6">
+                <svg class="w-10 h-10 text-slate-400 dark:text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                 </svg>
             </div>
-            <h3 class="text-xl font-bold text-white mb-2">No deals found</h3>
-            <p class="text-slate-400 max-w-md mx-auto">
+            <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">No deals found</h3>
+            <p class="text-slate-600 dark:text-slate-400 max-w-md mx-auto">
                 {% if current_relevant %}
                     No relevant deals yet. <a href="?relevant=false" class="text-cyan-400 hover:underline">View all deals</a> or check back later.
                 {% else %}
