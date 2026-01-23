@@ -98,17 +98,31 @@
                     <div class="mb-4">
                         {% set origin_valid = deal.parsed_origin and deal.parsed_origin|length == 3 and deal.parsed_origin not in ['STO', 'NON'] %}
                         {% set dest_valid = deal.parsed_destination and deal.parsed_destination|length == 3 %}
+                        {% set has_route = origin_valid or dest_valid %}
+                        
+                        {% if has_route %}
                         <div class="flex items-baseline gap-2 text-2xl font-bold text-white">
                             {% if origin_valid %}
                             <span title="{{ airports[deal.parsed_origin].city if airports.get(deal.parsed_origin) else deal.parsed_origin }}">{{ deal.parsed_origin }}</span>
                             <span class="text-slate-600 text-lg">→</span>
                             {% endif %}
-                            <span class="text-cyan-400" title="{{ airports[deal.parsed_destination].city if airports.get(deal.parsed_destination) else deal.parsed_destination }}">{{ deal.parsed_destination if dest_valid else 'See Details' }}</span>
+                            <span class="text-cyan-400" title="{{ airports[deal.parsed_destination].city if airports.get(deal.parsed_destination) else deal.parsed_destination }}">{{ deal.parsed_destination if dest_valid else '???' }}</span>
                         </div>
                         <div class="text-xs text-slate-500 mt-1">
                             {% if origin_valid and airports.get(deal.parsed_origin) %}{{ airports[deal.parsed_origin].city }} to {% endif %}
-                            {% if dest_valid and airports.get(deal.parsed_destination) %}{{ airports[deal.parsed_destination].city }}{% elif dest_valid %}{{ deal.parsed_destination }}{% else %}Various Destinations{% endif %}
+                            {% if dest_valid and airports.get(deal.parsed_destination) %}{{ airports[deal.parsed_destination].city }}{% elif dest_valid %}{{ deal.parsed_destination }}{% else %}Various{% endif %}
                         </div>
+                        {% else %}
+                        <div class="text-lg font-semibold text-white line-clamp-2" title="{{ deal.raw_title }}">
+                            {{ deal.raw_title[:80] }}{% if deal.raw_title|length > 80 %}...{% endif %}
+                        </div>
+                        {% if deal.relevance_reason %}
+                        <div class="text-xs text-cyan-400 mt-1">
+                            {{ deal.relevance_reason }}
+                        </div>
+                        {% endif %}
+                        {% endif %}
+                        
                         {% if deal.parsed_airline %}
                         <div class="text-sm text-slate-400 mt-1 truncate" title="{{ deal.raw_title }}">
                             {{ deal.parsed_airline }}

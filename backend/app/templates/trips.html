@@ -324,7 +324,22 @@
                                 <span class="ml-2 text-sm font-medium text-slate-400">Active</span>
                             </label>
                             
-                            <button onclick="editTrip({{ trip.id }}, {{ trip | tojson | safe }})" 
+                            <button onclick="editTrip({{ trip.id }}, {
+                                'id': {{ trip.id }},
+                                'name': '{{ trip.name | e }}',
+                                'origins': {{ trip.origins | tojson | safe }},
+                                'destinations': {{ trip.destinations | tojson | safe }},
+                                'destination_types': {{ trip.destination_types | tojson | safe }},
+                                'available_from': '{{ trip.available_from.strftime('%Y-%m-%d') if trip.available_from else '' }}',
+                                'available_to': '{{ trip.available_to.strftime('%Y-%m-%d') if trip.available_to else '' }}',
+                                'trip_duration_min': {{ trip.trip_duration_min }},
+                                'trip_duration_max': {{ trip.trip_duration_max }},
+                                'budget_max': {{ trip.budget_max or 'null' }},
+                                'budget_currency': '{{ trip.budget_currency }}',
+                                'travelers_adults': {{ trip.travelers_adults }},
+                                'travelers_children': {{ trip.travelers_children }},
+                                'check_frequency_hours': {{ trip.check_frequency_hours }}
+                            })" 
                                     class="p-2 text-slate-500 hover:text-cyan-400 hover:bg-cyan-500/10 rounded-lg transition-colors"
                                     title="Edit Trip Plan">
                                 <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
