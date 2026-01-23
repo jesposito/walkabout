@@ -98,14 +98,16 @@ EMOJI_PATTERN = re.compile(
 class GenericFeedParser(BaseFeedParser):
     
     # THE_FLIGHT_DEAL format: "Airline: City – City, Country. $Price"
+    # Examples: "jetBlue: Boston – Amsterdam, Netherlands. $387"
+    #           "American: Phoenix – St. Maarten. $327"
     THE_FLIGHT_DEAL_PATTERN = re.compile(
-        r'^[A-Za-z\s]+:\s*'                      # Airline:
-        r'(?P<origin>[A-Za-z\s\.]+?)'            # Origin city
-        r'\s*[-–—→]\s*'                          # Separator
-        r'(?P<dest>[A-Za-z\s\.]+?)'              # Destination city
-        r'(?:,\s*[A-Za-z\s]+)?'                  # Optional ", Country"
-        r'(?:\s*\([^)]+\))?'                     # Optional "(and vice versa)"
-        r'\s*\.',                                # Period before price
+        r'^[A-Za-z\s]+:\s*'
+        r'(?P<origin>[A-Za-z][A-Za-z\s\.]+?)'
+        r'\s*[-–—→]\s*'
+        r'(?P<dest>[A-Za-z][A-Za-z\s\.]+)'
+        r'(?:,\s*[A-Za-z\s]+)?'
+        r'(?:\s*\([^)]+\))?'
+        r'\s*\.\s*\$',
         re.IGNORECASE
     )
     
