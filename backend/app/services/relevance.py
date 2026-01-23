@@ -3,25 +3,6 @@ from sqlalchemy.orm import Session
 
 from app.models.deal import Deal
 from app.models.user_settings import UserSettings
-from app.services.destinations import DestinationService, get_alternative_message
-
-
-OCEANIA_AIRPORTS = {
-    'AKL', 'WLG', 'CHC', 'ZQN', 'ROT', 'NPE', 'NSN', 'DUD', 'PMR', 'NPL',
-    'SYD', 'MEL', 'BNE', 'PER', 'ADL', 'CBR', 'OOL', 'CNS', 'HBA',
-    'NAN', 'SUV', 'APW', 'PPT', 'RAR', 'TBU', 'VLI', 'NOU',
-}
-
-OCEANIA_KEYWORDS = [
-    'auckland', 'wellington', 'christchurch', 'queenstown', 'new zealand', 'nz',
-    'sydney', 'melbourne', 'brisbane', 'perth', 'australia',
-    'fiji', 'tahiti', 'rarotonga', 'samoa', 'tonga', 'vanuatu', 'new caledonia',
-]
-
-ASIA_AIRPORTS = {
-    'TYO', 'NRT', 'HND', 'KIX', 'HKG', 'SIN', 'BKK', 'KUL', 'MNL',
-    'ICN', 'TPE', 'PVG', 'PEK', 'CAN', 'SGN', 'HAN', 'DPS',
-}
 
 
 class RelevanceService:
@@ -37,40 +18,15 @@ class RelevanceService:
         return {a.upper() for a in airports}
     
     def score_deal(self, deal: Deal) -> tuple[bool, Optional[str]]:
-        title_lower = deal.raw_title.lower()
         origin = (deal.parsed_origin or '').upper()
-        dest = (deal.parsed_destination or '').upper()
+        
+        if not origin:
+            return (False, None)
         
         home_airports = self._get_home_airports()
         
         if origin in home_airports:
-            return (True, f"Departs from {origin}")
-        
-        if origin in OCEANIA_AIRPORTS:
-            return (True, f"Departs from Oceania ({origin})")
-        
-        if dest in home_airports:
-            return (True, f"Arrives at {dest}")
-        
-        watched = self.settings.watched_destinations or []
-        watched_upper = [w.upper() for w in watched]
-        if dest in watched_upper:
-            return (True, f"Watched destination ({dest})")
-        
-        similar_match = DestinationService.is_similar_destination(dest, watched_upper)
-        if similar_match:
-            watched_dest, group_name, deal_dest = similar_match
-            return (True, f"Similar to {watched_dest} ({group_name})")
-        
-        for keyword in OCEANIA_KEYWORDS:
-            if keyword in title_lower:
-                return (True, f"Mentions {keyword}")
-        
-        if dest in OCEANIA_AIRPORTS:
-            return (True, f"Destination in Oceania ({dest})")
-        
-        if dest in ASIA_AIRPORTS:
-            return (True, f"Destination in Asia ({dest})")
+            return (True, f"From {origin}")
         
         return (False, None)
     
