@@ -518,10 +518,14 @@ class BaseFeedParser(ABC):
         if not city:
             return None
         city_lower = city.lower().strip()
+        city_normalized = re.sub(r'[.]', '', city_lower)
+        
+        if city_normalized in CITY_TO_AIRPORT:
+            return CITY_TO_AIRPORT[city_normalized]
         if city_lower in CITY_TO_AIRPORT:
             return CITY_TO_AIRPORT[city_lower]
         for city_name, code in CITY_TO_AIRPORT.items():
-            if city_name in city_lower or city_lower in city_name:
+            if city_name in city_normalized or city_normalized in city_name:
                 return code
         return None
     
