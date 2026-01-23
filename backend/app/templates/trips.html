@@ -111,6 +111,25 @@
                     </div>
                 </div>
 
+                <!-- Travelers -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="travelers_adults" class="block text-sm font-medium text-slate-300 mb-2">Adults</label>
+                            <input type="number" id="travelers_adults" name="travelers_adults" value="2" min="1" max="9"
+                                   class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
+                        </div>
+                        <div>
+                            <label for="travelers_children" class="block text-sm font-medium text-slate-300 mb-2">Children</label>
+                            <input type="number" id="travelers_children" name="travelers_children" value="0" min="0" max="9"
+                                   class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
+                        </div>
+                    </div>
+                    <div class="flex items-end pb-1">
+                        <p class="text-xs text-slate-500">Prices shown will be calculated for all travelers</p>
+                    </div>
+                </div>
+
                 <!-- Departure Airport(s) -->
                 <div>
                     <label class="block text-sm font-medium text-slate-300 mb-1">Departing From</label>
@@ -269,6 +288,12 @@
                                     </span>
                                     <span class="flex items-center gap-1.5">
                                         <svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                        </svg>
+                                        {{ trip.travelers_adults }} adult{% if trip.travelers_adults != 1 %}s{% endif %}{% if trip.travelers_children %}, {{ trip.travelers_children }} child{% if trip.travelers_children != 1 %}ren{% endif %}{% endif %}
+                                    </span>
+                                    <span class="flex items-center gap-1.5">
+                                        <svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                         </svg>
                                         {% if trip.check_frequency_hours == 6 %}Every 6h
@@ -360,8 +385,13 @@
                                                 <span>{% if flight.stops == 0 %}Direct{% elif flight.stops == 1 %}1 stop{% else %}{{ flight.stops }} stops{% endif %}</span>
                                             </div>
                                         </div>
+                                        {% set total_travelers = trip.travelers_adults + trip.travelers_children %}
+                                        {% set total_price = (flight.price_nzd * total_travelers)|int %}
                                         <div class="flex flex-col items-end flex-shrink-0">
-                                            <span class="font-mono text-cyan-400 font-bold text-base">NZ${{ flight.price_nzd|int }}</span>
+                                            <span class="font-mono text-cyan-400 font-bold text-base">NZ${{ total_price }}</span>
+                                            {% if total_travelers > 1 %}
+                                            <span class="text-[10px] text-slate-500">${{ flight.price_nzd|int }}/person × {{ total_travelers }}</span>
+                                            {% endif %}
                                         </div>
                                     </div>
 
@@ -733,6 +763,8 @@
             available_to: form.available_to.value,
             trip_duration_min: parseInt(form.trip_duration_min.value),
             trip_duration_max: parseInt(form.trip_duration_max.value),
+            travelers_adults: parseInt(form.travelers_adults.value) || 2,
+            travelers_children: parseInt(form.travelers_children.value) || 0,
             destination_types: Array.from(selectedTypes),
             destinations: selectedDestinations.map(d => d.code),
             check_frequency_hours: parseInt(form.check_frequency_hours.value),

@@ -37,7 +37,7 @@
         {% endif %}
         <div id="searches-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {% for search in searches %}
-            <div class="bg-slate-800 rounded-xl overflow-hidden border border-slate-700 group" data-search-id="{{ search.id }}">
+            <div class="bg-slate-800 rounded-xl overflow-hidden border border-slate-700 group" data-search-id="{{ search.id }}" data-adults="{{ search.adults }}" data-children="{{ search.children or 0 }}">
                 <div class="h-1.5 bg-gradient-to-r from-cyan-500 to-blue-600"></div>
                 <div class="p-6">
                     <div class="flex items-center justify-between mb-4">
@@ -336,6 +336,10 @@ async function refreshPrices(id) {
 
 async function loadStats(id) {
     const statsEl = document.getElementById(`stats-${id}`);
+    const cardEl = document.querySelector(`[data-search-id="${id}"]`);
+    const adults = parseInt(cardEl.dataset.adults) || 1;
+    const children = parseInt(cardEl.dataset.children) || 0;
+    const totalTravelers = adults + children;
     
     try {
         const [statsRes, optionsRes] = await Promise.all([
@@ -353,8 +357,11 @@ async function loadStats(id) {
             if (optionsData.options && optionsData.options.length > 0) {
                 optionsHtml = `
                     <div class="mt-3 pt-3 border-t border-slate-700/50 space-y-2">
-                        <p class="text-[10px] text-slate-500 uppercase mb-2">Best Options</p>
-                        ${optionsData.options.map(opt => `
+                        <p class="text-[10px] text-slate-500 uppercase mb-2">Best Options${totalTravelers > 1 ? ' (total for ' + totalTravelers + ')' : ''}</p>
+                        ${optionsData.options.map(opt => {
+                            const perPerson = Math.round(opt.price_nzd);
+                            const total = Math.round(opt.price_nzd * totalTravelers);
+                            return `
                             <a href="${opt.booking_url}" target="_blank" rel="noopener"
                                class="block p-2 rounded bg-slate-700/50 hover:bg-slate-600/50 transition-colors group">
                                 <div class="flex justify-between items-center">
@@ -362,27 +369,33 @@ async function loadStats(id) {
                                         <span class="text-slate-300">${formatDate(opt.departure_date)}</span>
                                         ${opt.return_date ? `<span class="text-slate-500 mx-1">→</span><span class="text-slate-300">${formatDate(opt.return_date)}</span>` : ''}
                                     </div>
-                                    <span class="font-mono font-bold text-emerald-400 text-sm">$${Math.round(opt.price_nzd)}</span>
+                                    <div class="text-right">
+                                        <span class="font-mono font-bold text-emerald-400 text-sm">$${total}</span>
+                                        ${totalTravelers > 1 ? `<span class="text-[9px] text-slate-500 block">$${perPerson}/pp</span>` : ''}
+                                    </div>
                                 </div>
                                 <div class="flex justify-between items-center mt-1">
                                     <span class="text-[10px] text-slate-500">${opt.airline}${opt.stops > 0 ? ' · ' + opt.stops + ' stop' + (opt.stops > 1 ? 's' : '') : ' · Direct'}</span>
                                     <span class="text-[10px] text-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity">Book →</span>
                                 </div>
                             </a>
-                        `).join('')}
+                        `}).join('')}
                     </div>
                 `;
             }
             
+            const minTotal = Math.round(stats.min_price * totalTravelers);
+            const currentTotal = Math.round((stats.current_price || stats.avg_price) * totalTravelers);
+            
             statsEl.innerHTML = `
                 <div class="grid grid-cols-3 gap-2 text-center">
                     <div>
-                        <p class="text-lg font-bold text-emerald-400">$${Math.round(stats.min_price)}</p>
-                        <p class="text-[10px] text-slate-500 uppercase">Low</p>
+                        <p class="text-lg font-bold text-emerald-400">$${minTotal}</p>
+                        <p class="text-[10px] text-slate-500 uppercase">Low${totalTravelers > 1 ? ' (all)' : ''}</p>
                     </div>
                     <div>
-                        <p class="text-lg font-bold text-white">$${Math.round(stats.current_price || stats.avg_price)}</p>
-                        <p class="text-[10px] text-slate-500 uppercase">Current</p>
+                        <p class="text-lg font-bold text-white">$${currentTotal}</p>
+                        <p class="text-[10px] text-slate-500 uppercase">Current${totalTravelers > 1 ? ' (all)' : ''}</p>
                     </div>
                     <div>
                         <p class="text-lg font-bold ${trendColor}">${trend}</p>
@@ -390,7 +403,7 @@ async function loadStats(id) {
                     </div>
                 </div>
                 ${optionsHtml}
-                <p class="text-[10px] text-slate-600 mt-2">${stats.price_count} data points</p>
+                <p class="text-[10px] text-slate-600 mt-2">${stats.price_count} data points${totalTravelers > 1 ? ' · $' + Math.round(stats.min_price) + '/pp' : ''}</p>
             `;
         } else {
             statsEl.innerHTML = '<p class="text-xs text-slate-500">No price data yet. Click "Check Now" to fetch.</p>';
