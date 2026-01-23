@@ -193,6 +193,7 @@ _load_airports()
 CITY_ALIASES = {
     'nyc': 'new york',
     'la': 'los angeles',
+    'los angeles': 'los angeles',
     'sf': 'san francisco',
     'dc': 'washington',
     'vegas': 'las vegas',
@@ -212,6 +213,15 @@ CITY_ALIASES = {
     'st. maarten': 'philipsburg',
     'st maarten': 'philipsburg',
     'puerto rico': 'san juan',
+    'vietnam': 'ho chi minh city',
+    'sri lanka': 'colombo',
+    'thailand': 'bangkok',
+    'indonesia': 'jakarta',
+    'philippines': 'manila',
+    'japan': 'tokyo',
+    'brazil': 'sao paulo',
+    'india': 'delhi',
+    'california': 'los angeles',
 }
 
 PREFERRED_AIRPORT = {
