@@ -1,5 +1,11 @@
 from typing import Optional
 from dataclasses import dataclass
+from pathlib import Path
+import csv
+import re
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -11,190 +17,339 @@ class Airport:
     region: str
 
 
-AIRPORTS: dict[str, Airport] = {
-    # New Zealand
-    "AKL": Airport("AKL", "Auckland International", "Auckland", "New Zealand", "Oceania"),
-    "WLG": Airport("WLG", "Wellington International", "Wellington", "New Zealand", "Oceania"),
-    "CHC": Airport("CHC", "Christchurch International", "Christchurch", "New Zealand", "Oceania"),
-    "ZQN": Airport("ZQN", "Queenstown", "Queenstown", "New Zealand", "Oceania"),
-    "DUD": Airport("DUD", "Dunedin International", "Dunedin", "New Zealand", "Oceania"),
-    "NPE": Airport("NPE", "Napier", "Napier", "New Zealand", "Oceania"),
-    "NSN": Airport("NSN", "Nelson", "Nelson", "New Zealand", "Oceania"),
-    "PMR": Airport("PMR", "Palmerston North", "Palmerston North", "New Zealand", "Oceania"),
-    "ROT": Airport("ROT", "Rotorua", "Rotorua", "New Zealand", "Oceania"),
-    
-    # Australia
-    "SYD": Airport("SYD", "Sydney Kingsford Smith", "Sydney", "Australia", "Oceania"),
-    "MEL": Airport("MEL", "Melbourne Tullamarine", "Melbourne", "Australia", "Oceania"),
-    "BNE": Airport("BNE", "Brisbane International", "Brisbane", "Australia", "Oceania"),
-    "PER": Airport("PER", "Perth International", "Perth", "Australia", "Oceania"),
-    "ADL": Airport("ADL", "Adelaide International", "Adelaide", "Australia", "Oceania"),
-    "CBR": Airport("CBR", "Canberra", "Canberra", "Australia", "Oceania"),
-    "OOL": Airport("OOL", "Gold Coast", "Gold Coast", "Australia", "Oceania"),
-    "CNS": Airport("CNS", "Cairns International", "Cairns", "Australia", "Oceania"),
-    "HBA": Airport("HBA", "Hobart International", "Hobart", "Australia", "Oceania"),
-    "DRW": Airport("DRW", "Darwin International", "Darwin", "Australia", "Oceania"),
-    
-    # Pacific Islands
-    "NAN": Airport("NAN", "Nadi International", "Nadi", "Fiji", "Pacific"),
-    "SUV": Airport("SUV", "Suva Nausori", "Suva", "Fiji", "Pacific"),
-    "RAR": Airport("RAR", "Rarotonga International", "Rarotonga", "Cook Islands", "Pacific"),
-    "APW": Airport("APW", "Faleolo International", "Apia", "Samoa", "Pacific"),
-    "PPT": Airport("PPT", "Faaa International", "Papeete", "Tahiti", "Pacific"),
-    "TBU": Airport("TBU", "Fua'amotu International", "Nuku'alofa", "Tonga", "Pacific"),
-    "VLI": Airport("VLI", "Bauerfield International", "Port Vila", "Vanuatu", "Pacific"),
-    "NOU": Airport("NOU", "La Tontouta", "Noumea", "New Caledonia", "Pacific"),
-    "IUE": Airport("IUE", "Hanan International", "Alofi", "Niue", "Pacific"),
-    
-    # Hawaii
-    "HNL": Airport("HNL", "Daniel K. Inouye International", "Honolulu", "USA", "Hawaii"),
-    "OGG": Airport("OGG", "Kahului", "Maui", "USA", "Hawaii"),
-    "LIH": Airport("LIH", "Lihue", "Kauai", "USA", "Hawaii"),
-    "KOA": Airport("KOA", "Ellison Onizuka Kona", "Kona", "USA", "Hawaii"),
-    
-    # Japan
-    "NRT": Airport("NRT", "Narita International", "Tokyo", "Japan", "Asia"),
-    "HND": Airport("HND", "Haneda", "Tokyo", "Japan", "Asia"),
-    "KIX": Airport("KIX", "Kansai International", "Osaka", "Japan", "Asia"),
-    "NGO": Airport("NGO", "Chubu Centrair", "Nagoya", "Japan", "Asia"),
-    "FUK": Airport("FUK", "Fukuoka", "Fukuoka", "Japan", "Asia"),
-    "CTS": Airport("CTS", "New Chitose", "Sapporo", "Japan", "Asia"),
-    "OKA": Airport("OKA", "Naha", "Okinawa", "Japan", "Asia"),
-    
-    # Southeast Asia
-    "SIN": Airport("SIN", "Changi", "Singapore", "Singapore", "Asia"),
-    "BKK": Airport("BKK", "Suvarnabhumi", "Bangkok", "Thailand", "Asia"),
-    "HKT": Airport("HKT", "Phuket International", "Phuket", "Thailand", "Asia"),
-    "KUL": Airport("KUL", "Kuala Lumpur International", "Kuala Lumpur", "Malaysia", "Asia"),
-    "SGN": Airport("SGN", "Tan Son Nhat", "Ho Chi Minh City", "Vietnam", "Asia"),
-    "HAN": Airport("HAN", "Noi Bai", "Hanoi", "Vietnam", "Asia"),
-    "DAD": Airport("DAD", "Da Nang International", "Da Nang", "Vietnam", "Asia"),
-    "DPS": Airport("DPS", "Ngurah Rai", "Bali", "Indonesia", "Asia"),
-    "CGK": Airport("CGK", "Soekarno-Hatta", "Jakarta", "Indonesia", "Asia"),
-    "MNL": Airport("MNL", "Ninoy Aquino", "Manila", "Philippines", "Asia"),
-    "CEB": Airport("CEB", "Mactan-Cebu", "Cebu", "Philippines", "Asia"),
-    
-    # East Asia
-    "HKG": Airport("HKG", "Hong Kong International", "Hong Kong", "Hong Kong", "Asia"),
-    "TPE": Airport("TPE", "Taiwan Taoyuan", "Taipei", "Taiwan", "Asia"),
-    "ICN": Airport("ICN", "Incheon International", "Seoul", "South Korea", "Asia"),
-    "GMP": Airport("GMP", "Gimpo International", "Seoul", "South Korea", "Asia"),
-    "PUS": Airport("PUS", "Gimhae International", "Busan", "South Korea", "Asia"),
-    "PVG": Airport("PVG", "Pudong International", "Shanghai", "China", "Asia"),
-    "SHA": Airport("SHA", "Hongqiao International", "Shanghai", "China", "Asia"),
-    "PEK": Airport("PEK", "Beijing Capital", "Beijing", "China", "Asia"),
-    "CAN": Airport("CAN", "Baiyun International", "Guangzhou", "China", "Asia"),
-    
-    # USA West Coast
-    "LAX": Airport("LAX", "Los Angeles International", "Los Angeles", "USA", "North America"),
-    "SFO": Airport("SFO", "San Francisco International", "San Francisco", "USA", "North America"),
-    "SEA": Airport("SEA", "Seattle-Tacoma", "Seattle", "USA", "North America"),
-    "PDX": Airport("PDX", "Portland International", "Portland", "USA", "North America"),
-    "SAN": Airport("SAN", "San Diego International", "San Diego", "USA", "North America"),
-    "LAS": Airport("LAS", "Harry Reid International", "Las Vegas", "USA", "North America"),
-    "PHX": Airport("PHX", "Phoenix Sky Harbor", "Phoenix", "USA", "North America"),
-    "DEN": Airport("DEN", "Denver International", "Denver", "USA", "North America"),
-    
-    # USA East Coast
-    "JFK": Airport("JFK", "John F Kennedy International", "New York", "USA", "North America"),
-    "EWR": Airport("EWR", "Newark Liberty", "New York", "USA", "North America"),
-    "LGA": Airport("LGA", "LaGuardia", "New York", "USA", "North America"),
-    "BOS": Airport("BOS", "Logan International", "Boston", "USA", "North America"),
-    "DCA": Airport("DCA", "Reagan National", "Washington DC", "USA", "North America"),
-    "IAD": Airport("IAD", "Dulles International", "Washington DC", "USA", "North America"),
-    "MIA": Airport("MIA", "Miami International", "Miami", "USA", "North America"),
-    "FLL": Airport("FLL", "Fort Lauderdale-Hollywood", "Fort Lauderdale", "USA", "North America"),
-    "ORD": Airport("ORD", "O'Hare International", "Chicago", "USA", "North America"),
-    "ATL": Airport("ATL", "Hartsfield-Jackson", "Atlanta", "USA", "North America"),
-    "DFW": Airport("DFW", "Dallas/Fort Worth", "Dallas", "USA", "North America"),
-    
-    # Canada
-    "YVR": Airport("YVR", "Vancouver International", "Vancouver", "Canada", "North America"),
-    "YYZ": Airport("YYZ", "Toronto Pearson", "Toronto", "Canada", "North America"),
-    "YUL": Airport("YUL", "Montreal-Trudeau", "Montreal", "Canada", "North America"),
-    "YYC": Airport("YYC", "Calgary International", "Calgary", "Canada", "North America"),
-    
-    # Europe - UK
-    "LHR": Airport("LHR", "Heathrow", "London", "UK", "Europe"),
-    "LGW": Airport("LGW", "Gatwick", "London", "UK", "Europe"),
-    "STN": Airport("STN", "Stansted", "London", "UK", "Europe"),
-    "MAN": Airport("MAN", "Manchester", "Manchester", "UK", "Europe"),
-    "EDI": Airport("EDI", "Edinburgh", "Edinburgh", "UK", "Europe"),
-    
-    # Europe - Western
-    "CDG": Airport("CDG", "Charles de Gaulle", "Paris", "France", "Europe"),
-    "ORY": Airport("ORY", "Orly", "Paris", "France", "Europe"),
-    "AMS": Airport("AMS", "Schiphol", "Amsterdam", "Netherlands", "Europe"),
-    "FRA": Airport("FRA", "Frankfurt", "Frankfurt", "Germany", "Europe"),
-    "MUC": Airport("MUC", "Munich", "Munich", "Germany", "Europe"),
-    "ZRH": Airport("ZRH", "Zurich", "Zurich", "Switzerland", "Europe"),
-    "BRU": Airport("BRU", "Brussels", "Brussels", "Belgium", "Europe"),
-    "VIE": Airport("VIE", "Vienna International", "Vienna", "Austria", "Europe"),
-    "DUB": Airport("DUB", "Dublin", "Dublin", "Ireland", "Europe"),
-    
-    # Europe - Southern
-    "FCO": Airport("FCO", "Fiumicino", "Rome", "Italy", "Europe"),
-    "MXP": Airport("MXP", "Malpensa", "Milan", "Italy", "Europe"),
-    "BCN": Airport("BCN", "Barcelona-El Prat", "Barcelona", "Spain", "Europe"),
-    "MAD": Airport("MAD", "Barajas", "Madrid", "Spain", "Europe"),
-    "LIS": Airport("LIS", "Humberto Delgado", "Lisbon", "Portugal", "Europe"),
-    "ATH": Airport("ATH", "Eleftherios Venizelos", "Athens", "Greece", "Europe"),
-    
-    # Europe - Nordic
-    "CPH": Airport("CPH", "Copenhagen", "Copenhagen", "Denmark", "Europe"),
-    "ARN": Airport("ARN", "Stockholm Arlanda", "Stockholm", "Sweden", "Europe"),
-    "OSL": Airport("OSL", "Oslo Gardermoen", "Oslo", "Norway", "Europe"),
-    "HEL": Airport("HEL", "Helsinki-Vantaa", "Helsinki", "Finland", "Europe"),
-    "KEF": Airport("KEF", "Keflavik", "Reykjavik", "Iceland", "Europe"),
-    
-    # Middle East
-    "DXB": Airport("DXB", "Dubai International", "Dubai", "UAE", "Middle East"),
-    "AUH": Airport("AUH", "Abu Dhabi International", "Abu Dhabi", "UAE", "Middle East"),
-    "DOH": Airport("DOH", "Hamad International", "Doha", "Qatar", "Middle East"),
-    "TLV": Airport("TLV", "Ben Gurion", "Tel Aviv", "Israel", "Middle East"),
-    "IST": Airport("IST", "Istanbul", "Istanbul", "Turkey", "Middle East"),
-    
-    # South America
-    "GRU": Airport("GRU", "Guarulhos", "Sao Paulo", "Brazil", "South America"),
-    "GIG": Airport("GIG", "Galeao", "Rio de Janeiro", "Brazil", "South America"),
-    "EZE": Airport("EZE", "Ministro Pistarini", "Buenos Aires", "Argentina", "South America"),
-    "SCL": Airport("SCL", "Arturo Merino Benitez", "Santiago", "Chile", "South America"),
-    "LIM": Airport("LIM", "Jorge Chavez", "Lima", "Peru", "South America"),
-    "BOG": Airport("BOG", "El Dorado", "Bogota", "Colombia", "South America"),
-    
-    # South Asia
-    "DEL": Airport("DEL", "Indira Gandhi International", "Delhi", "India", "Asia"),
-    "BOM": Airport("BOM", "Chhatrapati Shivaji", "Mumbai", "India", "Asia"),
-    "CMB": Airport("CMB", "Bandaranaike", "Colombo", "Sri Lanka", "Asia"),
-    "MLE": Airport("MLE", "Velana International", "Male", "Maldives", "Asia"),
-    
-    # Africa
-    "JNB": Airport("JNB", "O.R. Tambo", "Johannesburg", "South Africa", "Africa"),
-    "CPT": Airport("CPT", "Cape Town International", "Cape Town", "South Africa", "Africa"),
-    "CAI": Airport("CAI", "Cairo International", "Cairo", "Egypt", "Africa"),
-    "NBO": Airport("NBO", "Jomo Kenyatta", "Nairobi", "Kenya", "Africa"),
-    "MRU": Airport("MRU", "Sir Seewoosagur Ramgoolam", "Mauritius", "Mauritius", "Africa"),
+AIRPORTS: dict[str, Airport] = {}
+CITY_TO_CODES: dict[str, list[str]] = {}
+COUNTRY_TO_CODES: dict[str, list[str]] = {}
+
+REGION_MAP = {
+    'africa': 'Africa',
+    'antarctica': 'Antarctica', 
+    'asia': 'Asia',
+    'europe': 'Europe',
+    'north america': 'North America',
+    'oceania': 'Oceania',
+    'south america': 'South America',
 }
+
+TIMEZONE_TO_REGION = {
+    'Pacific/': 'Oceania',
+    'Australia/': 'Oceania',
+    'Asia/': 'Asia',
+    'Europe/': 'Europe',
+    'America/': 'North America',
+    'Africa/': 'Africa',
+    'Atlantic/': 'Europe',
+    'Indian/': 'Africa',
+}
+
+COUNTRY_REGION_OVERRIDES = {
+    'Brazil': 'South America',
+    'Argentina': 'South America',
+    'Chile': 'South America',
+    'Peru': 'South America',
+    'Colombia': 'South America',
+    'Venezuela': 'South America',
+    'Ecuador': 'South America',
+    'Bolivia': 'South America',
+    'Paraguay': 'South America',
+    'Uruguay': 'South America',
+    'Mexico': 'North America',
+    'United States': 'North America',
+    'Canada': 'North America',
+}
+
+
+def _infer_region(country: str, timezone: str) -> str:
+    if country in COUNTRY_REGION_OVERRIDES:
+        return COUNTRY_REGION_OVERRIDES[country]
+    for tz_prefix, region in TIMEZONE_TO_REGION.items():
+        if timezone.startswith(tz_prefix):
+            return region
+    return 'Unknown'
+
+
+FALLBACK_AIRPORTS = [
+    ('AKL', 'Auckland International', 'Auckland', 'New Zealand', 'Oceania'),
+    ('WLG', 'Wellington International', 'Wellington', 'New Zealand', 'Oceania'),
+    ('CHC', 'Christchurch International', 'Christchurch', 'New Zealand', 'Oceania'),
+    ('SYD', 'Sydney', 'Sydney', 'Australia', 'Oceania'),
+    ('MEL', 'Melbourne', 'Melbourne', 'Australia', 'Oceania'),
+    ('BNE', 'Brisbane', 'Brisbane', 'Australia', 'Oceania'),
+    ('NAN', 'Nadi', 'Nadi', 'Fiji', 'Oceania'),
+    ('LAX', 'Los Angeles International', 'Los Angeles', 'United States', 'North America'),
+    ('SFO', 'San Francisco International', 'San Francisco', 'United States', 'North America'),
+    ('JFK', 'John F Kennedy', 'New York', 'United States', 'North America'),
+    ('ORD', 'O\'Hare', 'Chicago', 'United States', 'North America'),
+    ('DFW', 'Dallas Fort Worth', 'Dallas', 'United States', 'North America'),
+    ('SEA', 'Seattle-Tacoma', 'Seattle', 'United States', 'North America'),
+    ('MIA', 'Miami International', 'Miami', 'United States', 'North America'),
+    ('BOS', 'Logan International', 'Boston', 'United States', 'North America'),
+    ('DEN', 'Denver International', 'Denver', 'United States', 'North America'),
+    ('ATL', 'Hartsfield-Jackson', 'Atlanta', 'United States', 'North America'),
+    ('IAD', 'Dulles', 'Washington', 'United States', 'North America'),
+    ('PDX', 'Portland International', 'Portland', 'United States', 'North America'),
+    ('PHX', 'Phoenix Sky Harbor', 'Phoenix', 'United States', 'North America'),
+    ('LAS', 'Harry Reid', 'Las Vegas', 'United States', 'North America'),
+    ('HNL', 'Honolulu', 'Honolulu', 'United States', 'North America'),
+    ('LHR', 'Heathrow', 'London', 'United Kingdom', 'Europe'),
+    ('CDG', 'Charles de Gaulle', 'Paris', 'France', 'Europe'),
+    ('AMS', 'Schiphol', 'Amsterdam', 'Netherlands', 'Europe'),
+    ('FRA', 'Frankfurt', 'Frankfurt', 'Germany', 'Europe'),
+    ('FCO', 'Fiumicino', 'Rome', 'Italy', 'Europe'),
+    ('MXP', 'Malpensa', 'Milan', 'Italy', 'Europe'),
+    ('MAD', 'Barajas', 'Madrid', 'Spain', 'Europe'),
+    ('BCN', 'El Prat', 'Barcelona', 'Spain', 'Europe'),
+    ('DXB', 'Dubai International', 'Dubai', 'United Arab Emirates', 'Asia'),
+    ('SIN', 'Changi', 'Singapore', 'Singapore', 'Asia'),
+    ('HKG', 'Hong Kong', 'Hong Kong', 'Hong Kong', 'Asia'),
+    ('NRT', 'Narita', 'Tokyo', 'Japan', 'Asia'),
+    ('ICN', 'Incheon', 'Seoul', 'South Korea', 'Asia'),
+    ('BKK', 'Suvarnabhumi', 'Bangkok', 'Thailand', 'Asia'),
+    ('MNL', 'Ninoy Aquino', 'Manila', 'Philippines', 'Asia'),
+    ('SXM', 'Princess Juliana', 'St Maarten', 'Sint Maarten', 'North America'),
+    ('SJU', 'Luis Munoz Marin', 'San Juan', 'Puerto Rico', 'North America'),
+    ('LIH', 'Lihue', 'Kauai', 'United States', 'North America'),
+    ('GYE', 'Jose Joaquin de Olmedo', 'Guayaquil', 'Ecuador', 'South America'),
+]
+
+
+def _load_fallback():
+    global AIRPORTS, CITY_TO_CODES, COUNTRY_TO_CODES
+    for code, name, city, country, region in FALLBACK_AIRPORTS:
+        airport = Airport(code=code, name=name, city=city, country=country, region=region)
+        AIRPORTS[code] = airport
+        city_lower = city.lower()
+        if city_lower not in CITY_TO_CODES:
+            CITY_TO_CODES[city_lower] = []
+        if code not in CITY_TO_CODES[city_lower]:
+            CITY_TO_CODES[city_lower].append(code)
+    logger.info(f"Loaded {len(FALLBACK_AIRPORTS)} fallback airports")
+
+
+def _load_airports():
+    global AIRPORTS, CITY_TO_CODES, COUNTRY_TO_CODES
+    
+    data_file = Path(__file__).parent.parent / 'resources' / 'airports.dat'
+    if not data_file.exists():
+        logger.warning(f"Airport data file not found: {data_file}, using fallback")
+        _load_fallback()
+        return
+    
+    try:
+        with open(data_file, 'r', encoding='utf-8') as f:
+            reader = csv.reader(f)
+            for row in reader:
+                if len(row) < 12:
+                    continue
+                
+                iata_code = row[4].strip()
+                if not iata_code or iata_code == '\\N' or len(iata_code) != 3:
+                    continue
+                
+                name = row[1].strip()
+                city = row[2].strip()
+                country = row[3].strip()
+                timezone = row[11].strip() if len(row) > 11 else ''
+                
+                region = _infer_region(country, timezone)
+                
+                airport = Airport(
+                    code=iata_code,
+                    name=name,
+                    city=city,
+                    country=country,
+                    region=region,
+                )
+                
+                AIRPORTS[iata_code] = airport
+                
+                city_lower = city.lower()
+                if city_lower not in CITY_TO_CODES:
+                    CITY_TO_CODES[city_lower] = []
+                if iata_code not in CITY_TO_CODES[city_lower]:
+                    CITY_TO_CODES[city_lower].append(iata_code)
+                
+                country_lower = country.lower()
+                if country_lower not in COUNTRY_TO_CODES:
+                    COUNTRY_TO_CODES[country_lower] = []
+                if iata_code not in COUNTRY_TO_CODES[country_lower]:
+                    COUNTRY_TO_CODES[country_lower].append(iata_code)
+        
+        if len(AIRPORTS) == 0:
+            raise ValueError("No airports loaded from file")
+            
+        logger.info(f"Loaded {len(AIRPORTS)} airports from {data_file}")
+        
+    except Exception as e:
+        logger.error(f"Error loading airports from {data_file}: {e}, using fallback")
+        AIRPORTS.clear()
+        CITY_TO_CODES.clear()
+        COUNTRY_TO_CODES.clear()
+        _load_fallback()
+
+
+_load_airports()
+
+CITY_ALIASES = {
+    'nyc': 'new york',
+    'la': 'los angeles',
+    'sf': 'san francisco',
+    'dc': 'washington',
+    'vegas': 'las vegas',
+    'philly': 'philadelphia',
+    'chi-town': 'chicago',
+    'hawaii': 'honolulu',
+    'bali': 'denpasar',
+    'phuket': 'phuket',
+    'fiji': 'nadi',
+    'tahiti': 'papeete',
+    'cook islands': 'rarotonga',
+    'maldives': 'male',
+    'mauritius': 'port louis',
+    'seychelles': 'mahe island',
+}
+
+PREFERRED_AIRPORT = {
+    'new york': 'JFK',
+    'london': 'LHR',
+    'paris': 'CDG',
+    'tokyo': 'NRT',
+    'seoul': 'ICN',
+    'shanghai': 'PVG',
+    'washington': 'IAD',
+    'chicago': 'ORD',
+    'los angeles': 'LAX',
+    'milan': 'MXP',
+    'rome': 'FCO',
+    'moscow': 'SVO',
+    'sao paulo': 'GRU',
+    'buenos aires': 'EZE',
+}
+
+SKIP_WORDS = {
+    'stop', 'stops', 'nonstop', 'non-stop', 'direct', 
+    'one', 'two', 'the', 'for', 'from', 'and', 'via',
+    'roundtrip', 'round-trip', 'one-way', 'oneway',
+    'deal', 'deals', 'sale', 'cheap', 'flight', 'flights',
+    'air', 'airlines', 'airways',
+}
+
+
+class AirportLookup:
+    
+    _word_pattern = re.compile(r'\b([A-Za-z][A-Za-z\s\.\-\']+)\b')
+    _code_pattern = re.compile(r'\b([A-Z]{3})\b')
+    
+    @classmethod
+    def find_locations(cls, text: str) -> list[tuple[str, int, str]]:
+        """
+        Find airport codes and city names in text.
+        Returns list of (code, position, match_type) tuples.
+        match_type is 'code' for direct IATA matches, 'city' for city name matches.
+        """
+        results = []
+        text_lower = text.lower()
+        
+        for match in cls._code_pattern.finditer(text):
+            code = match.group(1)
+            if code in AIRPORTS:
+                word_before = text[max(0, match.start()-10):match.start()].lower()
+                if not any(skip in word_before for skip in ['http', 'www', '://']):
+                    results.append((code, match.start(), 'code'))
+        
+        checked_positions = set()
+        
+        all_cities = list(CITY_TO_CODES.keys()) + list(CITY_ALIASES.keys())
+        all_cities.sort(key=len, reverse=True)
+        
+        for city in all_cities:
+            if len(city) < 3:
+                continue
+            
+            pattern = r'\b' + re.escape(city) + r'\b'
+            for match in re.finditer(pattern, text_lower, re.IGNORECASE):
+                pos = match.start()
+                
+                if any(abs(pos - p) < 3 for p in checked_positions):
+                    continue
+                
+                if city in SKIP_WORDS:
+                    continue
+                
+                resolved_city = CITY_ALIASES.get(city, city)
+                
+                if resolved_city in PREFERRED_AIRPORT:
+                    code = PREFERRED_AIRPORT[resolved_city]
+                elif resolved_city in CITY_TO_CODES:
+                    code = CITY_TO_CODES[resolved_city][0]
+                else:
+                    continue
+                
+                results.append((code, pos, 'city'))
+                checked_positions.add(pos)
+        
+        results.sort(key=lambda x: x[1])
+        return results
+    
+    @classmethod
+    def extract_route(cls, text: str) -> tuple[Optional[str], Optional[str]]:
+        """
+        Extract origin and destination from text.
+        Uses separators (–, -, to, from) to determine direction.
+        """
+        locations = cls.find_locations(text)
+        
+        if len(locations) < 2:
+            return (None, None)
+        
+        text_lower = text.lower()
+        
+        separators = ['–', '—', '-', '→', ' to ']
+        sep_pos = -1
+        for sep in separators:
+            pos = text.find(sep)
+            if pos > 0:
+                sep_pos = pos
+                break
+        
+        if sep_pos > 0:
+            before = [(code, pos, t) for code, pos, t in locations if pos < sep_pos]
+            after = [(code, pos, t) for code, pos, t in locations if pos > sep_pos]
+            
+            if before and after:
+                origin = before[-1][0]
+                dest = after[0][0]
+                if origin != dest:
+                    return (origin, dest)
+        
+        from_match = re.search(r'\bfrom\s+', text_lower)
+        if from_match:
+            from_pos = from_match.end()
+            after_from = [(code, pos, t) for code, pos, t in locations if pos >= from_pos]
+            if len(after_from) >= 2:
+                return (after_from[0][0], after_from[1][0])
+            elif len(after_from) == 1 and locations:
+                before_from = [(code, pos, t) for code, pos, t in locations if pos < from_match.start()]
+                if before_from:
+                    return (after_from[0][0], before_from[0][0])
+        
+        if len(locations) >= 2:
+            if locations[0][0] != locations[1][0]:
+                return (locations[0][0], locations[1][0])
+        
+        return (None, None)
 
 
 class AirportService:
     
     @staticmethod
     def is_valid(code: str) -> bool:
-        """Check if an airport code is valid (exists in our database)."""
         if not code or len(code) != 3:
             return False
         return code.upper() in AIRPORTS
     
     @staticmethod
     def validate(code: str) -> tuple[bool, Optional[str]]:
-        """
-        Validate an airport code and return (is_valid, error_message).
-        
-        Returns:
-            (True, None) if valid
-            (False, "error message") if invalid
-        """
         if not code:
             return False, "Airport code is required"
         
@@ -209,7 +364,6 @@ class AirportService:
         if code in AIRPORTS:
             return True, None
         
-        # Code is well-formed but not in our database - suggest alternatives
         suggestions = AirportService.search(code, limit=3)
         if suggestions:
             suggestion_text = ", ".join([f"{s.code} ({s.city})" for s in suggestions])
@@ -264,3 +418,23 @@ class AirportService:
     @staticmethod
     def get_by_country(country: str) -> list[Airport]:
         return [a for a in AIRPORTS.values() if a.country.lower() == country.lower()]
+    
+    @staticmethod
+    def code_for_city(city: str) -> Optional[str]:
+        city_lower = city.lower().strip()
+        city_lower = re.sub(r'[.]', '', city_lower)
+        
+        if city_lower in CITY_ALIASES:
+            city_lower = CITY_ALIASES[city_lower]
+        
+        if city_lower in PREFERRED_AIRPORT:
+            return PREFERRED_AIRPORT[city_lower]
+        
+        if city_lower in CITY_TO_CODES:
+            return CITY_TO_CODES[city_lower][0]
+        
+        for city_name in CITY_TO_CODES:
+            if city_name in city_lower or city_lower in city_name:
+                return CITY_TO_CODES[city_name][0]
+        
+        return None

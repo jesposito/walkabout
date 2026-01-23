@@ -81,17 +81,7 @@
                             </span>
                             {% endif %}
                         </div>
-                        <div class="flex items-center gap-2">
-                            {% if deal.score and deal.score > 0 %}
-                            <span class="text-[10px] font-mono px-1.5 py-0.5 rounded 
-                                {% if deal.score >= 70 %}bg-emerald-500/10 text-emerald-400
-                                {% elif deal.score >= 50 %}bg-yellow-500/10 text-yellow-400
-                                {% else %}bg-slate-700 text-slate-400{% endif %}">
-                                {{ "%.0f"|format(deal.score) }}
-                            </span>
-                            {% endif %}
-                            <span class="text-xs text-slate-500 font-mono">{{ deal.published_at.strftime('%d %b') if deal.published_at else 'Now' }}</span>
-                        </div>
+                        <span class="text-xs text-slate-500 font-mono">{{ deal.published_at.strftime('%d %b') if deal.published_at else 'Now' }}</span>
                     </div>
 
                     <!-- Route -->

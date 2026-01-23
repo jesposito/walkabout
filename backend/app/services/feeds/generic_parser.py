@@ -3,6 +3,7 @@ from typing import Optional
 from dataclasses import dataclass
 from app.models.deal import DealSource, ParseStatus
 from app.services.feeds.base import BaseFeedParser, ParsedDeal, ParseResult
+from app.services.airports import AirportLookup
 
 
 @dataclass
@@ -97,40 +98,6 @@ EMOJI_PATTERN = re.compile(
 
 class GenericFeedParser(BaseFeedParser):
     
-    # THE_FLIGHT_DEAL format: "Airline: City – City, Country. $Price"
-    # Examples: "jetBlue: Boston – Amsterdam, Netherlands. $387"
-    #           "American: Phoenix – St. Maarten. $327"
-    THE_FLIGHT_DEAL_PATTERN = re.compile(
-        r'^[A-Za-z\s]+:\s*'
-        r'(?P<origin>[A-Za-z][A-Za-z\s\.]+?)'
-        r'\s*[-–—→]\s*'
-        r'(?P<dest>[A-Za-z][A-Za-z\s\.]+)'
-        r'(?:,\s*[A-Za-z\s]+)?'
-        r'(?:\s*\([^)]+\))?'
-        r'\s*\.\s*\$',
-        re.IGNORECASE
-    )
-    
-    # TRAVEL_FREE format: "Flights from City to DESTINATION for €Price"
-    TRAVEL_FREE_PATTERN = re.compile(
-        r'flights?\s+from\s+'
-        r'(?P<origin>[A-Za-z\s]+?)'              # Origin city
-        r'\s+to\s+'
-        r'(?P<dest>[A-Za-z\s\(\)]+?)'            # Destination (may include country in parens)
-        r'\s+(?:from|for)\s*[€£\$]',
-        re.IGNORECASE
-    )
-    
-    # Generic patterns as fallback
-    ROUTE_PATTERNS = [
-        # Direct airport codes: LAX – JFK, SFO-LHR
-        re.compile(r'\b(?P<origin>[A-Z]{3})\s*[-–—→]+\s*(?P<dest>[A-Z]{3})\b'),
-        # "from City to City for/from $"
-        re.compile(r'from\s+(?P<origin>[A-Za-z\s]+?)\s+to\s+(?P<dest>[A-Za-z\s]+?)(?:\s+(?:from|for|starting|\$|€|£|\d))', re.IGNORECASE),
-        # "City to City from/for $"
-        re.compile(r'(?P<origin>[A-Za-z]+)\s+to\s+(?P<dest>[A-Za-z]+)\s+(?:from|for)\s+[\$€£]', re.IGNORECASE),
-    ]
-    
     def __init__(self, config: FeedConfig):
         super().__init__(config.feed_url, config.source)
         self.config = config
@@ -171,62 +138,7 @@ class GenericFeedParser(BaseFeedParser):
     def _extract_route(self, title: str) -> tuple[Optional[str], Optional[str]]:
         clean_title = EMOJI_PATTERN.sub(' ', title)
         clean_title = re.sub(r'\s+', ' ', clean_title).strip()
-        
-        all_patterns = [
-            self.THE_FLIGHT_DEAL_PATTERN,
-            self.TRAVEL_FREE_PATTERN,
-            *self.ROUTE_PATTERNS,
-        ]
-        
-        for pattern in all_patterns:
-            match = pattern.search(clean_title)
-            if match:
-                origin_raw = match.group('origin').strip()
-                dest_raw = match.group('dest').strip()
-                
-                origin_raw = self._clean_location(origin_raw)
-                dest_raw = self._clean_location(dest_raw)
-                
-                origin = self._resolve_location(origin_raw)
-                dest = self._resolve_location(dest_raw)
-                
-                if origin and dest and origin != dest:
-                    return (origin, dest)
-        
-        return (None, None)
-    
-    def _clean_location(self, location: str) -> str:
-        location = re.sub(r'\([^)]*\)', '', location)
-        location = re.sub(r',.*$', '', location)
-        location = re.sub(r'\s*(and vice versa|roundtrip|one-way).*$', '', location, flags=re.IGNORECASE)
-        return location.strip()
-    
-    def _resolve_location(self, location: str) -> Optional[str]:
-        if not location:
-            return None
-        location = location.strip()
-        upper = location.upper()
-        if len(upper) == 3 and upper.isalpha():
-            from app.services.feeds.base import VALID_AIRPORT_CODES
-            if upper in VALID_AIRPORT_CODES:
-                return upper
-        code = self._city_to_airport(location)
-        if code:
-            return code
-        return None
-    
-    def _normalize_location(self, location: str) -> Optional[str]:
-        location = re.sub(r'^(\d+-?stop\s+)', '', location, flags=re.IGNORECASE)
-        location = re.sub(r'\s*(roundtrip|one-?way|nonstop|deal|from|for).*$', '', location, flags=re.IGNORECASE)
-        location = location.strip()
-        
-        if location.lower() in ('stop', 'nonstop', 'non-stop', '1-stop', '2-stop', 'direct'):
-            return None
-        
-        location = location.upper()
-        if len(location) == 3 and location.isalpha():
-            return location
-        return location[:20] if location else None
+        return AirportLookup.extract_route(clean_title)
     
     def _extract_cabin_class(self, text: str) -> Optional[str]:
         text_lower = text.lower()
