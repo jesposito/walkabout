@@ -4,6 +4,12 @@ from sqlalchemy.orm import Session
 from app.models.deal import Deal
 from app.models.user_settings import UserSettings
 
+OCEANIA_AIRPORTS = {
+    'AKL', 'WLG', 'CHC', 'ZQN', 'ROT', 'NPE', 'NSN', 'DUD', 'PMR',
+    'SYD', 'MEL', 'BNE', 'PER', 'ADL', 'CBR', 'OOL', 'CNS', 'HBA',
+    'NAN', 'SUV', 'APW', 'PPT', 'RAR', 'TBU', 'VLI', 'NOU',
+}
+
 
 class RelevanceService:
     
@@ -26,6 +32,9 @@ class RelevanceService:
         home_airports = self._get_home_airports()
         
         if origin in home_airports:
+            return (True, f"From {origin}")
+        
+        if origin in OCEANIA_AIRPORTS:
             return (True, f"From {origin}")
         
         return (False, None)
