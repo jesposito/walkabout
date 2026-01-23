@@ -97,9 +97,35 @@ EMOJI_PATTERN = re.compile(
 
 class GenericFeedParser(BaseFeedParser):
     
+    # THE_FLIGHT_DEAL format: "Airline: City – City, Country. $Price"
+    THE_FLIGHT_DEAL_PATTERN = re.compile(
+        r'^[A-Za-z\s]+:\s*'                      # Airline:
+        r'(?P<origin>[A-Za-z\s\.]+?)'            # Origin city
+        r'\s*[-–—→]\s*'                          # Separator
+        r'(?P<dest>[A-Za-z\s\.]+?)'              # Destination city
+        r'(?:,\s*[A-Za-z\s]+)?'                  # Optional ", Country"
+        r'(?:\s*\([^)]+\))?'                     # Optional "(and vice versa)"
+        r'\s*\.',                                # Period before price
+        re.IGNORECASE
+    )
+    
+    # TRAVEL_FREE format: "Flights from City to DESTINATION for €Price"
+    TRAVEL_FREE_PATTERN = re.compile(
+        r'flights?\s+from\s+'
+        r'(?P<origin>[A-Za-z\s]+?)'              # Origin city
+        r'\s+to\s+'
+        r'(?P<dest>[A-Za-z\s\(\)]+?)'            # Destination (may include country in parens)
+        r'\s+(?:from|for)\s*[€£\$]',
+        re.IGNORECASE
+    )
+    
+    # Generic patterns as fallback
     ROUTE_PATTERNS = [
-        re.compile(r'(?P<origin>[A-Z]{3})\s*[-–→to]+\s*(?P<dest>[A-Z]{3})', re.IGNORECASE),
+        # Direct airport codes: LAX – JFK, SFO-LHR
+        re.compile(r'\b(?P<origin>[A-Z]{3})\s*[-–—→]+\s*(?P<dest>[A-Z]{3})\b'),
+        # "from City to City for/from $"
         re.compile(r'from\s+(?P<origin>[A-Za-z\s]+?)\s+to\s+(?P<dest>[A-Za-z\s]+?)(?:\s+(?:from|for|starting|\$|€|£|\d))', re.IGNORECASE),
+        # "City to City from/for $"
         re.compile(r'(?P<origin>[A-Za-z]+)\s+to\s+(?P<dest>[A-Za-z]+)\s+(?:from|for)\s+[\$€£]', re.IGNORECASE),
     ]
     
@@ -141,15 +167,23 @@ class GenericFeedParser(BaseFeedParser):
         )
     
     def _extract_route(self, title: str) -> tuple[Optional[str], Optional[str]]:
-        # Strip emojis before parsing to avoid regex issues
         clean_title = EMOJI_PATTERN.sub(' ', title)
-        clean_title = re.sub(r'\s+', ' ', clean_title)  # normalize whitespace
+        clean_title = re.sub(r'\s+', ' ', clean_title).strip()
         
-        for pattern in self.ROUTE_PATTERNS:
+        all_patterns = [
+            self.THE_FLIGHT_DEAL_PATTERN,
+            self.TRAVEL_FREE_PATTERN,
+            *self.ROUTE_PATTERNS,
+        ]
+        
+        for pattern in all_patterns:
             match = pattern.search(clean_title)
             if match:
                 origin_raw = match.group('origin').strip()
                 dest_raw = match.group('dest').strip()
+                
+                origin_raw = self._clean_location(origin_raw)
+                dest_raw = self._clean_location(dest_raw)
                 
                 origin = self._resolve_location(origin_raw)
                 dest = self._resolve_location(dest_raw)
@@ -157,11 +191,13 @@ class GenericFeedParser(BaseFeedParser):
                 if origin and dest and origin != dest:
                     return (origin, dest)
         
-        airports = self._extract_airports(clean_title)
-        if len(airports) >= 2:
-            return (airports[0], airports[1])
-        
         return (None, None)
+    
+    def _clean_location(self, location: str) -> str:
+        location = re.sub(r'\([^)]*\)', '', location)
+        location = re.sub(r',.*$', '', location)
+        location = re.sub(r'\s*(and vice versa|roundtrip|one-way).*$', '', location, flags=re.IGNORECASE)
+        return location.strip()
     
     def _resolve_location(self, location: str) -> Optional[str]:
         if not location:
