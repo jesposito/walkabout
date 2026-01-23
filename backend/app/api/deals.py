@@ -27,10 +27,10 @@ async def deals_page(
 ):
     service = FeedService(db)
     
-    use_home_airports_only = relevant if relevant is not None else True
+    use_relevant = relevant if relevant is not None else True
     
     deals = service.get_deals(
-        home_airports_only=use_home_airports_only,
+        relevant_only=use_relevant,
         limit=100,
         sort_by=sort or "score",
     )
@@ -45,8 +45,8 @@ async def deals_page(
     sources = [s.value for s in DealSource]
     cabins = ["economy", "premium_economy", "business", "first"]
     
-    all_count = len(service.get_deals(home_airports_only=False, limit=500))
-    relevant_count = len(service.get_deals(home_airports_only=True, limit=500))
+    all_count = len(service.get_deals(relevant_only=False, limit=500))
+    relevant_count = len(service.get_deals(relevant_only=True, limit=500))
     
     return templates.TemplateResponse(
         "deals.html",
