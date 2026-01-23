@@ -178,8 +178,14 @@ class GenericFeedParser(BaseFeedParser):
         return None
     
     def _normalize_location(self, location: str) -> Optional[str]:
+        location = re.sub(r'^(\d+-?stop\s+)', '', location, flags=re.IGNORECASE)
         location = re.sub(r'\s*(roundtrip|one-?way|nonstop|deal|from|for).*$', '', location, flags=re.IGNORECASE)
-        location = location.strip().upper()
+        location = location.strip()
+        
+        if location.lower() in ('stop', 'nonstop', 'non-stop', '1-stop', '2-stop', 'direct'):
+            return None
+        
+        location = location.upper()
         if len(location) == 3 and location.isalpha():
             return location
         return location[:20] if location else None

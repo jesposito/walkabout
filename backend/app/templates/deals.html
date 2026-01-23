@@ -12,7 +12,7 @@
                         {% if current_relevant %}For You{% else %}All Deals{% endif %}
                     </h1>
                     <p class="text-slate-400 mt-1">
-                        {% if current_relevant %}Deals relevant to your home airport and watched destinations
+                        {% if current_relevant %}Deals departing from your home airports
                         {% else %}All flight deals from {{ feed_health|length }} sources{% endif %}
                     </p>
                 </div>
@@ -96,19 +96,24 @@
 
                     <!-- Route -->
                     <div class="mb-4">
+                        {% set origin_valid = deal.parsed_origin and deal.parsed_origin|length == 3 and deal.parsed_origin not in ['STO', 'NON'] %}
+                        {% set dest_valid = deal.parsed_destination and deal.parsed_destination|length == 3 %}
                         <div class="flex items-baseline gap-2 text-2xl font-bold text-white">
-                            <span title="{{ airports[deal.parsed_origin].city if airports.get(deal.parsed_origin) else deal.parsed_origin }}">{{ deal.parsed_origin or 'AKL' }}</span>
+                            {% if origin_valid %}
+                            <span title="{{ airports[deal.parsed_origin].city if airports.get(deal.parsed_origin) else deal.parsed_origin }}">{{ deal.parsed_origin }}</span>
                             <span class="text-slate-600 text-lg">→</span>
-                            <span class="text-cyan-400" title="{{ airports[deal.parsed_destination].city if airports.get(deal.parsed_destination) else deal.parsed_destination }}">{{ deal.parsed_destination or 'Anywhere' }}</span>
+                            {% endif %}
+                            <span class="text-cyan-400" title="{{ airports[deal.parsed_destination].city if airports.get(deal.parsed_destination) else deal.parsed_destination }}">{{ deal.parsed_destination if dest_valid else 'See Details' }}</span>
                         </div>
                         <div class="text-xs text-slate-500 mt-1">
-                            {% if deal.parsed_origin and airports.get(deal.parsed_origin) %}{{ airports[deal.parsed_origin].city }}{% else %}{{ deal.parsed_origin or '' }}{% endif %} 
-                            to 
-                            {% if deal.parsed_destination and airports.get(deal.parsed_destination) %}{{ airports[deal.parsed_destination].city }}{% else %}{{ deal.parsed_destination or 'Anywhere' }}{% endif %}
+                            {% if origin_valid and airports.get(deal.parsed_origin) %}{{ airports[deal.parsed_origin].city }} to {% endif %}
+                            {% if dest_valid and airports.get(deal.parsed_destination) %}{{ airports[deal.parsed_destination].city }}{% elif dest_valid %}{{ deal.parsed_destination }}{% else %}Various Destinations{% endif %}
                         </div>
+                        {% if deal.parsed_airline %}
                         <div class="text-sm text-slate-400 mt-1 truncate" title="{{ deal.raw_title }}">
-                            {{ deal.parsed_airline or 'Unknown Airline' }}
+                            {{ deal.parsed_airline }}
                         </div>
+                        {% endif %}
                     </div>
 
                     <!-- Price Section -->

@@ -95,3 +95,11 @@ class RelevanceService:
         return self.db.query(Deal).filter(
             Deal.is_relevant == True
         ).order_by(Deal.published_at.desc()).limit(limit).all()
+    
+    def get_deals_from_home_airports(self, limit: int = 100) -> list[Deal]:
+        home_airports = list(self._get_home_airports())
+        if not home_airports:
+            return []
+        return self.db.query(Deal).filter(
+            Deal.parsed_origin.in_(home_airports)
+        ).order_by(Deal.published_at.desc()).limit(limit).all()

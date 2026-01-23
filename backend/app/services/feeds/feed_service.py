@@ -179,13 +179,20 @@ class FeedService:
         self,
         origin: Optional[str] = None,
         relevant_only: bool = False,
+        home_airports_only: bool = False,
         limit: int = 50,
         offset: int = 0,
         sort_by: str = "score",
     ) -> list[Deal]:
         query = self.db.query(Deal)
         
-        if relevant_only:
+        if home_airports_only:
+            home_airports = self.relevance._get_home_airports()
+            if home_airports:
+                query = query.filter(Deal.parsed_origin.in_(list(home_airports)))
+            else:
+                return []
+        elif relevant_only:
             query = query.filter(Deal.is_relevant == True)
         
         if origin:

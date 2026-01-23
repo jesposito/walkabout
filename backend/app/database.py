@@ -48,6 +48,7 @@ def ensure_sqlite_columns():
         ("trip_plans", "search_started_at", "DATETIME"),
         ("trip_plans", "last_search_at", "DATETIME"),
         ("search_definitions", "preferred_source", "VARCHAR(20) DEFAULT 'auto'"),
+        ("user_settings", "home_airports", "TEXT DEFAULT '[]'"),
     ]
     
     with engine.connect() as conn:

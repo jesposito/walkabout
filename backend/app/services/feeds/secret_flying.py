@@ -73,10 +73,29 @@ class SecretFlyingParser(BaseFeedParser):
         
         return (None, None)
     
-    def _normalize_location(self, location: str) -> str:
+    def _normalize_location(self, location: str) -> Optional[str]:
+        # Strip common flight descriptors from start
         location = re.sub(r'^(Non-?stop\s+from\s+)', '', location, flags=re.IGNORECASE)
+        location = re.sub(r'^(\d+-?stop\s+)', '', location, flags=re.IGNORECASE)  # "1-stop", "2-stop"
+        # Strip trailing keywords
         location = re.sub(r'\s*(roundtrip|one-?way|nonstop|&\s*vice\s*versa).*$', '', location, flags=re.IGNORECASE)
         location = location.rstrip(',').strip()
+        
+        # Reject if just "Stop" or flight descriptors
+        if location.lower() in ('stop', 'nonstop', 'non-stop', '1-stop', '2-stop', 'direct'):
+            return None
+        
+        # Try to resolve to airport code
+        code = self._city_to_airport(location)
+        if code:
+            return code
+        
+        # If it's already a 3-letter code, validate it
+        if len(location) == 3 and location.isalpha():
+            from app.services.feeds.base import VALID_AIRPORT_CODES
+            if location.upper() in VALID_AIRPORT_CODES:
+                return location.upper()
+        
         return location
     
     def _extract_cabin_class(self, text: str) -> Optional[str]:
