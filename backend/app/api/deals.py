@@ -8,6 +8,7 @@ import os
 from app.database import get_db
 from app.services.feeds import FeedService
 from app.services.relevance import RelevanceService, MAJOR_HUBS
+from app.services.deal_rating import rate_unrated_deals
 from app.models.deal import DealSource
 from app.utils.template_helpers import get_airports_dict
 
@@ -136,10 +137,18 @@ async def trigger_ingest(db: Session = Depends(get_db)):
 
 @router.post("/api/recalculate-relevance")
 async def recalculate_relevance(db: Session = Depends(get_db)):
-    """Recalculate relevance scores for all deals based on current settings."""
     service = RelevanceService(db)
     updated = service.update_all_deals()
     return {"updated": updated, "message": f"Updated relevance for {updated} deals"}
+
+
+@router.post("/api/rate-deals")
+async def trigger_deal_rating(
+    limit: int = Query(20, le=100),
+    db: Session = Depends(get_db),
+):
+    rated_count = await rate_unrated_deals(db, limit=limit)
+    return {"rated": rated_count, "message": f"Rated {rated_count} deals"}
 
 
 @router.get("/api/insights")
