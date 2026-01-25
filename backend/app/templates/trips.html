@@ -391,9 +391,9 @@
                             {% if flights %}
                                 {% for flight in flights %}
                                 <a href="{{ flight.booking_url }}" target="_blank" 
-                                   class="group block p-4 rounded-lg bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-cyan-500/50 hover:bg-slate-700/50 transition-all relative overflow-hidden">
+                                   class="group block p-4 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-cyan-500/50 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-all relative overflow-hidden">
                                     <div class="absolute inset-0 bg-cyan-500/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none z-20">
-                                        <span class="px-3 py-1.5 bg-slate-900/90 rounded-lg text-cyan-400 text-sm font-bold shadow-xl transform translate-y-2 group-hover:translate-y-0 transition-transform">Book Now →</span>
+                                        <span class="px-3 py-1.5 bg-white/90 dark:bg-slate-900/90 rounded-lg text-cyan-400 text-sm font-bold shadow-xl transform translate-y-2 group-hover:translate-y-0 transition-transform">Book Now →</span>
                                     </div>
 
                                     <div class="flex justify-between items-start mb-2 gap-3 relative z-10">
@@ -462,9 +462,9 @@
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                             {% for deal, score in matches[:5] %}
                             <a href="{{ deal.link }}" target="_blank" 
-                               class="group block p-4 rounded-lg bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-500/50 hover:bg-slate-700/50 transition-all relative overflow-hidden">
+                               class="group block p-4 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-500/50 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-all relative overflow-hidden">
                                 <div class="absolute inset-0 bg-emerald-500/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none z-20">
-                                    <span class="px-3 py-1.5 bg-slate-900/90 rounded-lg text-emerald-400 text-sm font-bold shadow-xl transform translate-y-2 group-hover:translate-y-0 transition-transform">View Deal →</span>
+                                    <span class="px-3 py-1.5 bg-white/90 dark:bg-slate-900/90 rounded-lg text-emerald-400 text-sm font-bold shadow-xl transform translate-y-2 group-hover:translate-y-0 transition-transform">View Deal →</span>
                                 </div>
 
                                 <div class="flex justify-between items-start mb-2 gap-3 relative z-10">
@@ -542,7 +542,7 @@
                 </div>
                 {% endfor %}
             {% else %}
-                <div class="text-center py-12 bg-slate-800/30 rounded-xl border border-dashed border-slate-700">
+                <div class="text-center py-12 bg-slate-100 dark:bg-slate-800/30 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">
                     <div class="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto mb-4">
                         <svg class="w-8 h-8 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0121 18.382V7.618a1 1 0 01-.447-.894L15 7m0 13V7" />
@@ -648,12 +648,12 @@
     function updateOrigins() {
         originHidden.value = selectedOrigins.map(o => o.code).join(',');
         originContainer.innerHTML = selectedOrigins.map(o => `
-            <div class="inline-flex items-center pl-3 pr-2 py-1.5 rounded-lg bg-slate-800 border border-slate-200 dark:border-slate-700 group hover:border-cyan-500/50 transition-all shadow-sm">
+            <div class="inline-flex items-center pl-3 pr-2 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 group hover:border-cyan-500/50 transition-all shadow-sm">
                 <span class="text-sm font-medium text-slate-200 mr-2">
                     <span class="font-mono text-cyan-400 font-bold mr-1.5">${o.code}</span>
                     <span class="text-slate-600 dark:text-slate-400 border-l border-slate-200 dark:border-slate-700 pl-1.5">${o.name}</span>
                 </span>
-                <button type="button" onclick="removeOrigin('${o.code}')" class="p-1 rounded-md text-slate-500 hover:text-red-400 hover:bg-slate-700/50 transition-colors">
+                <button type="button" onclick="removeOrigin('${o.code}')" class="p-1 rounded-md text-slate-500 hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors">
                     <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>
@@ -745,14 +745,14 @@
     function updateDestinations() {
         destHidden.value = selectedDestinations.map(d => d.code).join(',');
         destContainer.innerHTML = selectedDestinations.map(dest => `
-            <div class="inline-flex items-center pl-3 pr-2 py-1.5 rounded-lg bg-slate-800 border border-slate-200 dark:border-slate-700 group hover:border-violet-500/50 transition-all shadow-sm">
+            <div class="inline-flex items-center pl-3 pr-2 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 group hover:border-violet-500/50 transition-all shadow-sm">
                 <span class="text-sm font-medium text-slate-200 mr-2">
                     <span class="font-mono text-violet-400 font-bold mr-1.5">${dest.code}</span>
                     <span class="text-slate-600 dark:text-slate-400 border-l border-slate-200 dark:border-slate-700 pl-1.5">${dest.name}</span>
                 </span>
                 <button type="button" 
                         onclick="removeDestination('${dest.code}')"
-                        class="p-1 rounded-md text-slate-500 hover:text-red-400 hover:bg-slate-700/50 transition-colors"
+                        class="p-1 rounded-md text-slate-500 hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors"
                         aria-label="Remove ${dest.code}">
                     <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -1055,9 +1055,9 @@
         const resultsHtml = data.results.map(r => {
             return `
             <a href="${r.booking_url}" target="_blank" 
-               class="group block p-4 rounded-lg bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-cyan-500/50 hover:bg-slate-700/50 transition-all relative overflow-hidden">
+               class="group block p-4 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-cyan-500/50 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-all relative overflow-hidden">
                 <div class="absolute inset-0 bg-cyan-500/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none z-20">
-                    <span class="px-3 py-1.5 bg-slate-900/90 rounded-lg text-cyan-400 text-sm font-bold shadow-xl transform translate-y-2 group-hover:translate-y-0 transition-transform">Book Now →</span>
+                    <span class="px-3 py-1.5 bg-white/90 dark:bg-slate-900/90 rounded-lg text-cyan-400 text-sm font-bold shadow-xl transform translate-y-2 group-hover:translate-y-0 transition-transform">Book Now →</span>
                 </div>
 
                 <div class="flex justify-between items-start mb-2 gap-3 relative z-10">

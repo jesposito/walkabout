@@ -37,7 +37,7 @@
         {% endif %}
         <div id="searches-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {% for search in searches %}
-            <div class="bg-slate-800 rounded-xl overflow-hidden border border-slate-700 group" data-search-id="{{ search.id }}" data-adults="{{ search.adults }}" data-children="{{ search.children or 0 }}">
+            <div class="bg-white dark:bg-slate-800 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 group" data-search-id="{{ search.id }}" data-adults="{{ search.adults }}" data-children="{{ search.children or 0 }}">
                 <div class="h-1.5 bg-gradient-to-r from-cyan-500 to-blue-600"></div>
                 <div class="p-6">
                     <div class="flex items-center justify-between mb-4">
@@ -50,7 +50,7 @@
                             {{ airports[search.origin].city if airports.get(search.origin) else '' }} to {{ airports[search.destination].city if airports.get(search.destination) else '' }}
                         </div>
                         <button onclick="deleteSearch({{ search.id }})" 
-                                class="text-slate-500 hover:text-red-400 transition-colors p-1 rounded hover:bg-slate-700"
+                                class="text-slate-500 hover:text-red-400 transition-colors p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700"
                                 title="Remove route">
                             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -73,11 +73,11 @@
                         </span>
                     </div>
                     
-                    <div class="border-t border-slate-700 pt-4 mt-4">
+                    <div class="border-t border-slate-200 dark:border-slate-700 pt-4 mt-4">
                         <div class="flex items-center justify-between mb-3">
                             <span class="text-xs text-slate-500 font-medium">Check Frequency</span>
                             <select onchange="updateFrequency({{ search.id }}, this.value)" 
-                                    class="text-xs bg-slate-700 border border-slate-600 rounded px-2 py-1 text-slate-300 focus:ring-1 focus:ring-cyan-500">
+                                    class="text-xs bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded px-2 py-1 text-slate-700 dark:text-slate-300 focus:ring-1 focus:ring-cyan-500">
                                 <option value="1" {% if search.scrape_frequency_hours == 1 %}selected{% endif %}>Hourly</option>
                                 <option value="6" {% if search.scrape_frequency_hours == 6 %}selected{% endif %}>Every 6 hours</option>
                                 <option value="12" {% if search.scrape_frequency_hours == 12 %}selected{% endif %}>Twice daily</option>
@@ -88,7 +88,7 @@
                         <div class="flex items-center justify-between mb-3">
                             <span class="text-xs text-slate-500 font-medium">Price Source</span>
                             <select onchange="updateSource({{ search.id }}, this.value)" 
-                                    class="text-xs bg-slate-700 border border-slate-600 rounded px-2 py-1 text-slate-300 focus:ring-1 focus:ring-cyan-500">
+                                    class="text-xs bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded px-2 py-1 text-slate-700 dark:text-slate-300 focus:ring-1 focus:ring-cyan-500">
                                 <option value="auto" {% if (search.preferred_source or 'auto') == 'auto' %}selected{% endif %}>Auto (best available)</option>
                                 {% if available_sources.serpapi.available %}
                                 <option value="serpapi" {% if search.preferred_source == 'serpapi' %}selected{% endif %}>SerpAPI (Google)</option>
@@ -106,7 +106,7 @@
                             <p class="text-xs text-slate-500">Loading prices...</p>
                         </div>
                         <button onclick="refreshPrices({{ search.id }})" 
-                                class="w-full mt-2 px-3 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-medium rounded-lg transition-colors flex items-center justify-center gap-2">
+                                class="w-full mt-2 px-3 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 text-xs font-medium rounded-lg transition-colors flex items-center justify-center gap-2">
                             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                             </svg>
@@ -118,7 +118,7 @@
             {% else %}
             <div class="col-span-full">
                 <div class="flex flex-col items-center justify-center py-16 text-center">
-                    <div class="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mb-6">
+                    <div class="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-6">
                         <svg class="w-10 h-10 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                         </svg>
@@ -142,7 +142,7 @@
 <!-- Add Route Modal -->
 <div id="add-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm">
     <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 w-full max-w-md mx-4 overflow-hidden">
-        <div class="bg-slate-700/50 px-6 py-4 border-b border-slate-700">
+        <div class="bg-slate-100 dark:bg-slate-700/50 px-6 py-4 border-b border-slate-700">
             <h2 class="text-xl font-bold text-slate-900 dark:text-white">Track a Route</h2>
             <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">Save a route you're planning to fly</p>
         </div>
@@ -154,7 +154,7 @@
                     <div class="relative">
                         <input type="text" name="origin" id="origin-input" required
                                autocomplete="off"
-                               class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-white 
+                               class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white 
                                       uppercase font-mono text-lg tracking-wider focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
                                placeholder="Type city...">
                         <div id="origin-dropdown" class="hidden absolute z-30 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-xl max-h-48 overflow-y-auto"></div>
@@ -166,7 +166,7 @@
                     <div class="relative">
                         <input type="text" name="destination" id="destination-input" required
                                autocomplete="off"
-                               class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-white 
+                               class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white 
                                       uppercase font-mono text-lg tracking-wider focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
                                placeholder="Type city...">
                         <div id="destination-dropdown" class="hidden absolute z-30 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-xl max-h-48 overflow-y-auto"></div>
@@ -208,7 +208,7 @@
             
             <div class="flex gap-3 pt-2">
                 <button type="button" onclick="closeAddModal()" 
-                        class="flex-1 px-4 py-3 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors">
+                        class="flex-1 px-4 py-3 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 rounded-lg transition-colors">
                     Cancel
                 </button>
                 <button type="submit" 
@@ -363,7 +363,7 @@ async function loadStats(id) {
                             const total = Math.round(opt.price_nzd * totalTravelers);
                             return `
                             <a href="${opt.booking_url}" target="_blank" rel="noopener"
-                               class="block p-2 rounded bg-slate-700/50 hover:bg-slate-600/50 transition-colors group">
+                               class="block p-2 rounded bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-600/50 transition-colors group">
                                 <div class="flex justify-between items-center">
                                     <div class="text-xs">
                                         <span class="text-slate-300">${formatDate(opt.departure_date)}</span>
