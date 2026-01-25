@@ -216,6 +216,36 @@ async def trigger_deal_rating(
     return {"rated": rated_count, "message": f"Rated {rated_count} deals"}
 
 
+@router.post("/api/test-ai-parse")
+async def test_ai_parse(
+    title: str = Query(..., description="Deal title to parse"),
+    db: Session = Depends(get_db),
+):
+    """Test AI parsing on a single deal title."""
+    from app.services.ai_service import AIService, configure_ai_from_settings
+    from app.models.user_settings import UserSettings
+    
+    settings = UserSettings.get_or_create(db)
+    configured = configure_ai_from_settings(settings)
+    
+    if not configured:
+        return {"error": "AI not configured. Go to Settings and select an AI provider."}
+    
+    result = await AIService.parse_deal(title)
+    return {
+        "input": title,
+        "parsed": {
+            "origin": result.origin,
+            "destination": result.destination,
+            "price": result.price,
+            "currency": result.currency,
+            "cabin_class": result.cabin_class,
+            "confidence": result.confidence,
+        },
+        "raw_response": result.raw_response,
+    }
+
+
 @router.get("/api/insights")
 async def get_insights(
     home_airport: str = Query("AKL"),
