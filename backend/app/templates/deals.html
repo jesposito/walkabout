@@ -159,18 +159,29 @@
                         <div>
                             <span class="block text-xs text-slate-500 font-mono mb-0.5">EST. PRICE</span>
                             <span class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
-                                {% if deal.parsed_price %}
-                                    {{ deal.parsed_currency }} {{ deal.parsed_price }}
+                                {% if deal.price_info %}
+                                    {% if deal.price_info.converted %}
+                                        {{ deal.price_info.converted }}
+                                    {% else %}
+                                        {{ deal.price_info.original }}
+                                    {% endif %}
+                                {% elif deal.parsed_price %}
+                                    {{ deal.parsed_currency or 'USD' }} {{ deal.parsed_price }}
                                 {% else %}
                                     See Deal
                                 {% endif %}
                             </span>
+                            {% if deal.price_info and deal.price_info.converted %}
+                            <span class="block text-xs text-slate-500 dark:text-slate-400">
+                                {{ deal.price_info.original }}
+                            </span>
+                            {% endif %}
                             {% if deal.market_price and deal.deal_rating %}
                             <span class="block text-xs mt-1
                                 {% if deal.deal_rating >= 15 %}text-green-600 dark:text-green-400
                                 {% elif deal.deal_rating >= 0 %}text-slate-500 dark:text-slate-400
                                 {% else %}text-red-500 dark:text-red-400{% endif %}">
-                                {% if deal.deal_rating >= 0 %}{{ deal.deal_rating|int }}% below{% else %}{{ (-deal.deal_rating)|int }}% above{% endif %} market (${{ deal.market_price|int }})
+                                {% if deal.deal_rating >= 0 %}{{ deal.deal_rating|int }}% below{% else %}{{ (-deal.deal_rating)|int }}% above{% endif %} market ({{ preferred_currency }} {{ deal.market_price|int }})
                             </span>
                             {% endif %}
                         </div>

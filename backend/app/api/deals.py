@@ -9,7 +9,9 @@ from app.database import get_db
 from app.services.feeds import FeedService
 from app.services.relevance import RelevanceService, MAJOR_HUBS
 from app.services.deal_rating import rate_unrated_deals
+from app.services.currency import CurrencyService, convert_deal_price
 from app.models.deal import DealSource
+from app.models.user_settings import UserSettings
 from app.utils.template_helpers import get_airports_dict
 
 router = APIRouter()
@@ -29,6 +31,8 @@ async def deals_page(
 ):
     service = FeedService(db)
     relevance_service = RelevanceService(db)
+    settings = UserSettings.get_or_create(db)
+    preferred_currency = settings.preferred_currency or "NZD"
     
     local_deals = relevance_service.get_local_deals(limit=100)
     regional_deals = relevance_service.get_regional_deals(limit=100)
@@ -43,9 +47,22 @@ async def deals_page(
         regional_deals = [d for d in regional_deals if d.parsed_cabin_class == cabin]
         hub_deals = [d for d in hub_deals if d.parsed_cabin_class == cabin]
     
+    def enrich_deal(deal):
+        """Add converted price info to deal for template."""
+        deal.price_info = convert_deal_price(
+            deal.parsed_price,
+            deal.parsed_currency or "USD",
+            preferred_currency
+        )
+        return deal
+    
+    local_deals = [enrich_deal(d) for d in local_deals]
+    regional_deals = [enrich_deal(d) for d in regional_deals]
+    hub_deals = [enrich_deal(d) for d in hub_deals]
+    
     def sort_deals(deals, sort_key):
         if sort_key == "price":
-            return sorted(deals, key=lambda d: (d.parsed_price or 999999))
+            return sorted(deals, key=lambda d: (d.price_info.get("converted_amount") if d.price_info else None) or 999999)
         elif sort_key == "date":
             return sorted(deals, key=lambda d: (d.published_at or d.created_at), reverse=True)
         else:
@@ -82,6 +99,7 @@ async def deals_page(
             "airports": get_airports_dict(),
             "hub_counts": hub_counts,
             "major_hubs": MAJOR_HUBS,
+            "preferred_currency": preferred_currency,
         }
     )
 

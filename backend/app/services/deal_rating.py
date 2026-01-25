@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.models.deal import Deal
 from app.models.route_market_price import RouteMarketPrice
 from app.services.flight_price_fetcher import FlightPriceFetcher, FetchResult
+from app.services.currency import CurrencyService
 
 logger = logging.getLogger(__name__)
 
@@ -163,6 +164,7 @@ async def rate_deal(db: Session, deal: Deal) -> bool:
     
     cabin_class = deal.parsed_cabin_class or "economy"
     travel_month = None
+    deal_currency = deal.parsed_currency or "USD"  # Most deal sites use USD
     
     cached = get_cached_market_price(
         db,
@@ -173,17 +175,19 @@ async def rate_deal(db: Session, deal: Deal) -> bool:
     )
     
     if cached:
-        logger.info(f"Using cached market price for {deal.parsed_origin}-{deal.parsed_destination}: {cached.market_price}")
+        logger.info(f"Using cached market price for {deal.parsed_origin}-{deal.parsed_destination}: {cached.market_price} {cached.currency}")
         market_price = cached.market_price
         source = cached.source
-        currency = cached.currency
+        market_currency = cached.currency
     else:
-        logger.info(f"Fetching market price for {deal.parsed_origin}-{deal.parsed_destination}")
+        # Fetch market price in NZD (our standard comparison currency)
+        market_currency = "NZD"
+        logger.info(f"Fetching market price for {deal.parsed_origin}-{deal.parsed_destination} in {market_currency}")
         result = await fetch_market_price(
             deal.parsed_origin,
             deal.parsed_destination,
             cabin_class,
-            deal.parsed_currency or "NZD",
+            market_currency,
         )
         
         if not result or not result.success or not result.prices:
@@ -192,7 +196,6 @@ async def rate_deal(db: Session, deal: Deal) -> bool:
         
         prices = [float(p.price) for p in result.prices]
         market_price = sum(prices) / len(prices)
-        currency = deal.parsed_currency or "NZD"
         source = result.source
         
         save_market_price(
@@ -200,16 +203,26 @@ async def rate_deal(db: Session, deal: Deal) -> bool:
             deal.parsed_origin,
             deal.parsed_destination,
             market_price,
-            currency,
+            market_currency,
             source,
             cabin_class,
             travel_month,
         )
     
-    rating, label = calculate_rating(deal.parsed_price, market_price)
+    # Normalize deal price to market currency for comparison
+    deal_price_normalized = deal.parsed_price
+    if deal_currency != market_currency:
+        converted = CurrencyService.convert_sync(deal.parsed_price, deal_currency, market_currency)
+        if converted:
+            deal_price_normalized = converted
+            logger.info(f"Converted deal price: {deal.parsed_price} {deal_currency} -> {deal_price_normalized} {market_currency}")
+        else:
+            logger.warning(f"Could not convert {deal_currency} to {market_currency}, using raw price")
+    
+    rating, label = calculate_rating(deal_price_normalized, market_price)
     
     deal.market_price = market_price
-    deal.market_currency = currency
+    deal.market_currency = market_currency
     deal.deal_rating = rating
     deal.rating_label = label
     deal.market_price_source = source
@@ -217,7 +230,7 @@ async def rate_deal(db: Session, deal: Deal) -> bool:
     
     db.commit()
     
-    logger.info(f"Rated deal {deal.id}: {rating:.1f}% ({label}) - deal ${deal.parsed_price} vs market ${market_price:.0f}")
+    logger.info(f"Rated deal {deal.id}: {rating:.1f}% ({label}) - deal {deal.parsed_price} {deal_currency} ({deal_price_normalized} {market_currency}) vs market {market_price:.0f} {market_currency}")
     return True
 
 
