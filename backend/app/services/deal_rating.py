@@ -125,7 +125,10 @@ async def fetch_market_price(
 ) -> Optional[FetchResult]:
     fetcher = FlightPriceFetcher()
     
-    if not fetcher.get_available_sources():
+    available = fetcher.get_available_sources()
+    logger.info(f"Available price sources: {available}")
+    
+    if not available:
         logger.warning("No price sources available for market price fetch")
         return None
     
