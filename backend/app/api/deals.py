@@ -158,6 +158,55 @@ async def recalculate_relevance(db: Session = Depends(get_db)):
     return {"updated": updated, "message": f"Updated relevance for {updated} deals"}
 
 
+@router.post("/api/reparse-deals")
+async def reparse_deals(
+    limit: int = Query(500, le=2000),
+    db: Session = Depends(get_db),
+):
+    """Re-parse all deals to fix routes with updated airport lookup."""
+    from app.models.deal import Deal
+    from app.services.airports import AirportLookup
+    import re
+    
+    EMOJI_PATTERN = re.compile(
+        "["
+        "\U0001F600-\U0001F64F"
+        "\U0001F300-\U0001F5FF"
+        "\U0001F680-\U0001F6FF"
+        "\U0001F1E0-\U0001F1FF"
+        "\U00002702-\U000027B0"
+        "\U000024C2-\U0001F251"
+        "\U0001F900-\U0001F9FF"
+        "\U00002600-\U000026FF"
+        "]+",
+        flags=re.UNICODE
+    )
+    
+    deals = db.query(Deal).order_by(Deal.created_at.desc()).limit(limit).all()
+    updated = 0
+    
+    for deal in deals:
+        clean_title = EMOJI_PATTERN.sub(' ', deal.raw_title)
+        clean_title = re.sub(r'\s+', ' ', clean_title).strip()
+        origin, destination = AirportLookup.extract_route(clean_title)
+        
+        if origin != deal.parsed_origin or destination != deal.parsed_destination:
+            deal.parsed_origin = origin
+            deal.parsed_destination = destination
+            deal.deal_rating = None
+            deal.rating_label = None
+            deal.market_price = None
+            updated += 1
+    
+    db.commit()
+    
+    if updated > 0:
+        service = RelevanceService(db)
+        service.update_all_deals()
+    
+    return {"reparsed": updated, "total": len(deals), "message": f"Re-parsed {updated} deals with updated routes"}
+
+
 @router.post("/api/rate-deals")
 async def trigger_deal_rating(
     limit: int = Query(20, le=100),
