@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="bg-slate-900 min-h-full pb-12">
+<div class="bg-slate-100 dark:bg-slate-900 min-h-full pb-12">
     <!-- Title Bar -->
-    <div class="bg-slate-800/50 border-b border-slate-800">
+    <div class="bg-white/50 dark:bg-slate-100 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 class="text-3xl font-bold text-white tracking-tight">System Status</h1>
-                    <p class="text-slate-400 mt-1">Phase 1a - Proving Scraping Stability</p>
+                    <h1 class="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">System Status</h1>
+                    <p class="text-slate-600 dark:text-slate-400 mt-1">Phase 1a - Proving Scraping Stability</p>
                 </div>
                 
                 <!-- Quick Actions -->
@@ -30,28 +30,28 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
         
         <!-- System Status Card -->
-        <div class="bg-slate-800 rounded-xl border border-slate-700 p-6 shadow-sm">
-            <h3 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
+        <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+            <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
                 <span>📊</span> Core Services
             </h3>
             
             <div class="space-y-4">
-                <div class="flex justify-between items-center py-2 border-b border-slate-700/50">
-                    <span class="text-slate-400">Scheduler</span>
+                <div class="flex justify-between items-center py-2 border-b border-slate-200 dark:border-slate-700/50">
+                    <span class="text-slate-600 dark:text-slate-400">Scheduler</span>
                     <span class="font-mono font-bold {% if scheduler.running %}text-emerald-400{% else %}text-rose-500{% endif %}">
                         {% if scheduler.running %}✅ Running{% else %}❌ Stopped{% endif %}
                     </span>
                 </div>
-                <div class="flex justify-between items-center py-2 border-b border-slate-700/50">
-                    <span class="text-slate-400">Next Scrape</span>
+                <div class="flex justify-between items-center py-2 border-b border-slate-200 dark:border-slate-700/50">
+                    <span class="text-slate-600 dark:text-slate-400">Next Scrape</span>
                     <span class="font-mono text-slate-200">{{ scheduler.next_run or "Not scheduled" }}</span>
                 </div>
-                <div class="flex justify-between items-center py-2 border-b border-slate-700/50">
-                    <span class="text-slate-400">Active Monitors</span>
+                <div class="flex justify-between items-center py-2 border-b border-slate-200 dark:border-slate-700/50">
+                    <span class="text-slate-600 dark:text-slate-400">Active Monitors</span>
                     <span class="font-mono text-slate-200">{{ search_definitions|length }}</span>
                 </div>
                 <div class="flex justify-between items-center py-2">
-                    <span class="text-slate-400">Total Prices</span>
+                    <span class="text-slate-600 dark:text-slate-400">Total Prices</span>
                     <span class="font-mono text-slate-200">{{ total_prices }}</span>
                 </div>
             </div>
@@ -59,24 +59,24 @@
         </div>
 
         <!-- Notifications Card -->
-        <div class="bg-slate-800 rounded-xl border border-slate-700 p-6 shadow-sm">
-            <h3 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
+        <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+            <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
                 <span>🔔</span> Notifications
             </h3>
             
             <div class="space-y-4">
-                <div class="flex justify-between items-center py-2 border-b border-slate-700/50">
-                    <span class="text-slate-400">ntfy Server</span>
+                <div class="flex justify-between items-center py-2 border-b border-slate-200 dark:border-slate-700/50">
+                    <span class="text-slate-600 dark:text-slate-400">ntfy Server</span>
                     <span class="font-mono font-bold {% if ntfy_working %}text-emerald-400{% else %}text-rose-500{% endif %}">
                         {% if ntfy_working %}✅ Working{% else %}❌ Failed{% endif %}
                     </span>
                 </div>
-                <div class="flex justify-between items-center py-2 border-b border-slate-700/50">
-                    <span class="text-slate-400">Topic</span>
+                <div class="flex justify-between items-center py-2 border-b border-slate-200 dark:border-slate-700/50">
+                    <span class="text-slate-600 dark:text-slate-400">Topic</span>
                     <span class="font-mono text-cyan-400">{{ ntfy_topic }}</span>
                 </div>
                 <div class="flex justify-between items-center py-2">
-                    <span class="text-slate-400">Subscribe URL</span>
+                    <span class="text-slate-600 dark:text-slate-400">Subscribe URL</span>
                     <a href="{{ ntfy_url }}/{{ ntfy_topic }}" target="_blank" class="font-mono text-xs text-blue-400 hover:text-blue-300 hover:underline truncate max-w-[200px]">
                         {{ ntfy_url }}/{{ ntfy_topic }}
                     </a>
@@ -87,8 +87,8 @@
 
     <!-- Flight Monitors -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
-        <div class="bg-slate-800 rounded-xl border border-slate-700 p-6 shadow-sm">
-            <h3 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
+        <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+            <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
                 <span>🔍</span> Active Monitors
             </h3>
 
@@ -98,7 +98,7 @@
                     {% set health = health_data[search_def.id] %}
                     <div class="bg-slate-900/50 rounded-lg p-5 border border-slate-700">
                         <div class="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-3">
-                            <h4 class="text-lg font-bold text-white">{{ search_def.display_name }}</h4>
+                            <h4 class="text-lg font-bold text-slate-900 dark:text-white">{{ search_def.display_name }}</h4>
                             <span class="px-2.5 py-1 rounded text-xs font-bold uppercase tracking-wide
                                 {% if health.healthy %}bg-emerald-500/10 text-emerald-400 border border-emerald-500/20
                                 {% elif health.consecutive_failures >= 3 %}bg-rose-500/10 text-rose-400 border border-rose-500/20
@@ -134,7 +134,7 @@
                             </div>
                         </div>
                         
-                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-t border-slate-700/50 pt-4 mt-2">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-t border-slate-200 dark:border-slate-700/50 pt-4 mt-2">
                             <div class="text-xs text-slate-500 font-mono">
                                 {% if health.last_success_at %}
                                     <span class="mr-3">Last success: {{ health.last_success_at }}</span>

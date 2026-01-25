@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="bg-slate-900 min-h-full pb-12">
-    <div class="bg-slate-800/50 border-b border-slate-800">
+<div class="bg-slate-100 dark:bg-slate-900 min-h-full pb-12">
+    <div class="bg-white/50 dark:bg-slate-100 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
         <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <h1 class="text-3xl font-bold text-white tracking-tight">Settings</h1>
-            <p class="text-slate-400 mt-2">Personalize Walkabout to show deals relevant to you</p>
+            <h1 class="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Settings</h1>
+            <p class="text-slate-600 dark:text-slate-600 dark:text-slate-400 mt-2">Personalize Walkabout to show deals relevant to you</p>
         </div>
     </div>
 
@@ -22,8 +22,8 @@
                         </svg>
                     </div>
                     <div>
-                        <h2 class="text-lg font-semibold text-white">Your Home Airports</h2>
-                        <p class="text-sm text-slate-400 mt-1">Deals departing from these airports will be highlighted as most relevant to you</p>
+                        <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Your Home Airports</h2>
+                        <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">Deals departing from these airports will be highlighted as most relevant to you</p>
                     </div>
                 </div>
                 
@@ -44,12 +44,12 @@
                                 </svg>
                             </div>
                             <input type="text" id="home_airport_search" 
-                                   class="w-full pl-11 pr-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white 
+                                   class="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-white 
                                           placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 
                                           focus:border-transparent font-sans transition-all uppercase placeholder:normal-case"
                                    placeholder="Search airport (e.g. SYD, MEL)..."
                                    autocomplete="off">
-                            <div id="home-airport-dropdown" class="hidden absolute z-20 w-full mt-2 bg-slate-800 border border-slate-600 rounded-lg shadow-xl shadow-black/50 max-h-60 overflow-y-auto overflow-x-hidden"></div>
+                            <div id="home-airport-dropdown" class="hidden absolute z-20 w-full mt-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-xl shadow-black/50 max-h-60 overflow-y-auto overflow-x-hidden"></div>
                         </div>
 
                         <div id="home-airports-container" class="flex flex-wrap gap-2 mt-4 min-h-[32px]">
@@ -64,7 +64,7 @@
                             Region
                         </label>
                         <select id="home_region" name="home_region"
-                                class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white 
+                                class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-white 
                                        focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
                             <option value="Oceania" {% if settings.home_region == 'Oceania' %}selected{% endif %}>Oceania (NZ/AU/Pacific)</option>
                             <option value="North America" {% if settings.home_region == 'North America' %}selected{% endif %}>North America</option>
@@ -87,8 +87,8 @@
                         </svg>
                     </div>
                     <div>
-                        <h2 class="text-lg font-semibold text-white">Dream Destinations</h2>
-                        <p class="text-sm text-slate-400 mt-1">Add places you'd love to visit — we'll flag deals to these destinations and similar alternatives</p>
+                        <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Dream Destinations</h2>
+                        <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">Add places you'd love to visit — we'll flag deals to these destinations and similar alternatives</p>
                     </div>
                 </div>
                 
@@ -107,12 +107,12 @@
                                 </svg>
                             </div>
                             <input type="text" id="destination_search" 
-                                   class="w-full pl-11 pr-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white 
+                                   class="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-white 
                                           placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 
                                           focus:border-transparent font-sans transition-all"
                                    placeholder="Search by city or airport (e.g. Tokyo, Fiji)..."
                                    autocomplete="off">
-                            <div id="destination-dropdown" class="hidden absolute z-20 w-full mt-2 bg-slate-800 border border-slate-600 rounded-lg shadow-xl shadow-black/50 max-h-60 overflow-y-auto overflow-x-hidden"></div>
+                            <div id="destination-dropdown" class="hidden absolute z-20 w-full mt-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-xl shadow-black/50 max-h-60 overflow-y-auto overflow-x-hidden"></div>
                         </div>
 
                         <div id="destinations-container" class="flex flex-wrap gap-2 mt-4 min-h-[32px]">
@@ -123,7 +123,7 @@
                     </div>
                     
                     <div class="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
-                        <p class="text-sm text-slate-400">
+                        <p class="text-sm text-slate-600 dark:text-slate-400">
                             <span class="text-violet-400 font-medium">💡 Smart matching:</span> 
                             If you add "NAN" (Fiji), we'll also show deals to similar destinations like Rarotonga, Samoa, and Tahiti.
                         </p>
@@ -140,8 +140,8 @@
                         </svg>
                     </div>
                     <div>
-                        <h2 class="text-lg font-semibold text-white">Currency Preference</h2>
-                        <p class="text-sm text-slate-400 mt-1">See prices converted to your preferred currency</p>
+                        <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Currency Preference</h2>
+                        <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">See prices converted to your preferred currency</p>
                     </div>
                 </div>
                 
@@ -150,7 +150,7 @@
                         Display Currency
                     </label>
                     <select id="preferred_currency" name="preferred_currency"
-                            class="w-full max-w-xs px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white 
+                            class="w-full max-w-xs px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-white 
                                    focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
                         <option value="NZD" {% if (settings.preferred_currency or 'NZD') == 'NZD' %}selected{% endif %}>🇳🇿 NZD - New Zealand Dollar</option>
                         <option value="AUD" {% if settings.preferred_currency == 'AUD' %}selected{% endif %}>🇦🇺 AUD - Australian Dollar</option>
@@ -173,14 +173,14 @@
                         </svg>
                     </div>
                     <div>
-                        <h2 class="text-lg font-semibold text-white">API Keys (Optional)</h2>
-                        <p class="text-sm text-slate-400 mt-1">Add API keys for better price tracking. Without keys, we'll use browser scraping as fallback.</p>
+                        <h2 class="text-lg font-semibold text-slate-900 dark:text-white">API Keys (Optional)</h2>
+                        <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">Add API keys for better price tracking. Without keys, we'll use browser scraping as fallback.</p>
                     </div>
                 </div>
                 
                 <div class="space-y-4">
                     <div class="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50 mb-4">
-                        <p class="text-sm text-slate-400">
+                        <p class="text-sm text-slate-600 dark:text-slate-400">
                             <span class="text-cyan-400 font-medium">How it works:</span> 
                             Price tracking tries API sources first (faster, more reliable), then falls back to browser scraping.
                             AI analysis requires an Anthropic API key.
@@ -193,7 +193,7 @@
                         </label>
                         <input type="password" id="anthropic_api_key" name="anthropic_api_key" 
                                value="{{ settings.anthropic_api_key or '' }}"
-                               class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white 
+                               class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-white 
                                       placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 
                                       focus:border-transparent font-mono text-sm"
                                placeholder="sk-ant-...">
@@ -206,7 +206,7 @@
                         </label>
                         <input type="password" id="serpapi_key" name="serpapi_key" 
                                value="{{ settings.serpapi_key or '' }}"
-                               class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white 
+                               class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-white 
                                       placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 
                                       focus:border-transparent font-mono text-sm"
                                placeholder="your-serpapi-key">
@@ -219,7 +219,7 @@
                         </label>
                         <input type="password" id="skyscanner_api_key" name="skyscanner_api_key" 
                                value="{{ settings.skyscanner_api_key or '' }}"
-                               class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white 
+                               class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-white 
                                       placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 
                                       focus:border-transparent font-mono text-sm"
                                placeholder="your-rapidapi-key">
@@ -236,8 +236,8 @@
                         </svg>
                     </div>
                     <div>
-                        <h2 class="text-lg font-semibold text-white">Notifications</h2>
-                        <p class="text-sm text-slate-400 mt-1">Coming soon — get push alerts for hot deals</p>
+                        <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Notifications</h2>
+                        <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">Coming soon — get push alerts for hot deals</p>
                     </div>
                 </div>
                 
@@ -333,7 +333,7 @@ homeInput.addEventListener('input', (e) => {
                 } else {
                     homeDropdown.innerHTML = available.map(a => `
                         <button type="button" 
-                                class="w-full px-4 py-3 text-left hover:bg-slate-700 flex items-center justify-between group transition-colors border-b border-slate-700/50 last:border-0"
+                                class="w-full px-4 py-3 text-left hover:bg-slate-700 flex items-center justify-between group transition-colors border-b border-slate-200 dark:border-slate-700/50 last:border-0"
                                 onclick="addHomeAirport('${a.code}', '${a.city}', '${a.country}')">
                             <div class="flex flex-col">
                                 <span class="font-bold text-white group-hover:text-cyan-400 transition-colors">${a.city}</span>
@@ -385,7 +385,7 @@ function updateHomeAirports() {
 
 function renderHomeAirports() {
     homeContainer.innerHTML = selectedHomeAirports.map(dest => `
-        <div class="inline-flex items-center pl-3 pr-2 py-1.5 rounded-lg bg-slate-800 border border-slate-700 group hover:border-cyan-500/50 transition-all shadow-sm">
+        <div class="inline-flex items-center pl-3 pr-2 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 group hover:border-cyan-500/50 transition-all shadow-sm">
             <span class="text-sm font-medium text-slate-200 mr-2">
                 <span class="font-mono text-cyan-400 font-bold mr-1.5">${dest.code}</span>
                 ${dest.name !== dest.code ? `<span class="text-slate-400 border-l border-slate-700 pl-1.5">${dest.name}</span>` : ''}
@@ -444,7 +444,7 @@ destInput.addEventListener('input', (e) => {
                 } else {
                     destDropdown.innerHTML = available.map(a => `
                         <button type="button" 
-                                class="w-full px-4 py-3 text-left hover:bg-slate-700 flex items-center justify-between group transition-colors border-b border-slate-700/50 last:border-0"
+                                class="w-full px-4 py-3 text-left hover:bg-slate-700 flex items-center justify-between group transition-colors border-b border-slate-200 dark:border-slate-700/50 last:border-0"
                                 onclick="addDestination('${a.code}', '${a.city}', '${a.country}')">
                             <div class="flex flex-col">
                                 <span class="font-bold text-white group-hover:text-cyan-400 transition-colors">${a.city}</span>
@@ -491,7 +491,7 @@ function updateDestinations() {
 
 function renderDestinations() {
     destContainer.innerHTML = selectedDestinations.map(dest => `
-        <div class="inline-flex items-center pl-3 pr-2 py-1.5 rounded-lg bg-slate-800 border border-slate-700 group hover:border-cyan-500/50 transition-all shadow-sm">
+        <div class="inline-flex items-center pl-3 pr-2 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 group hover:border-cyan-500/50 transition-all shadow-sm">
             <span class="text-sm font-medium text-slate-200 mr-2">
                 <span class="font-mono text-cyan-400 font-bold mr-1.5">${dest.code}</span>
                 ${dest.name !== dest.code ? `<span class="text-slate-400 border-l border-slate-700 pl-1.5">${dest.name}</span>` : ''}

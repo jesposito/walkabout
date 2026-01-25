@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="bg-slate-900 min-h-full pb-12">
-    <div class="bg-slate-800/50 border-b border-slate-800">
+<div class="bg-slate-100 dark:bg-slate-900 min-h-full pb-12">
+    <div class="bg-white/50 dark:bg-slate-100 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
-                    <h1 class="text-3xl font-bold text-white tracking-tight">My Routes</h1>
-                    <p class="text-slate-400 mt-2">Track prices for specific routes you're planning to fly</p>
+                    <h1 class="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">My Routes</h1>
+                    <p class="text-slate-600 dark:text-slate-600 dark:text-slate-400 mt-2">Track prices for specific routes you're planning to fly</p>
                 </div>
                 <button onclick="openAddModal()" 
                         class="px-5 py-2.5 bg-cyan-500 hover:bg-cyan-400 text-white font-semibold rounded-lg 
@@ -24,11 +24,11 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
         {% set unconfigured_count = (1 if not available_sources.serpapi.available else 0) + (1 if not available_sources.skyscanner.available else 0) + (1 if not available_sources.amadeus.available else 0) %}
         {% if unconfigured_count > 0 %}
-        <div class="mb-6 px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-lg flex items-center gap-3">
+        <div class="mb-6 px-4 py-3 bg-slate-100 dark:bg-slate-800/50 border border-slate-700 rounded-lg flex items-center gap-3">
             <svg class="w-5 h-5 text-amber-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <p class="text-sm text-slate-400">
+            <p class="text-sm text-slate-600 dark:text-slate-400">
                 <a href="/settings/" class="text-cyan-400 hover:underline">Add API keys</a> in Settings to unlock faster price sources 
                 ({% if not available_sources.serpapi.available %}SerpAPI{% endif %}{% if not available_sources.serpapi.available and not available_sources.skyscanner.available %}, {% endif %}{% if not available_sources.skyscanner.available %}Skyscanner{% endif %}{% if (not available_sources.serpapi.available or not available_sources.skyscanner.available) and not available_sources.amadeus.available %}, {% endif %}{% if not available_sources.amadeus.available %}Amadeus{% endif %}).
                 Browser scraping is always available as fallback.
@@ -41,7 +41,7 @@
                 <div class="h-1.5 bg-gradient-to-r from-cyan-500 to-blue-600"></div>
                 <div class="p-6">
                     <div class="flex items-center justify-between mb-4">
-                        <div class="flex items-baseline gap-2 text-2xl font-bold text-white">
+                        <div class="flex items-baseline gap-2 text-2xl font-bold text-slate-900 dark:text-white">
                             <span title="{{ airports[search.origin].city if airports.get(search.origin) else search.origin }}">{{ search.origin }}</span>
                             <span class="text-slate-600 text-lg">{% if search.trip_type == 'round_trip' %}⇄{% else %}→{% endif %}</span>
                             <span class="text-cyan-400" title="{{ airports[search.destination].city if airports.get(search.destination) else search.destination }}">{{ search.destination }}</span>
@@ -62,13 +62,13 @@
                         <span class="px-2 py-1 rounded text-[10px] font-mono font-bold tracking-wider uppercase 
                             {% if search.cabin_class == 'business' %}bg-amber-500/10 text-amber-400 border border-amber-500/20
                             {% elif search.cabin_class == 'first' %}bg-purple-500/10 text-purple-400 border border-purple-500/20
-                            {% else %}bg-slate-700 text-slate-300 border border-slate-600{% endif %}">
+                            {% else %}bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600{% endif %}">
                             {{ search.cabin_class }}
                         </span>
-                        <span class="px-2 py-1 rounded text-[10px] font-mono tracking-wider uppercase bg-slate-700 text-slate-300 border border-slate-600">
+                        <span class="px-2 py-1 rounded text-[10px] font-mono tracking-wider uppercase bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600">
                             {{ search.adults }}{% if search.children > 0 %}+{{ search.children }}{% endif %} travelers
                         </span>
-                        <span class="px-2 py-1 rounded text-[10px] font-mono tracking-wider uppercase bg-slate-700 text-slate-300 border border-slate-600">
+                        <span class="px-2 py-1 rounded text-[10px] font-mono tracking-wider uppercase bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600">
                             {{ search.trip_type | replace('_', ' ') }}
                         </span>
                     </div>
@@ -123,7 +123,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                         </svg>
                     </div>
-                    <h3 class="text-xl font-bold text-white mb-2">No routes saved yet</h3>
+                    <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">No routes saved yet</h3>
                     <p class="text-slate-400 max-w-md mx-auto mb-6">
                         Save routes you're interested in flying. When price tracking is enabled, 
                         you'll see historical prices and trends here.
@@ -141,10 +141,10 @@
 
 <!-- Add Route Modal -->
 <div id="add-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm">
-    <div class="bg-slate-800 rounded-xl border border-slate-700 w-full max-w-md mx-4 overflow-hidden">
+    <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 w-full max-w-md mx-4 overflow-hidden">
         <div class="bg-slate-700/50 px-6 py-4 border-b border-slate-700">
-            <h2 class="text-xl font-bold text-white">Track a Route</h2>
-            <p class="text-sm text-slate-400 mt-1">Save a route you're planning to fly</p>
+            <h2 class="text-xl font-bold text-slate-900 dark:text-white">Track a Route</h2>
+            <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">Save a route you're planning to fly</p>
         </div>
         
         <form id="add-form" class="p-6 space-y-5">
@@ -154,10 +154,10 @@
                     <div class="relative">
                         <input type="text" name="origin" id="origin-input" required
                                autocomplete="off"
-                               class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white 
+                               class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-white 
                                       uppercase font-mono text-lg tracking-wider focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
                                placeholder="Type city...">
-                        <div id="origin-dropdown" class="hidden absolute z-30 w-full mt-1 bg-slate-800 border border-slate-600 rounded-lg shadow-xl max-h-48 overflow-y-auto"></div>
+                        <div id="origin-dropdown" class="hidden absolute z-30 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-xl max-h-48 overflow-y-auto"></div>
                     </div>
                     <p id="origin-hint" class="mt-1 text-xs text-slate-500">Type a city name or code</p>
                 </div>
@@ -166,10 +166,10 @@
                     <div class="relative">
                         <input type="text" name="destination" id="destination-input" required
                                autocomplete="off"
-                               class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white 
+                               class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-white 
                                       uppercase font-mono text-lg tracking-wider focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
                                placeholder="Type city...">
-                        <div id="destination-dropdown" class="hidden absolute z-30 w-full mt-1 bg-slate-800 border border-slate-600 rounded-lg shadow-xl max-h-48 overflow-y-auto"></div>
+                        <div id="destination-dropdown" class="hidden absolute z-30 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-xl max-h-48 overflow-y-auto"></div>
                     </div>
                     <p id="destination-hint" class="mt-1 text-xs text-slate-500">Type a city name or code</p>
                 </div>
@@ -179,18 +179,18 @@
                 <div>
                     <label class="block text-sm font-medium text-slate-300 mb-2">Adults</label>
                     <input type="number" name="adults" value="2" min="1" max="9"
-                           class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
+                           class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-slate-300 mb-2">Children</label>
                     <input type="number" name="children" value="0" min="0" max="9"
-                           class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
+                           class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
                 </div>
             </div>
             
             <div>
                 <label class="block text-sm font-medium text-slate-300 mb-2">Cabin Class</label>
-                <select name="cabin_class" class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
+                <select name="cabin_class" class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
                     <option value="economy">Economy</option>
                     <option value="premium_economy">Premium Economy</option>
                     <option value="business">Business</option>
@@ -200,7 +200,7 @@
             
             <div>
                 <label class="block text-sm font-medium text-slate-300 mb-2">Trip Type</label>
-                <select name="trip_type" class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
+                <select name="trip_type" class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
                     <option value="round_trip">Round Trip</option>
                     <option value="one_way">One Way</option>
                 </select>
@@ -356,7 +356,7 @@ async function loadStats(id) {
             let optionsHtml = '';
             if (optionsData.options && optionsData.options.length > 0) {
                 optionsHtml = `
-                    <div class="mt-3 pt-3 border-t border-slate-700/50 space-y-2">
+                    <div class="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700/50 space-y-2">
                         <p class="text-[10px] text-slate-500 uppercase mb-2">Best Options${totalTravelers > 1 ? ' (total for ' + totalTravelers + ')' : ''}</p>
                         ${optionsData.options.map(opt => {
                             const perPerson = Math.round(opt.price_nzd);
@@ -394,7 +394,7 @@ async function loadStats(id) {
                         <p class="text-[10px] text-slate-500 uppercase">Low${totalTravelers > 1 ? ' (all)' : ''}</p>
                     </div>
                     <div>
-                        <p class="text-lg font-bold text-white">$${currentTotal}</p>
+                        <p class="text-lg font-bold text-slate-900 dark:text-white">$${currentTotal}</p>
                         <p class="text-[10px] text-slate-500 uppercase">Current${totalTravelers > 1 ? ' (all)' : ''}</p>
                     </div>
                     <div>
