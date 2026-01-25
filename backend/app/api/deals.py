@@ -261,6 +261,93 @@ async def test_ai_parse(
     }
 
 
+@router.post("/api/ai-reparse-deals")
+async def ai_reparse_deals(
+    limit: int = Query(50, le=200),
+    db: Session = Depends(get_db),
+):
+    """Re-parse deals using AI for better route extraction."""
+    from app.models.deal import Deal
+    from app.services.ai_service import AIService, configure_ai_from_settings
+    from app.models.user_settings import UserSettings
+    import asyncio
+    
+    settings = UserSettings.get_or_create(db)
+    configured = configure_ai_from_settings(settings)
+    
+    if not configured:
+        return {"error": "AI not configured. Go to Settings and select an AI provider."}
+    
+    # Get deals that might benefit from AI parsing (no destination or suspicious origins)
+    deals = db.query(Deal).filter(
+        (Deal.parsed_destination == None) | 
+        (Deal.parsed_destination == '') |
+        (Deal.parsed_origin.in_(['STO', 'NON', None, '']))
+    ).order_by(Deal.created_at.desc()).limit(limit).all()
+    
+    # If no bad deals, get recent ones to improve
+    if not deals:
+        deals = db.query(Deal).order_by(Deal.created_at.desc()).limit(limit).all()
+    
+    updated = 0
+    errors = 0
+    
+    for deal in deals:
+        try:
+            result = await AIService.parse_deal(deal.raw_title)
+            
+            if result.destination and result.confidence and result.confidence >= 0.7:
+                changed = False
+                
+                if result.origin and result.origin != deal.parsed_origin:
+                    deal.parsed_origin = result.origin
+                    changed = True
+                
+                if result.destination != deal.parsed_destination:
+                    deal.parsed_destination = result.destination
+                    changed = True
+                
+                if result.price and result.price != deal.parsed_price:
+                    deal.parsed_price = result.price
+                    changed = True
+                
+                if result.currency and result.currency != deal.parsed_currency:
+                    deal.parsed_currency = result.currency
+                    changed = True
+                
+                if result.cabin_class and result.cabin_class.upper() != deal.parsed_cabin_class:
+                    deal.parsed_cabin_class = result.cabin_class.upper()
+                    changed = True
+                
+                if changed:
+                    # Clear old ratings so they get recalculated
+                    deal.deal_rating = None
+                    deal.rating_label = None
+                    deal.market_price = None
+                    updated += 1
+            
+            # Small delay to avoid rate limiting
+            await asyncio.sleep(0.2)
+            
+        except Exception as e:
+            errors += 1
+            continue
+    
+    db.commit()
+    
+    # Update relevance after reparsing
+    if updated > 0:
+        relevance_service = RelevanceService(db)
+        relevance_service.update_all_deals()
+    
+    return {
+        "reparsed": updated,
+        "errors": errors,
+        "total": len(deals),
+        "message": f"AI re-parsed {updated} deals ({errors} errors)"
+    }
+
+
 @router.get("/api/insights")
 async def get_insights(
     home_airport: str = Query("AKL"),
