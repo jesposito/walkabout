@@ -7,111 +7,68 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
-                    <h1 class="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
-                        {% if current_relevant %}For You{% else %}All Deals{% endif %}
-                    </h1>
+                    <h1 class="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Flight Deals</h1>
                     <p class="text-slate-600 dark:text-slate-400 mt-1">
-                        {% if current_relevant %}Deals departing from NZ, Australia & Pacific
-                        {% else %}All flight deals from {{ feed_health|length }} sources{% endif %}
+                        Deals from {{ local_count + regional_count + hub_count }} sources
                     </p>
                 </div>
                 
-                <div class="flex flex-wrap items-center gap-4">
-                    <div class="flex items-center gap-2">
-                        <a href="?relevant=true&sort={{ current_sort }}" 
-                           class="px-4 py-2 rounded-lg text-sm font-medium transition-all
-                                  {% if current_relevant %}bg-cyan-500 text-white shadow-lg shadow-cyan-500/25
-                                  {% else %}bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600{% endif %}">
-                            For You <span class="ml-1 opacity-75">({{ relevant_count }})</span>
-                        </a>
-                        <a href="?relevant=false&sort={{ current_sort }}" 
-                           class="px-4 py-2 rounded-lg text-sm font-medium transition-all
-                                  {% if not current_relevant %}bg-slate-600 text-white
-                                  {% else %}bg-slate-200/50 dark:bg-slate-700/50 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700{% endif %}">
-                            All Deals <span class="ml-1 opacity-75">({{ all_count }})</span>
-                        </a>
-                    </div>
-                    
-                    <div class="flex items-center gap-1 text-xs">
-                        <span class="text-slate-500 mr-1">Sort:</span>
-                        <a href="?relevant={{ current_relevant }}&sort=score" 
-                           class="px-2 py-1 rounded transition-all
-                                  {% if current_sort == 'score' %}bg-slate-300 dark:bg-slate-600 text-slate-900 dark:text-white{% else %}text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white{% endif %}">
-                            Best
-                        </a>
-                        <a href="?relevant={{ current_relevant }}&sort=date" 
-                           class="px-2 py-1 rounded transition-all
-                                  {% if current_sort == 'date' %}bg-slate-300 dark:bg-slate-600 text-slate-900 dark:text-white{% else %}text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white{% endif %}">
-                            Newest
-                        </a>
-                        <a href="?relevant={{ current_relevant }}&sort=price" 
-                           class="px-2 py-1 rounded transition-all
-                                  {% if current_sort == 'price' %}bg-slate-300 dark:bg-slate-600 text-slate-900 dark:text-white{% else %}text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white{% endif %}">
-                            Cheapest
-                        </a>
-                    </div>
+                <div class="flex flex-wrap items-center gap-2">
+                    <a href="?tab=local&sort={{ current_sort }}" 
+                       class="px-4 py-2 rounded-lg text-sm font-medium transition-all
+                              {% if current_tab == 'local' %}bg-cyan-500 text-white shadow-lg shadow-cyan-500/25
+                              {% else %}bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600{% endif %}">
+                        Local <span class="ml-1 opacity-75">({{ local_count }})</span>
+                    </a>
+                    <a href="?tab=regional&sort={{ current_sort }}" 
+                       class="px-4 py-2 rounded-lg text-sm font-medium transition-all
+                              {% if current_tab == 'regional' %}bg-emerald-500 text-white shadow-lg shadow-emerald-500/25
+                              {% else %}bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600{% endif %}">
+                        Regional <span class="ml-1 opacity-75">({{ regional_count }})</span>
+                    </a>
+                    <a href="?tab=hubs&sort={{ current_sort }}" 
+                       class="px-4 py-2 rounded-lg text-sm font-medium transition-all
+                              {% if current_tab == 'hubs' %}bg-violet-500 text-white shadow-lg shadow-violet-500/25
+                              {% else %}bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600{% endif %}">
+                        Hubs <span class="ml-1 opacity-75">({{ hub_count }})</span>
+                    </a>
                 </div>
+            </div>
+            
+            <div class="mt-4 text-sm text-slate-500 dark:text-slate-400">
+                {% if current_tab == 'local' %}
+                    Deals departing from your home airport(s)
+                {% elif current_tab == 'regional' %}
+                    Deals from NZ, Australia & Pacific
+                {% else %}
+                    Deals from major international hubs (great for positioning flights)
+                {% endif %}
             </div>
         </div>
     </div>
 
-    {% if current_relevant and hub_deals %}
+    {% if current_tab == 'hubs' and hub_counts %}
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
-        <div class="bg-white/50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-            <button onclick="toggleHubs()" class="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-slate-100 dark:hover:bg-slate-800/30 transition-colors">
-                <div class="flex items-center gap-3">
-                    <svg class="w-5 h-5 text-violet-500 dark:text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span class="text-slate-900 dark:text-white font-semibold">From Major Hubs</span>
-                    <span class="text-slate-500 dark:text-slate-400 text-sm">({{ hub_deals|length }} deals from connecting cities)</span>
-                </div>
-                <svg id="hub-chevron" class="w-5 h-5 text-slate-400 transform rotate-0 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                </svg>
-            </button>
-            
-            <div id="hub-content" class="hidden">
-                <div class="px-6 pb-2 flex flex-wrap gap-2">
-                    {% for code, city in major_hubs.items() %}
-                    {% if hub_counts.get(code, 0) > 0 %}
-                    <span class="px-3 py-1 bg-violet-100 dark:bg-violet-500/10 text-violet-600 dark:text-violet-300 border border-violet-200 dark:border-violet-500/20 rounded-full text-xs font-medium">
-                        {{ code }} <span class="text-violet-500 dark:text-violet-400/70">({{ hub_counts.get(code, 0) }})</span>
-                    </span>
-                    {% endif %}
-                    {% endfor %}
-                </div>
-                
-                <div class="px-6 pb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {% for deal in hub_deals[:6] %}
-                    <a href="{{ deal.link }}" target="_blank" rel="noopener noreferrer" 
-                       class="block p-4 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-violet-400 dark:hover:border-violet-500/50 transition-colors group">
-                        <div class="flex items-baseline gap-2 text-lg font-bold text-slate-900 dark:text-white mb-1">
-                            <span>{{ deal.parsed_origin }}</span>
-                            <span class="text-slate-400 dark:text-slate-600">→</span>
-                            <span class="text-violet-600 dark:text-violet-400">{{ deal.parsed_destination }}</span>
-                        </div>
-                        <div class="text-xs text-slate-500">{{ major_hubs.get(deal.parsed_origin, deal.parsed_origin) }}</div>
-                        <div class="mt-2 flex items-center justify-between">
-                            <span class="text-slate-900 dark:text-white font-semibold">
-                                {% if deal.parsed_price %}{{ deal.parsed_currency }} {{ deal.parsed_price }}{% else %}See Deal{% endif %}
-                            </span>
-                            <span class="text-xs text-slate-500">{{ deal.source.value|replace('_', ' ')|title }}</span>
-                        </div>
-                    </a>
-                    {% endfor %}
-                </div>
-            </div>
+        <div class="flex flex-wrap gap-2">
+            {% for code, city in major_hubs.items() %}
+            {% if hub_counts.get(code, 0) > 0 %}
+            <span class="px-3 py-1 bg-violet-100 dark:bg-violet-500/10 text-violet-600 dark:text-violet-300 border border-violet-200 dark:border-violet-500/20 rounded-full text-xs font-medium">
+                {{ code }} · {{ city }} <span class="text-violet-500 dark:text-violet-400/70">({{ hub_counts.get(code, 0) }})</span>
+            </span>
+            {% endif %}
+            {% endfor %}
         </div>
     </div>
     {% endif %}
+
+    {% set deals = local_deals if current_tab == 'local' else (regional_deals if current_tab == 'regional' else hub_deals) %}
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
         {% if deals %}
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {% for deal in deals %}
             <article class="deal-card relative bg-white dark:bg-slate-800 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 group flex flex-col h-full shadow-sm">
-                <div class="h-2 {% if deal.is_relevant %}bg-gradient-to-r from-cyan-500 to-blue-600{% else %}bg-slate-200 dark:bg-slate-700{% endif %}"></div>
+                <div class="h-2 {% if current_tab == 'local' %}bg-gradient-to-r from-cyan-500 to-cyan-600{% elif current_tab == 'regional' %}bg-gradient-to-r from-emerald-500 to-emerald-600{% else %}bg-gradient-to-r from-violet-500 to-violet-600{% endif %}"></div>
                 
                 <div class="p-6 flex-grow flex flex-col">
                     <div class="flex items-center justify-between mb-4">
@@ -122,10 +79,11 @@
                                 {% else %}bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600{% endif %}">
                                 {{ deal.parsed_cabin_class or 'ECONOMY' }}
                             </span>
-                            {% if deal.is_relevant and deal.relevance_reason %}
+                            {% if deal.relevance_reason %}
                             <span class="px-2 py-1 rounded text-[10px] font-medium 
-                                {% if 'Similar to' in deal.relevance_reason %}bg-violet-100 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-500/20
-                                {% else %}bg-cyan-100 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-200 dark:border-cyan-500/20{% endif %}">
+                                {% if current_tab == 'local' %}bg-cyan-100 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-200 dark:border-cyan-500/20
+                                {% elif current_tab == 'regional' %}bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20
+                                {% else %}bg-violet-100 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-500/20{% endif %}">
                                 {{ deal.relevance_reason }}
                             </span>
                             {% endif %}
@@ -133,7 +91,6 @@
                         <span class="text-xs text-slate-500 font-mono">{{ deal.published_at.strftime('%d %b') if deal.published_at else 'Now' }}</span>
                     </div>
 
-                    <!-- Route -->
                     <div class="mb-4">
                         {% set origin_valid = deal.parsed_origin and deal.parsed_origin|length == 3 and deal.parsed_origin not in ['STO', 'NON'] %}
                         {% set dest_valid = deal.parsed_destination and deal.parsed_destination|length == 3 %}
@@ -145,7 +102,7 @@
                             <span title="{{ airports[deal.parsed_origin].city if airports.get(deal.parsed_origin) else deal.parsed_origin }}">{{ deal.parsed_origin }}</span>
                             <span class="text-slate-400 dark:text-slate-600 text-lg">→</span>
                             {% endif %}
-                            <span class="text-cyan-600 dark:text-cyan-400" title="{{ airports[deal.parsed_destination].city if airports.get(deal.parsed_destination) else deal.parsed_destination }}">{{ deal.parsed_destination if dest_valid else '???' }}</span>
+                            <span class="{% if current_tab == 'local' %}text-cyan-600 dark:text-cyan-400{% elif current_tab == 'regional' %}text-emerald-600 dark:text-emerald-400{% else %}text-violet-600 dark:text-violet-400{% endif %}" title="{{ airports[deal.parsed_destination].city if airports.get(deal.parsed_destination) else deal.parsed_destination }}">{{ deal.parsed_destination if dest_valid else '???' }}</span>
                         </div>
                         <div class="text-xs text-slate-500 mt-1">
                             {% if origin_valid and airports.get(deal.parsed_origin) %}{{ airports[deal.parsed_origin].city }} to {% endif %}
@@ -155,11 +112,6 @@
                         <div class="text-lg font-semibold text-slate-900 dark:text-white line-clamp-2" title="{{ deal.raw_title }}">
                             {{ deal.raw_title[:80] }}{% if deal.raw_title|length > 80 %}...{% endif %}
                         </div>
-                        {% if deal.relevance_reason %}
-                        <div class="text-xs text-cyan-600 dark:text-cyan-400 mt-1">
-                            {{ deal.relevance_reason }}
-                        </div>
-                        {% endif %}
                         {% endif %}
                         
                         {% if deal.parsed_airline %}
@@ -169,7 +121,6 @@
                         {% endif %}
                     </div>
 
-                    <!-- Price Section -->
                     <div class="mt-auto pt-4 border-t border-slate-100 dark:border-slate-700/50 flex items-end justify-between">
                         <div>
                             <span class="block text-xs text-slate-500 font-mono mb-0.5">EST. PRICE</span>
@@ -201,6 +152,12 @@
                                     <span class="w-1.5 h-1.5 rounded-full bg-purple-500"></span> Point Hacks
                                 {% elif deal.source.value == 'holiday_pirates' %}
                                     <span class="w-1.5 h-1.5 rounded-full bg-pink-500"></span> Pirates
+                                {% elif deal.source.value == 'ozbargain' %}
+                                    <span class="w-1.5 h-1.5 rounded-full bg-orange-600"></span> OzBargain
+                                {% elif deal.source.value == 'cheapies_nz' %}
+                                    <span class="w-1.5 h-1.5 rounded-full bg-teal-500"></span> Cheapies NZ
+                                {% elif deal.source.value == 'beat_that_flight' %}
+                                    <span class="w-1.5 h-1.5 rounded-full bg-sky-500"></span> Beat That Flight
                                 {% else %}
                                     <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span> {{ deal.source.value|replace('_', ' ')|title }}
                                 {% endif %}
@@ -211,7 +168,7 @@
 
                 <div class="absolute inset-0 z-10 flex items-center justify-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white/60 dark:bg-slate-900/60 backdrop-blur-[2px]">
                     <a href="{{ deal.link }}" target="_blank" rel="noopener noreferrer" 
-                       class="px-5 py-2 bg-cyan-500 hover:bg-cyan-400 text-white font-semibold rounded-full shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-all duration-200 flex items-center gap-2">
+                       class="px-5 py-2 {% if current_tab == 'local' %}bg-cyan-500 hover:bg-cyan-400{% elif current_tab == 'regional' %}bg-emerald-500 hover:bg-emerald-400{% else %}bg-violet-500 hover:bg-violet-400{% endif %} text-white font-semibold rounded-full shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-all duration-200 flex items-center gap-2">
                         View Deal 
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -219,7 +176,7 @@
                     </a>
                     {% if deal.parsed_origin and deal.parsed_destination %}
                     <button onclick="event.stopPropagation(); trackRoute('{{ deal.parsed_origin }}', '{{ deal.parsed_destination }}', '{{ deal.parsed_cabin_class or "economy" }}')"
-                            class="px-5 py-2 bg-violet-500 hover:bg-violet-400 text-white font-semibold rounded-full shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-all duration-200 delay-75 flex items-center gap-2">
+                            class="px-5 py-2 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-full shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-all duration-200 delay-75 flex items-center gap-2">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                         </svg>
@@ -230,13 +187,6 @@
             </article>
             {% endfor %}
         </div>
-        
-        <!-- Pagination / Load More (Static for now) -->
-        <div class="mt-12 flex justify-center">
-            <button class="px-6 py-3 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-lg font-medium transition-colors shadow-sm">
-                Load More Deals
-            </button>
-        </div>
 
         {% else %}
         <div class="flex flex-col items-center justify-center py-20 text-center">
@@ -245,12 +195,18 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                 </svg>
             </div>
-            <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">No deals found</h3>
+            <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">No {{ current_tab }} deals yet</h3>
             <p class="text-slate-600 dark:text-slate-400 max-w-md mx-auto">
-                {% if current_relevant %}
-                    No deals from your region yet. {% if hub_deals %}Check the <strong>Major Hubs</strong> section above for connecting flights, or {% endif %}<a href="?relevant=false" class="text-cyan-400 hover:underline">view all deals</a>.
+                {% if current_tab == 'local' %}
+                    No deals from your home airport yet. Check 
+                    {% if regional_count > 0 %}<a href="?tab=regional" class="text-emerald-500 hover:underline">Regional deals</a>{% endif %}
+                    {% if regional_count > 0 and hub_count > 0 %} or {% endif %}
+                    {% if hub_count > 0 %}<a href="?tab=hubs" class="text-violet-500 hover:underline">Hub deals</a>{% endif %}
+                    for more options.
+                {% elif current_tab == 'regional' %}
+                    No deals from the Oceania region yet. Try <a href="?tab=hubs" class="text-violet-500 hover:underline">Hub deals</a> for international options.
                 {% else %}
-                    No deals ingested yet. Trigger an ingest to fetch the latest deals.
+                    No hub deals found. Deals will appear here when feeds are ingested.
                 {% endif %}
             </p>
         </div>
@@ -262,13 +218,6 @@
 </div>
 
 <script>
-function toggleHubs() {
-    const content = document.getElementById('hub-content');
-    const chevron = document.getElementById('hub-chevron');
-    content.classList.toggle('hidden');
-    chevron.classList.toggle('rotate-180');
-}
-
 async function trackRoute(origin, destination, cabinClass) {
     const toast = document.getElementById('track-toast');
     

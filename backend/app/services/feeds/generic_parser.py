@@ -65,6 +65,27 @@ FEED_CONFIGS: dict[DealSource, FeedConfig] = {
         skip_keywords=[],
         require_keywords=False,
     ),
+    DealSource.OZBARGAIN: FeedConfig(
+        source=DealSource.OZBARGAIN,
+        feed_url="https://www.ozbargain.com.au/tag/airfare/feed",
+        deal_keywords=['return', 'one way', 'from $', 'flight'],
+        skip_keywords=['hotel only', 'accommodation'],
+        require_keywords=False,
+    ),
+    DealSource.CHEAPIES_NZ: FeedConfig(
+        source=DealSource.CHEAPIES_NZ,
+        feed_url="https://www.cheapies.nz/tag/airfare/feed",
+        deal_keywords=['return', 'one way', 'from $', 'flight', 'auckland', 'wellington', 'christchurch'],
+        skip_keywords=['hotel only', 'accommodation'],
+        require_keywords=False,
+    ),
+    DealSource.BEAT_THAT_FLIGHT: FeedConfig(
+        source=DealSource.BEAT_THAT_FLIGHT,
+        feed_url="https://www.beatthatflight.com.au/rss.xml",
+        deal_keywords=['return', 'one way', 'from $', 'flight'],
+        skip_keywords=[],
+        require_keywords=False,
+    ),
 }
 
 

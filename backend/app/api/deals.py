@@ -22,52 +22,51 @@ async def deals_page(
     request: Request,
     source: Optional[str] = Query(None),
     cabin: Optional[str] = Query(None),
-    relevant: Optional[bool] = Query(True),
+    tab: Optional[str] = Query("local"),
     sort: Optional[str] = Query("score"),
     db: Session = Depends(get_db),
 ):
     service = FeedService(db)
     relevance_service = RelevanceService(db)
     
-    use_relevant = relevant if relevant is not None else True
-    
-    if use_relevant:
-        deals = relevance_service.get_home_deals(limit=100)
-    else:
-        deals = service.get_deals(relevant_only=False, limit=100, sort_by=sort or "score")
+    local_deals = relevance_service.get_local_deals(limit=100)
+    regional_deals = relevance_service.get_regional_deals(limit=100)
+    hub_deals = relevance_service.get_hub_deals(limit=100)
     
     if source:
-        deals = [d for d in deals if d.source.value == source]
+        local_deals = [d for d in local_deals if d.source.value == source]
+        regional_deals = [d for d in regional_deals if d.source.value == source]
+        hub_deals = [d for d in hub_deals if d.source.value == source]
     if cabin:
-        deals = [d for d in deals if d.parsed_cabin_class == cabin]
+        local_deals = [d for d in local_deals if d.parsed_cabin_class == cabin]
+        regional_deals = [d for d in regional_deals if d.parsed_cabin_class == cabin]
+        hub_deals = [d for d in hub_deals if d.parsed_cabin_class == cabin]
     
     feed_health = service.get_feed_health()
     
     sources = [s.value for s in DealSource]
     cabins = ["economy", "premium_economy", "business", "first"]
     
-    all_count = len(service.get_deals(relevant_only=False, limit=500))
-    home_deals_count = len(relevance_service.get_home_deals(limit=500))
-    
-    hub_deals = relevance_service.get_hub_deals(limit=50)
     hub_counts = relevance_service.get_hub_counts()
     
     return templates.TemplateResponse(
         "deals.html",
         {
             "request": request,
-            "deals": deals,
+            "local_deals": local_deals,
+            "regional_deals": regional_deals,
+            "hub_deals": hub_deals,
             "feed_health": feed_health,
             "sources": sources,
             "cabins": cabins,
             "current_source": source,
             "current_cabin": cabin,
-            "current_relevant": relevant,
+            "current_tab": tab,
             "current_sort": sort or "score",
-            "all_count": all_count,
-            "relevant_count": home_deals_count,
+            "local_count": len(local_deals),
+            "regional_count": len(regional_deals),
+            "hub_count": len(hub_deals),
             "airports": get_airports_dict(),
-            "hub_deals": hub_deals,
             "hub_counts": hub_counts,
             "major_hubs": MAJOR_HUBS,
         }

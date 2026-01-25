@@ -5,11 +5,37 @@ from sqlalchemy import func
 from app.models.deal import Deal
 from app.models.user_settings import UserSettings
 
-OCEANIA_AIRPORTS = {
-    'AKL', 'WLG', 'CHC', 'ZQN', 'ROT', 'NPE', 'NSN', 'DUD', 'PMR',
-    'SYD', 'MEL', 'BNE', 'PER', 'ADL', 'CBR', 'OOL', 'CNS', 'HBA',
-    'NAN', 'SUV', 'APW', 'PPT', 'RAR', 'TBU', 'VLI', 'NOU',
+NZ_AIRPORTS = {'AKL', 'WLG', 'CHC', 'ZQN', 'ROT', 'NPE', 'NSN', 'DUD', 'PMR', 'NPL', 'TRG', 'HLZ'}
+AU_AIRPORTS = {'SYD', 'MEL', 'BNE', 'PER', 'ADL', 'CBR', 'OOL', 'CNS', 'HBA', 'DRW', 'TSV', 'CAI'}
+PACIFIC_AIRPORTS = {'NAN', 'SUV', 'APW', 'PPT', 'RAR', 'TBU', 'VLI', 'NOU', 'HNL', 'OGG', 'LIH'}
+
+REGION_MAP = {
+    'NZ': NZ_AIRPORTS,
+    'AU': AU_AIRPORTS,
+    'PACIFIC': PACIFIC_AIRPORTS,
 }
+
+def get_region_for_airport(code: str) -> Optional[str]:
+    code = code.upper()
+    for region, airports in REGION_MAP.items():
+        if code in airports:
+            return region
+    return None
+
+def get_home_region_airports(home_airports: set[str]) -> set[str]:
+    regions = set()
+    for airport in home_airports:
+        region = get_region_for_airport(airport)
+        if region:
+            regions.add(region)
+    
+    result = set()
+    for region in regions:
+        result.update(REGION_MAP.get(region, set()))
+    return result
+
+
+ALL_REGIONAL_AIRPORTS = NZ_AIRPORTS | AU_AIRPORTS | PACIFIC_AIRPORTS
 
 MAJOR_HUBS = {
     'LAX': 'Los Angeles',
@@ -51,11 +77,12 @@ class RelevanceService:
             return (False, None)
         
         home_airports = self._get_home_airports()
+        home_region_airports = get_home_region_airports(home_airports)
         
         if origin in home_airports:
             return (True, f"From {origin}")
         
-        if origin in OCEANIA_AIRPORTS:
+        if origin in home_region_airports:
             return (True, f"From {origin}")
         
         if origin in MAJOR_HUBS:
@@ -70,7 +97,8 @@ class RelevanceService:
     def is_home_deal(self, deal: Deal) -> bool:
         origin = (deal.parsed_origin or '').upper()
         home_airports = self._get_home_airports()
-        return origin in home_airports or origin in OCEANIA_AIRPORTS
+        home_region_airports = get_home_region_airports(home_airports)
+        return origin in home_airports or origin in home_region_airports
     
     def update_deal_relevance(self, deal: Deal) -> Deal:
         is_relevant, reason = self.score_deal(deal)
@@ -94,7 +122,7 @@ class RelevanceService:
             Deal.is_relevant == True
         ).order_by(Deal.published_at.desc()).limit(limit).all()
     
-    def get_deals_from_home_airports(self, limit: int = 100) -> list[Deal]:
+    def get_local_deals(self, limit: int = 50) -> list[Deal]:
         home_airports = list(self._get_home_airports())
         if not home_airports:
             return []
@@ -102,15 +130,14 @@ class RelevanceService:
             Deal.parsed_origin.in_(home_airports)
         ).order_by(Deal.published_at.desc()).limit(limit).all()
     
-    def get_home_deals(self, limit: int = 50) -> list[Deal]:
-        home_airports = list(self._get_home_airports())
-        oceania = list(OCEANIA_AIRPORTS)
-        all_home = list(set(home_airports + oceania))
-        if not all_home:
-            return []
+    def get_regional_deals(self, limit: int = 50) -> list[Deal]:
+        regional_airports = list(ALL_REGIONAL_AIRPORTS)
         return self.db.query(Deal).filter(
-            Deal.parsed_origin.in_(all_home)
+            Deal.parsed_origin.in_(regional_airports)
         ).order_by(Deal.published_at.desc()).limit(limit).all()
+    
+    def get_home_deals(self, limit: int = 50) -> list[Deal]:
+        return self.get_local_deals(limit)
     
     def get_hub_deals(self, limit: int = 50) -> list[Deal]:
         hub_codes = list(MAJOR_HUBS.keys())

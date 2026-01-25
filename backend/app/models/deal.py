@@ -17,6 +17,10 @@ class DealSource(enum.Enum):
     FRUGAL_FLYER = "frugal_flyer"
     SECRET_FLYING_EU = "secret_flying_eu"
     TRAVEL_FREE = "travel_free"
+    # Oceania-focused sources (deals FROM AU/NZ)
+    OZBARGAIN = "ozbargain"
+    CHEAPIES_NZ = "cheapies_nz"
+    BEAT_THAT_FLIGHT = "beat_that_flight"
 
 
 class ParseStatus(enum.Enum):
