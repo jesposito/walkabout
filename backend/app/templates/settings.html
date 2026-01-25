@@ -13,7 +13,7 @@
         <form id="settings-form" class="space-y-8">
             
             <!-- Home Airport Section -->
-            <div class="bg-slate-800 rounded-xl p-6 border border-slate-700">
+            <div class="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">
                 <div class="flex items-start gap-4 mb-6">
                     <div class="w-10 h-10 rounded-lg bg-cyan-500/10 flex items-center justify-center flex-shrink-0">
                         <svg class="w-5 h-5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -29,7 +29,7 @@
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <label class="block text-sm font-medium text-slate-300 mb-2">
+                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                             Home Airports
                         </label>
                         <input type="hidden" id="home_airports" name="home_airports" 
@@ -44,7 +44,7 @@
                                 </svg>
                             </div>
                             <input type="text" id="home_airport_search" 
-                                   class="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-white 
+                                   class="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white 
                                           placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 
                                           focus:border-transparent font-sans transition-all uppercase placeholder:normal-case"
                                    placeholder="Search airport (e.g. SYD, MEL)..."
@@ -60,11 +60,11 @@
                     </div>
                     
                     <div>
-                        <label for="home_region" class="block text-sm font-medium text-slate-300 mb-2">
+                        <label for="home_region" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                             Region
                         </label>
                         <select id="home_region" name="home_region"
-                                class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-white 
+                                class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white 
                                        focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
                             <option value="Oceania" {% if settings.home_region == 'Oceania' %}selected{% endif %}>Oceania (NZ/AU/Pacific)</option>
                             <option value="North America" {% if settings.home_region == 'North America' %}selected{% endif %}>North America</option>
@@ -79,7 +79,7 @@
             </div>
 
             <!-- Watched Destinations Section -->
-            <div class="bg-slate-800 rounded-xl p-6 border border-slate-700">
+            <div class="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">
                 <div class="flex items-start gap-4 mb-6">
                     <div class="w-10 h-10 rounded-lg bg-violet-500/10 flex items-center justify-center flex-shrink-0">
                         <svg class="w-5 h-5 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -94,7 +94,7 @@
                 
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-slate-300 mb-2">
+                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                             Destinations
                         </label>
                         <input type="hidden" id="watched_destinations" name="watched_destinations" 
@@ -107,7 +107,7 @@
                                 </svg>
                             </div>
                             <input type="text" id="destination_search" 
-                                   class="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-white 
+                                   class="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white 
                                           placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 
                                           focus:border-transparent font-sans transition-all"
                                    placeholder="Search by city or airport (e.g. Tokyo, Fiji)..."
@@ -122,9 +122,9 @@
                         </p>
                     </div>
                     
-                    <div class="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
+                    <div class="bg-slate-100 dark:bg-slate-900/50 rounded-lg p-4 border border-slate-200 dark:border-slate-700/50">
                         <p class="text-sm text-slate-600 dark:text-slate-400">
-                            <span class="text-violet-400 font-medium">💡 Smart matching:</span> 
+                            <span class="text-violet-600 dark:text-violet-400 font-medium">💡 Smart matching:</span> 
                             If you add "NAN" (Fiji), we'll also show deals to similar destinations like Rarotonga, Samoa, and Tahiti.
                         </p>
                     </div>
@@ -132,7 +132,7 @@
             </div>
 
             <!-- Currency Section -->
-            <div class="bg-slate-800 rounded-xl p-6 border border-slate-700">
+            <div class="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">
                 <div class="flex items-start gap-4 mb-6">
                     <div class="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
                         <svg class="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -146,11 +146,11 @@
                 </div>
                 
                 <div>
-                    <label for="preferred_currency" class="block text-sm font-medium text-slate-300 mb-2">
+                    <label for="preferred_currency" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                         Display Currency
                     </label>
                     <select id="preferred_currency" name="preferred_currency"
-                            class="w-full max-w-xs px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-white 
+                            class="w-full max-w-xs px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white 
                                    focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
                         <option value="NZD" {% if (settings.preferred_currency or 'NZD') == 'NZD' %}selected{% endif %}>🇳🇿 NZD - New Zealand Dollar</option>
                         <option value="AUD" {% if settings.preferred_currency == 'AUD' %}selected{% endif %}>🇦🇺 AUD - Australian Dollar</option>
@@ -165,7 +165,7 @@
                 </div>
             </div>
 
-            <div class="bg-slate-800 rounded-xl p-6 border border-slate-700">
+            <div class="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">
                 <div class="flex items-start gap-4 mb-6">
                     <div class="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center flex-shrink-0">
                         <svg class="w-5 h-5 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -179,21 +179,21 @@
                 </div>
                 
                 <div class="space-y-4">
-                    <div class="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50 mb-4">
+                    <div class="bg-slate-100 dark:bg-slate-900/50 rounded-lg p-4 border border-slate-200 dark:border-slate-700/50 mb-4">
                         <p class="text-sm text-slate-600 dark:text-slate-400">
-                            <span class="text-cyan-400 font-medium">How it works:</span> 
+                            <span class="text-cyan-600 dark:text-cyan-400 font-medium">How it works:</span> 
                             Price tracking tries API sources first (faster, more reliable), then falls back to browser scraping.
                             AI analysis requires an Anthropic API key.
                         </p>
                     </div>
                     
                     <div>
-                        <label class="block text-sm font-medium text-slate-300 mb-2">
-                            Anthropic API Key <span class="text-violet-400">(enables AI recommendations)</span>
+                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            Anthropic API Key <span class="text-violet-500 dark:text-violet-400">(enables AI recommendations)</span>
                         </label>
                         <input type="password" id="anthropic_api_key" name="anthropic_api_key" 
                                value="{{ settings.anthropic_api_key or '' }}"
-                               class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-white 
+                               class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white 
                                       placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 
                                       focus:border-transparent font-mono text-sm"
                                placeholder="sk-ant-...">
@@ -201,12 +201,12 @@
                     </div>
                     
                     <div>
-                        <label class="block text-sm font-medium text-slate-300 mb-2">
-                            SerpAPI Key <span class="text-emerald-400">(Google Flights data)</span>
+                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            SerpAPI Key <span class="text-emerald-600 dark:text-emerald-400">(Google Flights data)</span>
                         </label>
                         <input type="password" id="serpapi_key" name="serpapi_key" 
                                value="{{ settings.serpapi_key or '' }}"
-                               class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-white 
+                               class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white 
                                       placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 
                                       focus:border-transparent font-mono text-sm"
                                placeholder="your-serpapi-key">
@@ -214,12 +214,12 @@
                     </div>
                     
                     <div>
-                        <label class="block text-sm font-medium text-slate-300 mb-2">
+                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                             Skyscanner RapidAPI Key
                         </label>
                         <input type="password" id="skyscanner_api_key" name="skyscanner_api_key" 
                                value="{{ settings.skyscanner_api_key or '' }}"
-                               class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-white 
+                               class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white 
                                       placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 
                                       focus:border-transparent font-mono text-sm"
                                placeholder="your-rapidapi-key">
@@ -228,7 +228,7 @@
                 </div>
             </div>
 
-            <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 opacity-60">
+            <div class="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm opacity-60">
                 <div class="flex items-start gap-4 mb-6">
                     <div class="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
                         <svg class="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -259,7 +259,7 @@
 
             <!-- Save Button -->
             <div class="flex items-center justify-between pt-4">
-                <a href="/deals/" class="text-slate-400 hover:text-white transition-colors flex items-center gap-2">
+                <a href="/deals/" class="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors flex items-center gap-2">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                     </svg>
@@ -333,13 +333,13 @@ homeInput.addEventListener('input', (e) => {
                 } else {
                     homeDropdown.innerHTML = available.map(a => `
                         <button type="button" 
-                                class="w-full px-4 py-3 text-left hover:bg-slate-700 flex items-center justify-between group transition-colors border-b border-slate-200 dark:border-slate-700/50 last:border-0"
+                                class="w-full px-4 py-3 text-left hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-between group transition-colors border-b border-slate-200 dark:border-slate-700/50 last:border-0"
                                 onclick="addHomeAirport('${a.code}', '${a.city}', '${a.country}')">
                             <div class="flex flex-col">
-                                <span class="font-bold text-white group-hover:text-cyan-400 transition-colors">${a.city}</span>
-                                <span class="text-xs text-slate-400">${a.country}</span>
+                                <span class="font-bold text-slate-900 dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">${a.city}</span>
+                                <span class="text-xs text-slate-500 dark:text-slate-400">${a.country}</span>
                             </div>
-                            <span class="font-mono text-sm font-bold text-slate-500 group-hover:text-white bg-slate-900 px-2 py-1 rounded">${a.code}</span>
+                            <span class="font-mono text-sm font-bold text-slate-600 dark:text-slate-500 group-hover:text-slate-900 dark:group-hover:text-white bg-slate-100 dark:bg-slate-900 px-2 py-1 rounded">${a.code}</span>
                         </button>
                     `).join('');
                 }
@@ -385,14 +385,14 @@ function updateHomeAirports() {
 
 function renderHomeAirports() {
     homeContainer.innerHTML = selectedHomeAirports.map(dest => `
-        <div class="inline-flex items-center pl-3 pr-2 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 group hover:border-cyan-500/50 transition-all shadow-sm">
-            <span class="text-sm font-medium text-slate-200 mr-2">
-                <span class="font-mono text-cyan-400 font-bold mr-1.5">${dest.code}</span>
-                ${dest.name !== dest.code ? `<span class="text-slate-400 border-l border-slate-700 pl-1.5">${dest.name}</span>` : ''}
+        <div class="inline-flex items-center pl-3 pr-2 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 group hover:border-cyan-500/50 transition-all shadow-sm">
+            <span class="text-sm font-medium mr-2">
+                <span class="font-mono text-cyan-600 dark:text-cyan-400 font-bold mr-1.5">${dest.code}</span>
+                ${dest.name !== dest.code ? `<span class="text-slate-600 dark:text-slate-400 border-l border-slate-300 dark:border-slate-700 pl-1.5">${dest.name}</span>` : ''}
             </span>
             <button type="button" 
                     onclick="removeHomeAirport('${dest.code}')"
-                    class="p-1 rounded-md text-slate-500 hover:text-red-400 hover:bg-slate-700/50 transition-colors"
+                    class="p-1 rounded-md text-slate-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-slate-200 dark:hover:bg-slate-700/50 transition-colors"
                     aria-label="Remove ${dest.code}">
                 <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -444,13 +444,13 @@ destInput.addEventListener('input', (e) => {
                 } else {
                     destDropdown.innerHTML = available.map(a => `
                         <button type="button" 
-                                class="w-full px-4 py-3 text-left hover:bg-slate-700 flex items-center justify-between group transition-colors border-b border-slate-200 dark:border-slate-700/50 last:border-0"
+                                class="w-full px-4 py-3 text-left hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-between group transition-colors border-b border-slate-200 dark:border-slate-700/50 last:border-0"
                                 onclick="addDestination('${a.code}', '${a.city}', '${a.country}')">
                             <div class="flex flex-col">
-                                <span class="font-bold text-white group-hover:text-cyan-400 transition-colors">${a.city}</span>
-                                <span class="text-xs text-slate-400">${a.country}</span>
+                                <span class="font-bold text-slate-900 dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">${a.city}</span>
+                                <span class="text-xs text-slate-500 dark:text-slate-400">${a.country}</span>
                             </div>
-                            <span class="font-mono text-sm font-bold text-slate-500 group-hover:text-white bg-slate-900 px-2 py-1 rounded">${a.code}</span>
+                            <span class="font-mono text-sm font-bold text-slate-600 dark:text-slate-500 group-hover:text-slate-900 dark:group-hover:text-white bg-slate-100 dark:bg-slate-900 px-2 py-1 rounded">${a.code}</span>
                         </button>
                     `).join('');
                 }
@@ -491,14 +491,14 @@ function updateDestinations() {
 
 function renderDestinations() {
     destContainer.innerHTML = selectedDestinations.map(dest => `
-        <div class="inline-flex items-center pl-3 pr-2 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 group hover:border-cyan-500/50 transition-all shadow-sm">
-            <span class="text-sm font-medium text-slate-200 mr-2">
-                <span class="font-mono text-cyan-400 font-bold mr-1.5">${dest.code}</span>
-                ${dest.name !== dest.code ? `<span class="text-slate-400 border-l border-slate-700 pl-1.5">${dest.name}</span>` : ''}
+        <div class="inline-flex items-center pl-3 pr-2 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 group hover:border-cyan-500/50 transition-all shadow-sm">
+            <span class="text-sm font-medium mr-2">
+                <span class="font-mono text-cyan-600 dark:text-cyan-400 font-bold mr-1.5">${dest.code}</span>
+                ${dest.name !== dest.code ? `<span class="text-slate-600 dark:text-slate-400 border-l border-slate-300 dark:border-slate-700 pl-1.5">${dest.name}</span>` : ''}
             </span>
             <button type="button" 
                     onclick="removeDestination('${dest.code}')"
-                    class="p-1 rounded-md text-slate-500 hover:text-red-400 hover:bg-slate-700/50 transition-colors"
+                    class="p-1 rounded-md text-slate-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-slate-200 dark:hover:bg-slate-700/50 transition-colors"
                     aria-label="Remove ${dest.code}">
                 <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
