@@ -56,6 +56,10 @@ def ensure_sqlite_columns():
         ("trip_plans", "last_search_at", "DATETIME"),
         ("search_definitions", "preferred_source", "VARCHAR(20) DEFAULT 'auto'"),
         ("user_settings", "home_airports", "TEXT DEFAULT '[]'"),
+        ("user_settings", "ai_provider", "VARCHAR(20) DEFAULT 'none'"),
+        ("user_settings", "ai_api_key", "VARCHAR(200)"),
+        ("user_settings", "ai_ollama_url", "VARCHAR(200)"),
+        ("user_settings", "ai_model", "VARCHAR(50)"),
     ]
     
     with engine.connect() as conn:
