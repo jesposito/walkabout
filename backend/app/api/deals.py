@@ -79,6 +79,20 @@ async def deals_page(
     
     hub_counts = relevance_service.get_hub_counts()
     
+    # Check if AI is configured for enhanced mode
+    ai_enabled = settings.ai_provider and settings.ai_provider != "none" and settings.ai_api_key
+    
+    # Default to date sort in basic mode if rating sort requested
+    effective_sort = sort
+    if not ai_enabled and sort in ["rating", "score"]:
+        effective_sort = "date"
+    
+    # Re-sort with effective sort if it changed
+    if effective_sort != sort:
+        local_deals = sort_deals(local_deals, effective_sort)
+        regional_deals = sort_deals(regional_deals, effective_sort)
+        hub_deals = sort_deals(hub_deals, effective_sort)
+    
     return templates.TemplateResponse(
         "deals.html",
         {
@@ -92,7 +106,7 @@ async def deals_page(
             "current_source": source,
             "current_cabin": cabin,
             "current_tab": tab,
-            "current_sort": sort or "score",
+            "current_sort": effective_sort or "date",
             "local_count": len(local_deals),
             "regional_count": len(regional_deals),
             "hub_count": len(hub_deals),
@@ -100,6 +114,7 @@ async def deals_page(
             "hub_counts": hub_counts,
             "major_hubs": MAJOR_HUBS,
             "preferred_currency": preferred_currency,
+            "ai_enabled": ai_enabled,
         }
     )
 

@@ -3,6 +3,29 @@
 {% block content %}
 <div class="bg-slate-100 dark:bg-slate-900 min-h-full pb-12">
     
+    {% if not ai_enabled %}
+    <div class="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-b border-amber-200 dark:border-amber-800/50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+            <div class="flex items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <span class="text-amber-600 dark:text-amber-400">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                    </span>
+                    <div>
+                        <p class="text-sm font-medium text-amber-800 dark:text-amber-200">Basic Mode</p>
+                        <p class="text-xs text-amber-600 dark:text-amber-400">Deal titles shown as-is. Configure AI in Settings for smart route parsing and deal ratings.</p>
+                    </div>
+                </div>
+                <a href="/settings/" class="flex-shrink-0 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium rounded-lg transition-colors shadow-sm">
+                    Configure AI
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
     <div class="bg-white/50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -44,25 +67,32 @@
                     {% else %}
                         Deals from major international hubs (great for positioning flights)
                     {% endif %}
+                    {% if not ai_enabled %}
+                    <span class="ml-2 px-2 py-0.5 bg-amber-100 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20 rounded text-xs font-medium">
+                        Basic Mode
+                    </span>
+                    {% endif %}
                 </span>
                 
                 <div class="flex items-center gap-2">
                     <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Sort:</span>
                     <div class="flex rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
+                        {% if ai_enabled %}
                         <a href="?tab={{ current_tab }}&sort=rating" 
                            class="px-3 py-1.5 text-xs font-medium transition-colors
                                   {% if current_sort == 'rating' or current_sort == 'score' %}bg-slate-700 dark:bg-slate-600 text-white{% else %}bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700{% endif %}">
                             Best Deals
                         </a>
+                        {% endif %}
+                        <a href="?tab={{ current_tab }}&sort=date" 
+                           class="px-3 py-1.5 text-xs font-medium transition-colors {% if ai_enabled %}border-l border-slate-200 dark:border-slate-700{% endif %}
+                                  {% if current_sort == 'date' or (not ai_enabled and current_sort in ['rating', 'score']) %}bg-slate-700 dark:bg-slate-600 text-white{% else %}bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700{% endif %}">
+                            Newest
+                        </a>
                         <a href="?tab={{ current_tab }}&sort=price" 
                            class="px-3 py-1.5 text-xs font-medium transition-colors border-l border-slate-200 dark:border-slate-700
                                   {% if current_sort == 'price' %}bg-slate-700 dark:bg-slate-600 text-white{% else %}bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700{% endif %}">
                             Price
-                        </a>
-                        <a href="?tab={{ current_tab }}&sort=date" 
-                           class="px-3 py-1.5 text-xs font-medium transition-colors border-l border-slate-200 dark:border-slate-700
-                                  {% if current_sort == 'date' %}bg-slate-700 dark:bg-slate-600 text-white{% else %}bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700{% endif %}">
-                            Newest
                         </a>
                     </div>
                 </div>
@@ -102,7 +132,7 @@
                                 {% else %}bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600{% endif %}">
                                 {{ deal.parsed_cabin_class or 'ECONOMY' }}
                             </span>
-                            {% if deal.rating_label %}
+                            {% if ai_enabled and deal.rating_label %}
                             <span class="px-2 py-1 rounded text-[10px] font-bold
                                 {% if deal.deal_rating and deal.deal_rating >= 30 %}bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-500/30
                                 {% elif deal.deal_rating and deal.deal_rating >= 15 %}bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-500/30
@@ -130,7 +160,8 @@
                         {% set dest_valid = deal.parsed_destination and deal.parsed_destination|length == 3 %}
                         {% set has_route = origin_valid or dest_valid %}
                         
-                        {% if has_route %}
+                        {% if ai_enabled and has_route %}
+                        {# Enhanced mode: Show parsed route prominently #}
                         <div class="flex items-baseline gap-2 text-2xl font-bold text-slate-900 dark:text-white">
                             {% if origin_valid %}
                             <span title="{{ airports[deal.parsed_origin].city if airports.get(deal.parsed_origin) else deal.parsed_origin }}">{{ deal.parsed_origin }}</span>
@@ -143,9 +174,16 @@
                             {% if dest_valid and airports.get(deal.parsed_destination) %}{{ airports[deal.parsed_destination].city }}{% elif dest_valid %}{{ deal.parsed_destination }}{% else %}Various{% endif %}
                         </div>
                         {% else %}
+                        {# Basic mode: Show raw title prominently #}
                         <div class="text-lg font-semibold text-slate-900 dark:text-white line-clamp-2" title="{{ deal.raw_title }}">
                             {{ deal.raw_title[:80] }}{% if deal.raw_title|length > 80 %}...{% endif %}
                         </div>
+                        {% if has_route %}
+                        <div class="text-xs text-slate-500 dark:text-slate-400 mt-1 font-mono">
+                            {% if origin_valid %}{{ deal.parsed_origin }} → {% endif %}{{ deal.parsed_destination if dest_valid else '' }}
+                            <span class="text-slate-400 dark:text-slate-500">(auto-detected)</span>
+                        </div>
+                        {% endif %}
                         {% endif %}
                         
                         {% if deal.parsed_airline %}
@@ -176,7 +214,7 @@
                                 {{ deal.price_info.original }}
                             </span>
                             {% endif %}
-                            {% if deal.market_price and deal.deal_rating %}
+                            {% if ai_enabled and deal.market_price and deal.deal_rating %}
                             <span class="block text-xs mt-1
                                 {% if deal.deal_rating >= 15 %}text-green-600 dark:text-green-400
                                 {% elif deal.deal_rating >= 0 %}text-slate-500 dark:text-slate-400
