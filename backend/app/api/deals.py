@@ -24,7 +24,7 @@ async def deals_page(
     source: Optional[str] = Query(None),
     cabin: Optional[str] = Query(None),
     tab: Optional[str] = Query("local"),
-    sort: Optional[str] = Query("score"),
+    sort: Optional[str] = Query("rating"),
     db: Session = Depends(get_db),
 ):
     service = FeedService(db)
@@ -44,14 +44,12 @@ async def deals_page(
         hub_deals = [d for d in hub_deals if d.parsed_cabin_class == cabin]
     
     def sort_deals(deals, sort_key):
-        if sort_key == "rating":
-            return sorted(deals, key=lambda d: (d.deal_rating or -999), reverse=True)
-        elif sort_key == "price":
+        if sort_key == "price":
             return sorted(deals, key=lambda d: (d.parsed_price or 999999))
         elif sort_key == "date":
             return sorted(deals, key=lambda d: (d.published_at or d.created_at), reverse=True)
         else:
-            return sorted(deals, key=lambda d: (d.score or 0), reverse=True)
+            return sorted(deals, key=lambda d: (d.deal_rating or -999), reverse=True)
     
     local_deals = sort_deals(local_deals, sort)
     regional_deals = sort_deals(regional_deals, sort)

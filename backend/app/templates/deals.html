@@ -14,19 +14,19 @@
                 </div>
                 
                 <div class="flex flex-wrap items-center gap-2">
-                    <a href="?tab=local&sort={{ current_sort }}" 
+                    <a href="?tab=local&sort=rating" 
                        class="px-4 py-2 rounded-lg text-sm font-medium transition-all
                               {% if current_tab == 'local' %}bg-cyan-500 text-white shadow-lg shadow-cyan-500/25
                               {% else %}bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600{% endif %}">
                         Local <span class="ml-1 opacity-75">({{ local_count }})</span>
                     </a>
-                    <a href="?tab=regional&sort={{ current_sort }}" 
+                    <a href="?tab=regional&sort=rating" 
                        class="px-4 py-2 rounded-lg text-sm font-medium transition-all
                               {% if current_tab == 'regional' %}bg-emerald-500 text-white shadow-lg shadow-emerald-500/25
                               {% else %}bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600{% endif %}">
                         Regional <span class="ml-1 opacity-75">({{ regional_count }})</span>
                     </a>
-                    <a href="?tab=hubs&sort={{ current_sort }}" 
+                    <a href="?tab=hubs&sort=rating" 
                        class="px-4 py-2 rounded-lg text-sm font-medium transition-all
                               {% if current_tab == 'hubs' %}bg-violet-500 text-white shadow-lg shadow-violet-500/25
                               {% else %}bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600{% endif %}">
@@ -49,15 +49,10 @@
                 <div class="flex items-center gap-2">
                     <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Sort:</span>
                     <div class="flex rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
-                        <a href="?tab={{ current_tab }}&sort=score" 
-                           class="px-3 py-1.5 text-xs font-medium transition-colors
-                                  {% if current_sort == 'score' %}bg-slate-700 dark:bg-slate-600 text-white{% else %}bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700{% endif %}">
-                            Score
-                        </a>
                         <a href="?tab={{ current_tab }}&sort=rating" 
-                           class="px-3 py-1.5 text-xs font-medium transition-colors border-l border-slate-200 dark:border-slate-700
-                                  {% if current_sort == 'rating' %}bg-slate-700 dark:bg-slate-600 text-white{% else %}bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700{% endif %}">
-                            Rating
+                           class="px-3 py-1.5 text-xs font-medium transition-colors
+                                  {% if current_sort == 'rating' or current_sort == 'score' %}bg-slate-700 dark:bg-slate-600 text-white{% else %}bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700{% endif %}">
+                            Best Deals
                         </a>
                         <a href="?tab={{ current_tab }}&sort=price" 
                            class="px-3 py-1.5 text-xs font-medium transition-colors border-l border-slate-200 dark:border-slate-700
@@ -67,7 +62,7 @@
                         <a href="?tab={{ current_tab }}&sort=date" 
                            class="px-3 py-1.5 text-xs font-medium transition-colors border-l border-slate-200 dark:border-slate-700
                                   {% if current_sort == 'date' %}bg-slate-700 dark:bg-slate-600 text-white{% else %}bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700{% endif %}">
-                            Date
+                            Newest
                         </a>
                     </div>
                 </div>
