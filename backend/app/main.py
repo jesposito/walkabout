@@ -12,6 +12,7 @@ from app.services.notification import InMemoryNotifier
 from app.config import get_settings
 from app.database import engine, Base, ensure_sqlite_columns
 from app.models import SearchDefinition, ScrapeHealth, FlightPrice, Route, Alert, Deal, FeedHealth, TripPlan, TripPlanMatch
+from app.models.route_market_price import RouteMarketPrice
 
 settings = get_settings()
 

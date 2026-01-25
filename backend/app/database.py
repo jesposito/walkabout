@@ -44,6 +44,13 @@ def ensure_sqlite_columns():
         ("deals", "is_relevant", "BOOLEAN DEFAULT 1"),
         ("deals", "relevance_reason", "TEXT"),
         ("deals", "score", "INTEGER DEFAULT 0"),
+        # Deal rating columns
+        ("deals", "market_price", "REAL"),
+        ("deals", "market_currency", "VARCHAR(3)"),
+        ("deals", "deal_rating", "REAL"),
+        ("deals", "rating_label", "VARCHAR(20)"),
+        ("deals", "market_price_source", "VARCHAR(50)"),
+        ("deals", "market_price_checked_at", "DATETIME"),
         ("trip_plans", "search_in_progress", "BOOLEAN DEFAULT 0"),
         ("trip_plans", "search_started_at", "DATETIME"),
         ("trip_plans", "last_search_at", "DATETIME"),

@@ -42,6 +42,20 @@ async def deals_page(
         regional_deals = [d for d in regional_deals if d.parsed_cabin_class == cabin]
         hub_deals = [d for d in hub_deals if d.parsed_cabin_class == cabin]
     
+    def sort_deals(deals, sort_key):
+        if sort_key == "rating":
+            return sorted(deals, key=lambda d: (d.deal_rating or -999), reverse=True)
+        elif sort_key == "price":
+            return sorted(deals, key=lambda d: (d.parsed_price or 999999))
+        elif sort_key == "date":
+            return sorted(deals, key=lambda d: (d.published_at or d.created_at), reverse=True)
+        else:
+            return sorted(deals, key=lambda d: (d.score or 0), reverse=True)
+    
+    local_deals = sort_deals(local_deals, sort)
+    regional_deals = sort_deals(regional_deals, sort)
+    hub_deals = sort_deals(hub_deals, sort)
+    
     feed_health = service.get_feed_health()
     
     sources = [s.value for s in DealSource]

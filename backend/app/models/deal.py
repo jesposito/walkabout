@@ -60,6 +60,13 @@ class Deal(Base):
     relevance_reason = Column(String(256), nullable=True)
     score = Column(Float, default=0.0, index=True)
     
+    market_price = Column(Float, nullable=True)
+    market_currency = Column(String(3), nullable=True)
+    deal_rating = Column(Float, nullable=True, index=True)
+    rating_label = Column(String(20), nullable=True)
+    market_price_source = Column(String(50), nullable=True)
+    market_price_checked_at = Column(DateTime, nullable=True)
+    
     fetched_at = Column(DateTime, server_default=func.now())
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())

@@ -19,6 +19,7 @@ from app.database import SessionLocal
 from app.models import SearchDefinition, ScrapeHealth, TripPlan
 from app.services.scraping_service import ScrapingService
 from app.services.trip_plan_search import TripPlanSearchService
+from app.services.deal_rating import rate_unrated_deals
 from app.config import get_settings
 
 # Configure logging
@@ -87,11 +88,21 @@ def _setup_scheduled_jobs():
         max_instances=1,
     )
     
+    scheduler.add_job(
+        rate_deals_job,
+        trigger=IntervalTrigger(hours=2),
+        id='deal_rating',
+        name='Rate Unrated Deals',
+        replace_existing=True,
+        max_instances=1,
+    )
+    
     logger.info("Scheduled jobs configured:")
     logger.info("  - Morning scrape: 6:30 AM NZT daily")
     logger.info("  - Evening scrape: 6:30 PM NZT daily") 
     logger.info("  - Health check: Every hour")
     logger.info("  - Trip Plan search: Every 6 hours")
+    logger.info("  - Deal rating: Every 2 hours")
 
 
 async def scrape_all_active_definitions():
@@ -191,6 +202,21 @@ async def check_scrape_health():
     except Exception as e:
         logger.error(f"Error in health check: {e}")
         
+    finally:
+        db.close()
+
+
+async def rate_deals_job():
+    """Rate unrated deals by fetching market prices."""
+    logger.info("Starting scheduled deal rating job")
+    
+    db = SessionLocal()
+    
+    try:
+        rated_count = await rate_unrated_deals(db, limit=10)
+        logger.info(f"Deal rating complete: {rated_count} deals rated")
+    except Exception as e:
+        logger.error(f"Error in deal rating job: {e}")
     finally:
         db.close()
 
