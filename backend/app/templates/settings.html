@@ -165,6 +165,84 @@
                 </div>
             </div>
 
+            <!-- AI Deal Parsing Section -->
+            <div class="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">
+                <div class="flex items-start gap-4 mb-6">
+                    <div class="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-semibold text-slate-900 dark:text-white">AI Deal Parsing</h2>
+                        <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">Enable AI to accurately extract routes and prices from deal titles. Without AI, only basic keyword matching is available.</p>
+                    </div>
+                </div>
+                
+                <div class="space-y-4">
+                    <div class="bg-purple-50 dark:bg-purple-500/10 rounded-lg p-4 border border-purple-200 dark:border-purple-500/20 mb-4">
+                        <p class="text-sm text-purple-700 dark:text-purple-300">
+                            <span class="font-medium">Why AI?</span> Deal titles like "Hong Kong from Melbourne $522, Sydney $541" are ambiguous. AI understands context and extracts accurate routes.
+                        </p>
+                    </div>
+                    
+                    <div>
+                        <label for="ai_provider" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            AI Provider
+                        </label>
+                        <select id="ai_provider" name="ai_provider"
+                                class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white 
+                                       focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                onchange="toggleAIFields()">
+                            <option value="none" {% if not settings.ai_provider or settings.ai_provider == 'none' %}selected{% endif %}>None (Basic mode)</option>
+                            <option value="anthropic" {% if settings.ai_provider == 'anthropic' %}selected{% endif %}>Anthropic (Claude)</option>
+                            <option value="openai" {% if settings.ai_provider == 'openai' %}selected{% endif %}>OpenAI (GPT)</option>
+                            <option value="gemini" {% if settings.ai_provider == 'gemini' %}selected{% endif %}>Google (Gemini)</option>
+                            <option value="ollama" {% if settings.ai_provider == 'ollama' %}selected{% endif %}>Ollama (Local)</option>
+                            <option value="openai_compatible" {% if settings.ai_provider == 'openai_compatible' %}selected{% endif %}>OpenAI-Compatible (Groq, Together, etc.)</option>
+                        </select>
+                    </div>
+                    
+                    <div id="ai_api_key_field" class="hidden">
+                        <label for="ai_api_key" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            API Key
+                        </label>
+                        <input type="password" id="ai_api_key" name="ai_api_key" 
+                               value="{{ settings.ai_api_key or '' }}"
+                               class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white 
+                                      placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 
+                                      focus:border-transparent font-mono text-sm"
+                               placeholder="Your API key">
+                        <p id="ai_key_help" class="mt-1 text-xs text-slate-500"></p>
+                    </div>
+                    
+                    <div id="ai_ollama_url_field" class="hidden">
+                        <label for="ai_ollama_url" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            Base URL
+                        </label>
+                        <input type="text" id="ai_ollama_url" name="ai_ollama_url" 
+                               value="{{ settings.ai_ollama_url or '' }}"
+                               class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white 
+                                      placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 
+                                      focus:border-transparent font-mono text-sm"
+                               placeholder="http://localhost:11434">
+                    </div>
+                    
+                    <div id="ai_model_field" class="hidden">
+                        <label for="ai_model" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            Model <span class="text-slate-400 font-normal">(optional, uses default if empty)</span>
+                        </label>
+                        <input type="text" id="ai_model" name="ai_model" 
+                               value="{{ settings.ai_model or '' }}"
+                               class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white 
+                                      placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 
+                                      focus:border-transparent font-mono text-sm"
+                               placeholder="e.g., claude-3-haiku-20240307">
+                        <p id="ai_model_help" class="mt-1 text-xs text-slate-500"></p>
+                    </div>
+                </div>
+            </div>
+
             <div class="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">
                 <div class="flex items-start gap-4 mb-6">
                     <div class="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center flex-shrink-0">
@@ -290,6 +368,29 @@ const airportNames = {
     'JFK': 'New York JFK', 'DXB': 'Dubai', 'BKK': 'Bangkok', 'DPS': 'Bali',
     'RAR': 'Rarotonga', 'WLG': 'Wellington', 'ZQN': 'Queenstown'
 };
+
+const aiProviderConfig = {
+    'none': { showKey: false, showUrl: false, showModel: false },
+    'anthropic': { showKey: true, showUrl: false, showModel: true, keyHelp: 'Get from <a href="https://console.anthropic.com/" target="_blank" class="text-purple-400 hover:underline">console.anthropic.com</a>', modelHelp: 'Default: claude-3-haiku-20240307' },
+    'openai': { showKey: true, showUrl: false, showModel: true, keyHelp: 'Get from <a href="https://platform.openai.com/" target="_blank" class="text-purple-400 hover:underline">platform.openai.com</a>', modelHelp: 'Default: gpt-4o-mini' },
+    'gemini': { showKey: true, showUrl: false, showModel: true, keyHelp: 'Get from <a href="https://aistudio.google.com/" target="_blank" class="text-purple-400 hover:underline">aistudio.google.com</a>', modelHelp: 'Default: gemini-1.5-flash' },
+    'ollama': { showKey: false, showUrl: true, showModel: true, modelHelp: 'Default: llama3.2' },
+    'openai_compatible': { showKey: true, showUrl: true, showModel: true, keyHelp: 'API key for your provider', modelHelp: 'Required: e.g., llama-3.1-70b-versatile (Groq)' },
+};
+
+function toggleAIFields() {
+    const provider = document.getElementById('ai_provider').value;
+    const config = aiProviderConfig[provider] || aiProviderConfig['none'];
+    
+    document.getElementById('ai_api_key_field').classList.toggle('hidden', !config.showKey);
+    document.getElementById('ai_ollama_url_field').classList.toggle('hidden', !config.showUrl);
+    document.getElementById('ai_model_field').classList.toggle('hidden', !config.showModel);
+    
+    if (config.keyHelp) document.getElementById('ai_key_help').innerHTML = config.keyHelp;
+    if (config.modelHelp) document.getElementById('ai_model_help').textContent = config.modelHelp;
+}
+
+document.addEventListener('DOMContentLoaded', toggleAIFields);
 
 // --- Home Airport Logic ---
 const homeInput = document.getElementById('home_airport_search');
@@ -553,6 +654,10 @@ document.getElementById('settings-form').addEventListener('submit', async (e) =>
         anthropic_api_key: form.anthropic_api_key.value,
         serpapi_key: form.serpapi_key.value,
         skyscanner_api_key: form.skyscanner_api_key.value,
+        ai_provider: form.ai_provider.value,
+        ai_api_key: form.ai_api_key.value,
+        ai_ollama_url: form.ai_ollama_url.value,
+        ai_model: form.ai_model.value,
     };
     
     try {

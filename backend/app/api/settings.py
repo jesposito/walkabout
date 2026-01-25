@@ -38,6 +38,10 @@ class SettingsUpdate(BaseModel):
     skyscanner_api_key: Optional[str] = None
     amadeus_client_id: Optional[str] = None
     amadeus_client_secret: Optional[str] = None
+    ai_provider: Optional[str] = None
+    ai_api_key: Optional[str] = None
+    ai_ollama_url: Optional[str] = None
+    ai_model: Optional[str] = None
 
 
 class SettingsResponse(BaseModel):
@@ -54,6 +58,10 @@ class SettingsResponse(BaseModel):
     skyscanner_api_key: Optional[str] = None
     amadeus_client_id: Optional[str] = None
     amadeus_client_secret: Optional[str] = None
+    ai_provider: Optional[str] = None
+    ai_api_key: Optional[str] = None
+    ai_ollama_url: Optional[str] = None
+    ai_model: Optional[str] = None
     
     class Config:
         from_attributes = True
@@ -79,6 +87,10 @@ async def get_settings(db: Session = Depends(get_db)):
         skyscanner_api_key=mask_api_key(settings.skyscanner_api_key),
         amadeus_client_id=mask_api_key(settings.amadeus_client_id),
         amadeus_client_secret=mask_api_key(settings.amadeus_client_secret),
+        ai_provider=settings.ai_provider or "none",
+        ai_api_key=mask_api_key(settings.ai_api_key),
+        ai_ollama_url=settings.ai_ollama_url,
+        ai_model=settings.ai_model,
     )
 
 
@@ -120,6 +132,15 @@ async def update_settings(
     if updates.amadeus_client_secret is not None and not updates.amadeus_client_secret.startswith("*"):
         settings.amadeus_client_secret = updates.amadeus_client_secret.strip() if updates.amadeus_client_secret else None
     
+    if updates.ai_provider is not None:
+        settings.ai_provider = updates.ai_provider.lower().strip()
+    if updates.ai_api_key is not None and not updates.ai_api_key.startswith("*"):
+        settings.ai_api_key = updates.ai_api_key.strip() if updates.ai_api_key else None
+    if updates.ai_ollama_url is not None:
+        settings.ai_ollama_url = updates.ai_ollama_url.strip() if updates.ai_ollama_url else None
+    if updates.ai_model is not None:
+        settings.ai_model = updates.ai_model.strip() if updates.ai_model else None
+    
     db.commit()
     db.refresh(settings)
     
@@ -143,6 +164,10 @@ async def update_settings(
         skyscanner_api_key=mask_api_key(settings.skyscanner_api_key),
         amadeus_client_id=mask_api_key(settings.amadeus_client_id),
         amadeus_client_secret=mask_api_key(settings.amadeus_client_secret),
+        ai_provider=settings.ai_provider or "none",
+        ai_api_key=mask_api_key(settings.ai_api_key),
+        ai_ollama_url=settings.ai_ollama_url,
+        ai_model=settings.ai_model,
     )
 
 

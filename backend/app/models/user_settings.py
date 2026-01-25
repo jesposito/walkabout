@@ -23,6 +23,11 @@ class UserSettings(Base):
     amadeus_client_id = Column(String(100), nullable=True)
     amadeus_client_secret = Column(String(100), nullable=True)
     
+    ai_provider = Column(String(20), default="none")
+    ai_api_key = Column(String(200), nullable=True)
+    ai_ollama_url = Column(String(200), nullable=True)
+    ai_model = Column(String(50), nullable=True)
+    
     notifications_enabled = Column(Boolean, default=False)
     notification_min_discount_percent = Column(Integer, default=20)
     

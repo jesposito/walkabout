@@ -205,6 +205,7 @@ CITY_ALIASES = {
     'fiji': 'nadi',
     'tahiti': 'papeete',
     'cook islands': 'rarotonga',
+    'raro': 'rarotonga',
     'maldives': 'male',
     'mauritius': 'port louis',
     'seychelles': 'mahe island',
@@ -222,6 +223,28 @@ CITY_ALIASES = {
     'brazil': 'sao paulo',
     'india': 'delhi',
     'california': 'los angeles',
+    'sun coast': 'sunshine coast',
+    'suncoast': 'sunshine coast',
+    'sunny coast': 'sunshine coast',
+    'goldie': 'gold coast',
+    'gc': 'gold coast',
+    'kl': 'kuala lumpur',
+    'hk': 'hong kong',
+    'sg': 'singapore',
+    'mel': 'melbourne',
+    'syd': 'sydney',
+    'bne': 'brisbane',
+    'per': 'perth',
+    'akl': 'auckland',
+    'wlg': 'wellington',
+    'chc': 'christchurch',
+    'zqn': 'queenstown',
+    'china': 'shanghai',
+    'korea': 'seoul',
+    'europe': 'london',
+    'uk': 'london',
+    'usa': 'los angeles',
+    'america': 'los angeles',
 }
 
 PREFERRED_AIRPORT = {
@@ -303,6 +326,16 @@ PREFERRED_AIRPORT = {
     'rarotonga': 'RAR',
     'papeete': 'PPT',
     'apia': 'APW',
+    'sunshine coast': 'MCY',
+    'canberra': 'CBR',
+    'newcastle': 'NTL',
+    'townsville': 'TSV',
+    'launceston': 'LST',
+    'hamilton island': 'HTI',
+    'palmerston north': 'PMR',
+    'rotorua': 'ROT',
+    'nelson': 'NSN',
+    'invercargill': 'IVC',
 }
 
 SKIP_WORDS = {
@@ -404,13 +437,14 @@ class AirportLookup:
         from_match = re.search(r'\bfrom\s+', text_lower)
         if from_match:
             from_pos = from_match.end()
+            before_from = [(code, pos, t) for code, pos, t in locations if pos < from_match.start()]
             after_from = [(code, pos, t) for code, pos, t in locations if pos >= from_pos]
-            if len(after_from) >= 2:
-                return (after_from[0][0], after_from[1][0])
-            elif len(after_from) == 1 and locations:
-                before_from = [(code, pos, t) for code, pos, t in locations if pos < from_match.start()]
-                if before_from:
-                    return (after_from[0][0], before_from[0][0])
+            
+            if before_from and after_from:
+                destination = before_from[-1][0]
+                origin = after_from[0][0]
+                if origin != destination:
+                    return (origin, destination)
         
         if len(locations) >= 2:
             if locations[0][0] != locations[1][0]:
