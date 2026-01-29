@@ -285,31 +285,42 @@ async def search_active_trip_plans():
         db.close()
 
 
-async def manual_scrape_definition(search_definition_id: int) -> bool:
+async def manual_scrape_definition(search_definition_id: int) -> dict:
     """
     Manually trigger a scrape for a specific search definition.
-    
-    Returns: True if successful, False otherwise
+
+    Returns: Dict with success status and error message if failed
     """
     logger.info(f"Manual scrape triggered for search definition {search_definition_id}")
-    
+
     db = SessionLocal()
     scraping_service = ScrapingService(db)
-    
+
     try:
         result = await scraping_service.scrape_search_definition(search_definition_id)
-        
+
         if result.is_success:
             logger.info(f"✅ Manual scrape success: {len(result.prices)} prices")
-            return True
+            return {
+                "success": True,
+                "prices_found": len(result.prices)
+            }
         else:
             logger.error(f"❌ Manual scrape failed: {result.status} - {result.error_message}")
-            return False
-            
+            return {
+                "success": False,
+                "error": result.error_message or result.status,
+                "status": result.status
+            }
+
     except Exception as e:
         logger.error(f"Error in manual scrape: {e}")
-        return False
-        
+        return {
+            "success": False,
+            "error": str(e),
+            "status": "exception"
+        }
+
     finally:
         db.close()
 

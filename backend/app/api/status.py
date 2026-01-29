@@ -102,33 +102,44 @@ async def manual_scrape_all(db: Session = Depends(get_db)):
     active_definitions = db.query(SearchDefinition).filter(
         SearchDefinition.is_active == True
     ).all()
-    
+
     if not active_definitions:
         return {
             "success": True,
             "message": "No active search definitions to scrape",
             "successes": 0,
-            "failures": 0
+            "failures": 0,
+            "errors": []
         }
-    
+
     successes = 0
     failures = 0
-    
+    errors = []
+
     for search_def in active_definitions:
         try:
-            success = await manual_scrape_definition(search_def.id)
-            if success:
+            result = await manual_scrape_definition(search_def.id)
+            if result["success"]:
                 successes += 1
             else:
                 failures += 1
-        except Exception:
+                errors.append({
+                    "route": search_def.display_name,
+                    "error": result.get("error", "Unknown error")
+                })
+        except Exception as e:
             failures += 1
-    
+            errors.append({
+                "route": search_def.display_name,
+                "error": str(e)
+            })
+
     return {
-        "success": successes > 0,
+        "success": successes > 0 or failures == 0,
         "message": f"Scraped {len(active_definitions)} definitions",
         "successes": successes,
-        "failures": failures
+        "failures": failures,
+        "errors": errors
     }
 
 
@@ -143,11 +154,19 @@ async def manual_scrape_single(search_definition_id: int, db: Session = Depends(
         raise HTTPException(status_code=404, detail="Search definition not found")
 
     try:
-        success = await manual_scrape_definition(search_definition_id)
-        return {
-            "success": success,
-            "message": f"Scrape {'completed' if success else 'failed'} for {search_def.display_name}"
-        }
+        result = await manual_scrape_definition(search_definition_id)
+
+        if result["success"]:
+            return {
+                "success": True,
+                "message": f"Found {result.get('prices_found', 0)} prices for {search_def.display_name}"
+            }
+        else:
+            return {
+                "success": False,
+                "error": result.get("error", "Unknown error"),
+                "message": f"Scrape failed for {search_def.display_name}"
+            }
     except Exception as e:
         return {
             "success": False,

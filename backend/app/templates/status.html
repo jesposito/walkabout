@@ -203,21 +203,35 @@
         const originalText = button.innerHTML;
         button.disabled = true;
         button.innerHTML = '<span>⏳</span> Scraping...';
-        
+
         try {
             const response = await fetch('/api/scrape/manual/all', { method: 'POST' });
             const result = await response.json();
-            
-            if (response.ok && result.success) {
+
+            if (response.ok && result.success && result.failures === 0) {
                 button.innerHTML = '<span>✅</span> Done';
                 button.classList.remove('bg-cyan-600');
                 button.classList.add('bg-emerald-600');
                 setTimeout(() => location.reload(), 2000);
-            } else {
-                button.innerHTML = '<span>❌</span> Errors';
+            } else if (result.failures > 0) {
+                button.innerHTML = '<span>⚠️</span> Partial';
                 button.classList.remove('bg-cyan-600');
                 button.classList.add('bg-amber-600');
-                alert(`Results: ${result.successes} successes, ${result.failures} failures`);
+
+                // Build detailed error message
+                let msg = `${result.successes} succeeded, ${result.failures} failed\n`;
+                if (result.errors && result.errors.length > 0) {
+                    msg += '\nErrors:\n';
+                    result.errors.forEach(e => {
+                        msg += `• ${e.route}: ${e.error}\n`;
+                    });
+                }
+                alert(msg);
+            } else {
+                button.innerHTML = '<span>✅</span> Done';
+                button.classList.remove('bg-cyan-600');
+                button.classList.add('bg-emerald-600');
+                setTimeout(() => location.reload(), 2000);
             }
         } catch (error) {
             button.innerHTML = '<span>❌</span> Failed';
@@ -225,7 +239,7 @@
             button.classList.add('bg-rose-600');
             alert(`Scrape failed: ${error.message}`);
         }
-        
+
         setTimeout(() => {
             button.disabled = false;
             button.innerHTML = originalText;
