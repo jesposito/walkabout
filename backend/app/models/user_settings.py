@@ -29,6 +29,10 @@ class UserSettings(Base):
     ai_model = Column(String(50), nullable=True)
     
     notifications_enabled = Column(Boolean, default=False)
+    notification_provider = Column(String(20), default="none")  # none, ntfy_self, ntfy_sh, discord
+    notification_ntfy_url = Column(String(200), nullable=True)  # For self-hosted ntfy
+    notification_ntfy_topic = Column(String(100), nullable=True)
+    notification_discord_webhook = Column(String(300), nullable=True)
     notification_min_discount_percent = Column(Integer, default=20)
     notification_quiet_hours_start = Column(Integer, nullable=True)  # Hour 0-23, e.g., 22 for 10 PM
     notification_quiet_hours_end = Column(Integer, nullable=True)    # Hour 0-23, e.g., 7 for 7 AM

@@ -316,7 +316,7 @@
                     </div>
                     <div>
                         <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Notifications</h2>
-                        <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">Get push alerts for hot deals via ntfy</p>
+                        <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">Get push alerts for hot deals (optional)</p>
                     </div>
                 </div>
 
@@ -339,14 +339,80 @@
                         </label>
                     </div>
 
+                    <!-- Provider Selection -->
+                    <div>
+                        <label for="notification_provider" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            Notification Method
+                        </label>
+                        <select id="notification_provider" name="notification_provider"
+                                onchange="toggleNotificationFields()"
+                                class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white
+                                       focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent">
+                            <option value="none" {% if not settings.notification_provider or settings.notification_provider == 'none' %}selected{% endif %}>None (in-app history only)</option>
+                            <option value="ntfy_sh" {% if settings.notification_provider == 'ntfy_sh' %}selected{% endif %}>ntfy.sh (free, public)</option>
+                            <option value="ntfy_self" {% if settings.notification_provider == 'ntfy_self' %}selected{% endif %}>ntfy (self-hosted)</option>
+                            <option value="discord" {% if settings.notification_provider == 'discord' %}selected{% endif %}>Discord Webhook</option>
+                        </select>
+                        <p class="mt-2 text-xs text-slate-500">Choose how you want to receive deal alerts</p>
+                    </div>
+
+                    <!-- ntfy.sh Topic (for ntfy_sh) -->
+                    <div id="ntfy_sh_fields" class="hidden space-y-4">
+                        <div>
+                            <label for="notification_ntfy_topic_sh" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                ntfy.sh Topic
+                            </label>
+                            <input type="text" id="notification_ntfy_topic_sh" name="notification_ntfy_topic"
+                                   value="{{ settings.notification_ntfy_topic or '' }}"
+                                   class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white
+                                          placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                                   placeholder="walkabout-deals-xyz123">
+                            <p class="mt-1 text-xs text-slate-500">Use a unique topic name. Install <a href="https://ntfy.sh/" target="_blank" class="text-amber-500 hover:underline">ntfy app</a> and subscribe to this topic.</p>
+                        </div>
+                    </div>
+
+                    <!-- Self-hosted ntfy fields -->
+                    <div id="ntfy_self_fields" class="hidden space-y-4">
+                        <div>
+                            <label for="notification_ntfy_url" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                ntfy Server URL
+                            </label>
+                            <input type="text" id="notification_ntfy_url" name="notification_ntfy_url"
+                                   value="{{ settings.notification_ntfy_url or '' }}"
+                                   class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white
+                                          placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent font-mono text-sm"
+                                   placeholder="http://your-server:8080">
+                        </div>
+                        <div>
+                            <label for="notification_ntfy_topic_self" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                Topic Name
+                            </label>
+                            <input type="text" id="notification_ntfy_topic_self" name="notification_ntfy_topic"
+                                   value="{{ settings.notification_ntfy_topic or '' }}"
+                                   class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white
+                                          placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                                   placeholder="walkabout-deals">
+                        </div>
+                    </div>
+
+                    <!-- Discord webhook field -->
+                    <div id="discord_fields" class="hidden">
+                        <label for="notification_discord_webhook" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            Discord Webhook URL
+                        </label>
+                        <input type="password" id="notification_discord_webhook" name="notification_discord_webhook"
+                               value="{{ settings.notification_discord_webhook or '' }}"
+                               class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white
+                                      placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent font-mono text-sm"
+                               placeholder="https://discord.com/api/webhooks/...">
+                        <p class="mt-1 text-xs text-slate-500">Create a webhook in your Discord server settings → Integrations</p>
+                    </div>
+
                     <!-- Test Notification Button -->
                     <div class="flex items-center gap-4">
                         <button type="button" id="test-notification-btn"
                                 class="px-4 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400
-                                       font-medium rounded-lg border border-amber-500/20 transition-colors flex items-center gap-2">
-                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                            </svg>
+                                       font-medium rounded-lg border border-amber-500/20 transition-colors">
                             Send Test
                         </button>
                         <span id="test-notification-status" class="text-sm text-slate-500"></span>
@@ -420,11 +486,11 @@
                         <p class="mt-2 text-xs text-slate-500">Minimum time between notifications for the same route</p>
                     </div>
 
-                    <!-- ntfy Info -->
-                    <div class="bg-amber-50 dark:bg-amber-500/10 rounded-lg p-4 border border-amber-200 dark:border-amber-500/20">
-                        <p class="text-sm text-amber-700 dark:text-amber-300">
-                            <span class="font-medium">How to receive notifications:</span>
-                            Install the <a href="https://ntfy.sh/" target="_blank" class="underline">ntfy app</a> on your phone and subscribe to your Walkabout topic.
+                    <!-- Info box -->
+                    <div class="bg-slate-100 dark:bg-slate-900/50 rounded-lg p-4 border border-slate-200 dark:border-slate-700/50">
+                        <p class="text-sm text-slate-600 dark:text-slate-400">
+                            <span class="text-amber-600 dark:text-amber-400 font-medium">💡 Tip:</span>
+                            Notifications are completely optional. All deals are saved in-app regardless of notification settings.
                         </p>
                     </div>
                 </div>
@@ -485,7 +551,19 @@ function toggleAIFields() {
     if (config.modelHelp) document.getElementById('ai_model_help').textContent = config.modelHelp;
 }
 
-document.addEventListener('DOMContentLoaded', toggleAIFields);
+document.addEventListener('DOMContentLoaded', function() {
+    toggleAIFields();
+    toggleNotificationFields();
+});
+
+// Notification provider field toggling
+function toggleNotificationFields() {
+    const provider = document.getElementById('notification_provider').value;
+
+    document.getElementById('ntfy_sh_fields').classList.toggle('hidden', provider !== 'ntfy_sh');
+    document.getElementById('ntfy_self_fields').classList.toggle('hidden', provider !== 'ntfy_self');
+    document.getElementById('discord_fields').classList.toggle('hidden', provider !== 'discord');
+}
 
 // Test Notification Handler
 document.getElementById('test-notification-btn')?.addEventListener('click', async function() {
@@ -773,6 +851,15 @@ document.getElementById('settings-form').addEventListener('submit', async (e) =>
     const quietStart = form.notification_quiet_hours_start.value;
     const quietEnd = form.notification_quiet_hours_end.value;
 
+    // Get notification topic from the appropriate field based on provider
+    const notifProvider = form.notification_provider.value;
+    let ntfyTopic = null;
+    if (notifProvider === 'ntfy_sh') {
+        ntfyTopic = document.getElementById('notification_ntfy_topic_sh').value || null;
+    } else if (notifProvider === 'ntfy_self') {
+        ntfyTopic = document.getElementById('notification_ntfy_topic_self').value || null;
+    }
+
     const data = {
         home_airport: primaryHomeAirport,
         home_airports: homeAirports,
@@ -780,6 +867,10 @@ document.getElementById('settings-form').addEventListener('submit', async (e) =>
         watched_destinations: watchedDests,
         preferred_currency: form.preferred_currency.value,
         notifications_enabled: form.notifications_enabled.checked,
+        notification_provider: notifProvider,
+        notification_ntfy_url: form.notification_ntfy_url?.value || null,
+        notification_ntfy_topic: ntfyTopic,
+        notification_discord_webhook: form.notification_discord_webhook?.value || null,
         notification_quiet_hours_start: quietStart ? parseInt(quietStart) : null,
         notification_quiet_hours_end: quietEnd ? parseInt(quietEnd) : null,
         notification_cooldown_minutes: parseInt(form.notification_cooldown_minutes.value) || 60,

@@ -17,6 +17,10 @@ depends_on = None
 
 def upgrade() -> None:
     # Add notification preference columns to user_settings
+    op.add_column('user_settings', sa.Column('notification_provider', sa.String(20), nullable=True, server_default='none'))
+    op.add_column('user_settings', sa.Column('notification_ntfy_url', sa.String(200), nullable=True))
+    op.add_column('user_settings', sa.Column('notification_ntfy_topic', sa.String(100), nullable=True))
+    op.add_column('user_settings', sa.Column('notification_discord_webhook', sa.String(300), nullable=True))
     op.add_column('user_settings', sa.Column('notification_quiet_hours_start', sa.Integer(), nullable=True))
     op.add_column('user_settings', sa.Column('notification_quiet_hours_end', sa.Integer(), nullable=True))
     op.add_column('user_settings', sa.Column('notification_cooldown_minutes', sa.Integer(), nullable=True, server_default='60'))
@@ -28,3 +32,7 @@ def downgrade() -> None:
     op.drop_column('user_settings', 'notification_cooldown_minutes')
     op.drop_column('user_settings', 'notification_quiet_hours_end')
     op.drop_column('user_settings', 'notification_quiet_hours_start')
+    op.drop_column('user_settings', 'notification_discord_webhook')
+    op.drop_column('user_settings', 'notification_ntfy_topic')
+    op.drop_column('user_settings', 'notification_ntfy_url')
+    op.drop_column('user_settings', 'notification_provider')

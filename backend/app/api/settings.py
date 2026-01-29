@@ -32,6 +32,10 @@ class SettingsUpdate(BaseModel):
     watched_regions: Optional[list[str]] = None
     preferred_currency: Optional[str] = None
     notifications_enabled: Optional[bool] = None
+    notification_provider: Optional[str] = None
+    notification_ntfy_url: Optional[str] = None
+    notification_ntfy_topic: Optional[str] = None
+    notification_discord_webhook: Optional[str] = None
     notification_min_discount_percent: Optional[int] = None
     notification_quiet_hours_start: Optional[int] = None
     notification_quiet_hours_end: Optional[int] = None
@@ -56,6 +60,10 @@ class SettingsResponse(BaseModel):
     watched_regions: list[str]
     preferred_currency: str
     notifications_enabled: bool
+    notification_provider: str = "none"
+    notification_ntfy_url: Optional[str] = None
+    notification_ntfy_topic: Optional[str] = None
+    notification_discord_webhook: Optional[str] = None
     notification_min_discount_percent: int
     notification_quiet_hours_start: Optional[int] = None
     notification_quiet_hours_end: Optional[int] = None
@@ -89,6 +97,10 @@ async def get_settings(db: Session = Depends(get_db)):
         watched_regions=settings.watched_regions or [],
         preferred_currency=settings.preferred_currency or "NZD",
         notifications_enabled=settings.notifications_enabled,
+        notification_provider=settings.notification_provider or "none",
+        notification_ntfy_url=settings.notification_ntfy_url,
+        notification_ntfy_topic=settings.notification_ntfy_topic,
+        notification_discord_webhook=mask_api_key(settings.notification_discord_webhook),
         notification_min_discount_percent=settings.notification_min_discount_percent,
         notification_quiet_hours_start=settings.notification_quiet_hours_start,
         notification_quiet_hours_end=settings.notification_quiet_hours_end,
@@ -129,6 +141,14 @@ async def update_settings(
         settings.preferred_currency = updates.preferred_currency.upper().strip()
     if updates.notifications_enabled is not None:
         settings.notifications_enabled = updates.notifications_enabled
+    if updates.notification_provider is not None:
+        settings.notification_provider = updates.notification_provider
+    if updates.notification_ntfy_url is not None:
+        settings.notification_ntfy_url = updates.notification_ntfy_url.strip() if updates.notification_ntfy_url else None
+    if updates.notification_ntfy_topic is not None:
+        settings.notification_ntfy_topic = updates.notification_ntfy_topic.strip() if updates.notification_ntfy_topic else None
+    if updates.notification_discord_webhook is not None and not updates.notification_discord_webhook.startswith("*"):
+        settings.notification_discord_webhook = updates.notification_discord_webhook.strip() if updates.notification_discord_webhook else None
     if updates.notification_min_discount_percent is not None:
         settings.notification_min_discount_percent = updates.notification_min_discount_percent
     if updates.notification_quiet_hours_start is not None:
@@ -178,6 +198,10 @@ async def update_settings(
         watched_regions=settings.watched_regions or [],
         preferred_currency=settings.preferred_currency or "NZD",
         notifications_enabled=settings.notifications_enabled,
+        notification_provider=settings.notification_provider or "none",
+        notification_ntfy_url=settings.notification_ntfy_url,
+        notification_ntfy_topic=settings.notification_ntfy_topic,
+        notification_discord_webhook=mask_api_key(settings.notification_discord_webhook),
         notification_min_discount_percent=settings.notification_min_discount_percent,
         notification_quiet_hours_start=settings.notification_quiet_hours_start,
         notification_quiet_hours_end=settings.notification_quiet_hours_end,
