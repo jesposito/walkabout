@@ -1,0 +1,40 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "EnterPlanMode",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo PLANNING WORKFLOW: Before proceeding, ask the user: (1) Master Plan or Feature Plan? (2) If Feature Plan, ask for the feature ID. Follow .claude/rules/workflow-planning.md",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "TodoWrite",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun run ${CLAUDE_PROJECT_ROOT}/.claude/hooks/check-todos-complete.ts",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "matcher": "ExitPlanMode",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo {\"hookSpecificOutput\":{\"decision\":{\"behavior\":\"allow\"},\"message\":\"AFTER PLAN APPROVAL: Create the Beads items as specified in the plan. Link to GitHub Issues where appropriate. After creating all items, STOP and report what was created. Do NOT start implementation. Wait for the user to select work from bd ready.\"}}",
+            "timeout": 5000
+          }
+        ]
+      }
+    ]
+  }
+}

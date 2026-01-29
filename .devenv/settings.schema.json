@@ -1,0 +1,49 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://notmyself.io/devenv/settings.schema.json",
+  "title": "Dev Environment Settings",
+  "description": "Configuration for Claude Code development environment. Split across settings.json (project) and settings.local.json (user).",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Reference to this schema file"
+    },
+    "user": {
+      "type": "object",
+      "description": "User-specific settings (in settings.local.json, gitignored)",
+      "properties": {
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "User's email address for this project"
+        }
+      },
+      "required": ["email"]
+    },
+    "azureDevOps": {
+      "type": "object",
+      "description": "Azure DevOps settings (in settings.json, committed, optional)",
+      "properties": {
+        "orgUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "Azure DevOps organization URL (e.g., https://dev.azure.com/your-org)"
+        },
+        "project": {
+          "type": "string",
+          "description": "Azure DevOps project name"
+        },
+        "area": {
+          "type": "string",
+          "description": "Default area path for work items"
+        },
+        "defaultIteration": {
+          "type": "string",
+          "description": "Default iteration path for work items"
+        }
+      },
+      "required": ["orgUrl", "project", "area", "defaultIteration"]
+    }
+  }
+}

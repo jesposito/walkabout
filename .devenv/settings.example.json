@@ -1,0 +1,9 @@
+{
+  "$schema": "./settings.schema.json",
+  "azureDevOps": {
+    "orgUrl": "https://dev.azure.com/your-org",
+    "project": "Your Project",
+    "area": "Your Area",
+    "defaultIteration": "Your Project"
+  }
+}
