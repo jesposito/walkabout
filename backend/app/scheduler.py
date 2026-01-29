@@ -21,6 +21,7 @@ from app.services.scraping_service import ScrapingService
 from app.services.trip_plan_search import TripPlanSearchService
 from app.services.deal_rating import rate_unrated_deals
 from app.config import get_settings
+import os
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -35,37 +36,41 @@ def get_scheduler() -> AsyncIOScheduler:
     """Get or create the global scheduler instance."""
     global scheduler
     if scheduler is None:
+        # Get timezone from TZ environment variable, default to UTC
+        tz = os.environ.get('TZ', 'UTC')
+        logger.info(f"Scheduler using timezone: {tz}")
+
         # Create scheduler with memory jobstore (simple for Phase 1a)
         scheduler = AsyncIOScheduler(
             jobstores={'default': MemoryJobStore()},
-            timezone='Pacific/Auckland'  # NZ timezone
+            timezone=tz
         )
-        
+
         # Add scheduled jobs
         _setup_scheduled_jobs()
-        
+
     return scheduler
 
 
 def _setup_scheduled_jobs():
     """Setup the scheduled scraping jobs."""
     
-    # Morning scrape (6:30 AM NZT)
+    # Morning scrape (6:30 AM local time)
     scheduler.add_job(
         scrape_all_active_definitions,
         trigger=CronTrigger(hour=6, minute=30),
         id='morning_scrape',
-        name='Morning Scrape (6:30 AM NZT)',
+        name='Morning Scrape (6:30 AM)',
         replace_existing=True,
         max_instances=1,
     )
-    
-    # Evening scrape (6:30 PM NZT)  
+
+    # Evening scrape (6:30 PM local time)
     scheduler.add_job(
         scrape_all_active_definitions,
         trigger=CronTrigger(hour=18, minute=30),
         id='evening_scrape',
-        name='Evening Scrape (6:30 PM NZT)',
+        name='Evening Scrape (6:30 PM)',
         replace_existing=True,
         max_instances=1,
     )
@@ -98,8 +103,8 @@ def _setup_scheduled_jobs():
     )
     
     logger.info("Scheduled jobs configured:")
-    logger.info("  - Morning scrape: 6:30 AM NZT daily")
-    logger.info("  - Evening scrape: 6:30 PM NZT daily") 
+    logger.info("  - Morning scrape: 6:30 AM daily (local time)")
+    logger.info("  - Evening scrape: 6:30 PM daily (local time)")
     logger.info("  - Health check: Every hour")
     logger.info("  - Trip Plan search: Every 6 hours")
     logger.info("  - Deal rating: Every 2 hours")
