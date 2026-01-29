@@ -1,20 +1,24 @@
 # Walkabout
 
-**Personal Flight Deal Hub** - A self-hosted dashboard that aggregates flight deals, tracks award availability, and monitors prices for your specific routes.
+**Personal Flight Deal Intelligence Platform** - A self-hosted dashboard that aggregates flight deals, tracks prices, and monitors award availability for your specific routes.
 
 ```
 Your flight intelligence, your data, your server.
 ```
 
-## What It Does
+## The Vision
 
-| Feature | Description |
-|---------|-------------|
-| **Deal Aggregator** | Pulls deals from Secret Flying, OMAAT, TPG and filters for your home airport |
-| **Award Monitor** | Tracks points availability via Seats.aero for partner programs |
-| **Price Tracker** | Monitors your specific routes with historical context |
-| **Smart Alerts** | Notifications via ntfy when deals match your criteria |
-| **Similar Destinations** | "You want Fiji? Rarotonga is 40% cheaper right now" |
+Flight deal hunting is fragmented: deals are scattered across dozens of blogs, Google Flights lacks historical context, and award availability requires manual checking. For families planning 1-2 international trips per year, it's exhausting.
+
+**Walkabout solves this with three pillars:**
+
+| Pillar | Description |
+|--------|-------------|
+| **Deal Aggregator** | Unified feed from Secret Flying, OMAAT, TPG, etc., filtered to YOUR home airports |
+| **Price Tracker** | Historical context for YOUR routes ("Is $800 AKL→LAX actually good?") |
+| **Award Monitor** | Track points availability via Seats.aero (Phase 2) |
+
+**Target User:** NZ-based families planning trips from AKL/CHC/WLG with school holiday constraints, comfortable self-hosting on Unraid/Docker.
 
 ## Why Not Just Use Google Flights Alerts?
 
@@ -23,8 +27,44 @@ Google is great for what it does. Walkabout fills the gaps:
 - **Aggregated deal feeds** - One place for Secret Flying, OMAAT, TPG, etc.
 - **Award flight tracking** - Points availability that Google doesn't show
 - **Your historical context** - "Is this actually a good price for MY route?"
-- **Destination flexibility** - Similar/alternative destination suggestions
 - **Self-hosted** - Your data stays on your server
+
+## Current State (Phase 1a - "Prove Ingestion")
+
+The app is a **single-container FastAPI monolith** focused on reliable data acquisition:
+
+| Component | Status |
+|-----------|--------|
+| Deal RSS Aggregation | ✅ 12+ sources (Secret Flying, OMAAT, TPG, regional) |
+| AI Deal Parsing | ✅ Optional Claude API enhancement |
+| Google Flights Scraper | ✅ Playwright with stealth mode |
+| Robust Price Analysis | ✅ Median/MAD z-scores + new low detection |
+| Scrape Health & Circuit Breaker | ✅ Failure classification, auto-recovery |
+| Trip Plans (Flexible Search) | ✅ Multi-origin/dest, budget constraints |
+| ntfy Notifications | ✅ Deal alerts, system alerts |
+| Server-rendered UI | ✅ Jinja2 templates with light/dark mode |
+| Deal Scoring/Rating | ✅ Market price comparison |
+| Discord Hall of Fame | ✅ Automated deal sharing |
+
+**Tech Stack:** FastAPI + PostgreSQL + Playwright + APScheduler + ntfy
+
+### What's Deferred (Phase 1b+)
+
+- TimescaleDB (time-series optimization)
+- Celery + Redis (distributed jobs)
+- React SPA frontend
+- Seats.aero award tracking
+- Calendar heatmaps
+- Multi-user support
+
+### Architecture Philosophy
+
+From Oracle Review feedback, deliberate choices were made:
+
+- **Tighten MVP** around "reliable ingestion + alerts + minimal UI" before adding complexity
+- **Rules detect, AI explains** - cheap math first, AI only when thresholds crossed
+- **Single container** until complexity is needed
+- **ScrapeHealth as first-class entity** - scraping is fragile, so track it properly
 
 ## Quick Start (Unraid)
 
@@ -40,7 +80,7 @@ cp .env.example .env
 # Edit .env with your settings
 
 # Start
-docker-compose -f docker-compose.single.yml up -d
+docker-compose -f docker-compose.phase1a.yml up -d
 ```
 
 2. **Open the dashboard**: `http://your-server:8080`
@@ -54,12 +94,13 @@ docker-compose -f docker-compose.single.yml up -d
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `HOME_AIRPORT` | Your departure airport (IATA code) | `AKL` |
-| `WATCHED_DESTINATIONS` | Comma-separated destinations | `SYD,NAN,HNL,TYO` |
+| `DATABASE_URL` | PostgreSQL connection string | - |
 | `TZ` | Your timezone | `Pacific/Auckland` |
-| `NOTIFICATION_URL` | ntfy/webhook URL for alerts | - |
-| `SEATS_AERO_API_KEY` | For award flight monitoring | - |
-| `DEAL_THRESHOLD_PERCENT` | Alert on deals this % below average | `20` |
+| `NTFY_URL` | ntfy server URL for alerts | `http://localhost:8080` |
+| `NTFY_TOPIC` | ntfy topic name | `walkabout-deals` |
+| `ANTHROPIC_API_KEY` | For AI deal parsing (optional) | - |
+| `DEAL_THRESHOLD_Z_SCORE` | Alert threshold (robust z-score) | `-1.5` |
+| `SEATS_AERO_API_KEY` | For award monitoring (Phase 2) | - |
 
 ## Architecture
 
@@ -67,17 +108,20 @@ Single container, simple stack:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    walkabout (single container)             │
+│              Walkabout Phase 1a Stack                       │
 ├─────────────────────────────────────────────────────────────┤
-│  FastAPI        │  APScheduler      │  SQLite               │
-│  (API + UI)     │  (background jobs)│  (all data)           │
-├─────────────────────────────────────────────────────────────┤
-│  Services:                                                  │
-│  - Feed Aggregator (RSS from deal sites)                    │
-│  - Award Monitor (Seats.aero API)                           │
-│  - Price Tracker (Amadeus/Skyscanner)                       │
-│  - Deal Matcher (your routes + preferences)                 │
-│  - Notifier (ntfy/webhook)                                  │
+│                                                             │
+│  FastAPI Backend (Python)                                   │
+│  ├─ Route Handlers (deals, status, health, notifications)  │
+│  ├─ Scraping Service (Google Flights via Playwright)       │
+│  ├─ Price Analyzer (robust z-score + new lows)             │
+│  ├─ Deal Feed Aggregator (RSS parsing)                     │
+│  ├─ APScheduler (background jobs)                          │
+│  └─ Notification Service (ntfy integration)                │
+│                                                             │
+│  Database: PostgreSQL + SQLAlchemy ORM                      │
+│  Files: Screenshots & HTML snapshots for debugging          │
+│                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -88,15 +132,16 @@ Single container, simple stack:
 - One Mile at a Time - deals RSS
 - The Points Guy - deals section
 - Australian Frequent Flyer - covers NZ routes
-
-### Award Availability
-- **Seats.aero** ($10/mo Pro subscription)
-- Tracks: United, Aeroplan, Qantas FF, Velocity
-- Note: Does NOT track Airpoints directly, but partner programs can book Air NZ metal
+- Holiday Pirates, Ozbargain, Cheapies NZ (regional)
 
 ### Price Data
+- Google Flights (via Playwright scraper)
 - Amadeus API (free tier)
-- Skyscanner via RapidAPI (free tier)
+- SerpAPI fallback
+
+### Award Availability (Phase 2)
+- **Seats.aero** ($10/mo Pro subscription)
+- Tracks: United, Aeroplan, Qantas FF, Velocity
 
 ## Documentation
 
@@ -104,12 +149,13 @@ Single container, simple stack:
 - [Architecture](docs/ARCHITECTURE.md) - Data model and technical design
 - [UX Design](docs/UX_DESIGN.md) - User flows and interface design
 - [Implementation Plan](docs/IMPLEMENTATION_PLAN.md) - Phased build approach
+- [Oracle Review](docs/ORACLE_REVIEW.md) - Critical feedback and responses
 
 ## Development
 
 ```bash
-# Run with mock data (no API calls)
-MOCK_MODE=true docker-compose up
+# Run with docker-compose
+docker-compose -f docker-compose.phase1a.yml up -d
 
 # Run tests
 docker-compose exec backend pytest
@@ -121,8 +167,6 @@ docker-compose logs -f backend
 ## Unraid Installation
 
 See [UNRAID_DEPLOYMENT.md](UNRAID_DEPLOYMENT.md) for detailed Unraid setup instructions.
-
-Template available in `unraid/walkabout-template.xml`.
 
 ## License
 
