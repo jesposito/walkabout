@@ -30,7 +30,11 @@ class UserSettings(Base):
     
     notifications_enabled = Column(Boolean, default=False)
     notification_min_discount_percent = Column(Integer, default=20)
-    
+    notification_quiet_hours_start = Column(Integer, nullable=True)  # Hour 0-23, e.g., 22 for 10 PM
+    notification_quiet_hours_end = Column(Integer, nullable=True)    # Hour 0-23, e.g., 7 for 7 AM
+    notification_cooldown_minutes = Column(Integer, default=60)      # Min time between notifications
+    timezone = Column(String(50), default="Pacific/Auckland")
+
     last_notified_deal_id = Column(Integer, nullable=True)
     
     created_at = Column(DateTime, server_default=func.now())

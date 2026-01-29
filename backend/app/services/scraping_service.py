@@ -10,6 +10,7 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 
 from app.models import SearchDefinition, ScrapeHealth, FlightPrice
+from app.models.user_settings import UserSettings
 from app.scrapers.google_flights import GoogleFlightsScraper, ScrapeResult, FlightResult
 from app.services.flight_price_fetcher import FlightPriceFetcher
 from app.services.price_analyzer import PriceAnalyzer
@@ -186,14 +187,18 @@ class ScrapingService:
                 
                 if analysis.is_deal:
                     logger.info(f"🎉 Deal detected: {search_def.display_name} - ${best_price.price_nzd} ({analysis.reason})")
-                    
+
+                    # Get user settings for notification preferences
+                    user_settings = UserSettings.get_or_create(self.db)
+
                     # Send notification
                     await self.notifier.send_deal_alert(
                         search_def=search_def,
                         price=price_record,
-                        analysis=analysis
+                        analysis=analysis,
+                        user_settings=user_settings,
                     )
-                    
+
                     deals_found.append(analysis)
         
         if deals_found:

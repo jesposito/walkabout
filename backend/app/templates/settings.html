@@ -306,7 +306,8 @@
                 </div>
             </div>
 
-            <div class="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm opacity-60">
+            <!-- Notifications Section -->
+            <div class="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">
                 <div class="flex items-start gap-4 mb-6">
                     <div class="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
                         <svg class="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -315,23 +316,117 @@
                     </div>
                     <div>
                         <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Notifications</h2>
-                        <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">Coming soon — get push alerts for hot deals</p>
+                        <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">Get push alerts for hot deals via ntfy</p>
                     </div>
                 </div>
-                
-                <div class="flex items-center justify-between">
-                    <div>
-                        <span class="text-sm font-medium text-slate-400">Push Notifications</span>
-                        <p class="text-xs text-slate-600">Not yet implemented</p>
+
+                <div class="space-y-6">
+                    <!-- Enable/Disable Toggle -->
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <span class="text-sm font-medium text-slate-900 dark:text-white">Push Notifications</span>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Receive alerts when deals are found</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="notifications_enabled" name="notifications_enabled"
+                                   {% if settings.notifications_enabled %}checked{% endif %}
+                                   class="sr-only peer">
+                            <div class="w-11 h-6 bg-slate-300 dark:bg-slate-700 rounded-full peer
+                                        peer-checked:bg-amber-500 peer-focus:ring-2 peer-focus:ring-amber-300
+                                        after:content-[''] after:absolute after:top-[2px] after:left-[2px]
+                                        after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all
+                                        peer-checked:after:translate-x-full"></div>
+                        </label>
                     </div>
-                    <label class="relative inline-flex items-center cursor-not-allowed">
-                        <input type="checkbox" id="notifications_enabled" name="notifications_enabled" disabled
-                               {% if settings.notifications_enabled %}checked{% endif %}
-                               class="sr-only peer">
-                        <div class="w-11 h-6 bg-slate-700 rounded-full peer peer-checked:bg-slate-600
-                                    after:content-[''] after:absolute after:top-[2px] after:left-[2px] 
-                                    after:bg-slate-500 after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
-                    </label>
+
+                    <!-- Test Notification Button -->
+                    <div class="flex items-center gap-4">
+                        <button type="button" id="test-notification-btn"
+                                class="px-4 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400
+                                       font-medium rounded-lg border border-amber-500/20 transition-colors flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                            </svg>
+                            Send Test
+                        </button>
+                        <span id="test-notification-status" class="text-sm text-slate-500"></span>
+                    </div>
+
+                    <!-- Timezone -->
+                    <div>
+                        <label for="timezone" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            Timezone
+                        </label>
+                        <select id="timezone" name="timezone"
+                                class="w-full max-w-xs px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white
+                                       focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent">
+                            <option value="Pacific/Auckland" {% if (settings.timezone or 'Pacific/Auckland') == 'Pacific/Auckland' %}selected{% endif %}>Pacific/Auckland (NZST)</option>
+                            <option value="Pacific/Chatham" {% if settings.timezone == 'Pacific/Chatham' %}selected{% endif %}>Pacific/Chatham</option>
+                            <option value="Australia/Sydney" {% if settings.timezone == 'Australia/Sydney' %}selected{% endif %}>Australia/Sydney (AEST)</option>
+                            <option value="Australia/Melbourne" {% if settings.timezone == 'Australia/Melbourne' %}selected{% endif %}>Australia/Melbourne</option>
+                            <option value="Australia/Brisbane" {% if settings.timezone == 'Australia/Brisbane' %}selected{% endif %}>Australia/Brisbane</option>
+                            <option value="Australia/Perth" {% if settings.timezone == 'Australia/Perth' %}selected{% endif %}>Australia/Perth (AWST)</option>
+                            <option value="Asia/Singapore" {% if settings.timezone == 'Asia/Singapore' %}selected{% endif %}>Asia/Singapore</option>
+                            <option value="Asia/Tokyo" {% if settings.timezone == 'Asia/Tokyo' %}selected{% endif %}>Asia/Tokyo (JST)</option>
+                            <option value="Europe/London" {% if settings.timezone == 'Europe/London' %}selected{% endif %}>Europe/London (GMT)</option>
+                            <option value="America/Los_Angeles" {% if settings.timezone == 'America/Los_Angeles' %}selected{% endif %}>America/Los Angeles (PT)</option>
+                            <option value="America/New_York" {% if settings.timezone == 'America/New_York' %}selected{% endif %}>America/New York (ET)</option>
+                        </select>
+                        <p class="mt-2 text-xs text-slate-500">Used for quiet hours calculation</p>
+                    </div>
+
+                    <!-- Quiet Hours -->
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            Quiet Hours <span class="text-slate-400 font-normal">(optional)</span>
+                        </label>
+                        <div class="flex items-center gap-3">
+                            <select id="notification_quiet_hours_start" name="notification_quiet_hours_start"
+                                    class="px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white
+                                           focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent">
+                                <option value="">Off</option>
+                                {% for h in range(24) %}
+                                <option value="{{ h }}" {% if settings.notification_quiet_hours_start == h %}selected{% endif %}>{{ '%02d:00'|format(h) }}</option>
+                                {% endfor %}
+                            </select>
+                            <span class="text-slate-500">to</span>
+                            <select id="notification_quiet_hours_end" name="notification_quiet_hours_end"
+                                    class="px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white
+                                           focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent">
+                                <option value="">Off</option>
+                                {% for h in range(24) %}
+                                <option value="{{ h }}" {% if settings.notification_quiet_hours_end == h %}selected{% endif %}>{{ '%02d:00'|format(h) }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <p class="mt-2 text-xs text-slate-500">No notifications during these hours (e.g., 22:00 to 07:00)</p>
+                    </div>
+
+                    <!-- Cooldown -->
+                    <div>
+                        <label for="notification_cooldown_minutes" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            Cooldown Period
+                        </label>
+                        <select id="notification_cooldown_minutes" name="notification_cooldown_minutes"
+                                class="w-full max-w-xs px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white
+                                       focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent">
+                            <option value="30" {% if (settings.notification_cooldown_minutes or 60) == 30 %}selected{% endif %}>30 minutes</option>
+                            <option value="60" {% if (settings.notification_cooldown_minutes or 60) == 60 %}selected{% endif %}>1 hour</option>
+                            <option value="120" {% if settings.notification_cooldown_minutes == 120 %}selected{% endif %}>2 hours</option>
+                            <option value="360" {% if settings.notification_cooldown_minutes == 360 %}selected{% endif %}>6 hours</option>
+                            <option value="720" {% if settings.notification_cooldown_minutes == 720 %}selected{% endif %}>12 hours</option>
+                            <option value="1440" {% if settings.notification_cooldown_minutes == 1440 %}selected{% endif %}>24 hours</option>
+                        </select>
+                        <p class="mt-2 text-xs text-slate-500">Minimum time between notifications for the same route</p>
+                    </div>
+
+                    <!-- ntfy Info -->
+                    <div class="bg-amber-50 dark:bg-amber-500/10 rounded-lg p-4 border border-amber-200 dark:border-amber-500/20">
+                        <p class="text-sm text-amber-700 dark:text-amber-300">
+                            <span class="font-medium">How to receive notifications:</span>
+                            Install the <a href="https://ntfy.sh/" target="_blank" class="underline">ntfy app</a> on your phone and subscribe to your Walkabout topic.
+                        </p>
+                    </div>
                 </div>
             </div>
 
@@ -391,6 +486,36 @@ function toggleAIFields() {
 }
 
 document.addEventListener('DOMContentLoaded', toggleAIFields);
+
+// Test Notification Handler
+document.getElementById('test-notification-btn')?.addEventListener('click', async function() {
+    const btn = this;
+    const status = document.getElementById('test-notification-status');
+    const originalText = btn.textContent;
+
+    btn.disabled = true;
+    btn.textContent = 'Sending...';
+
+    try {
+        const response = await fetch('/api/notifications/test', { method: 'POST' });
+        const data = await response.json();
+
+        if (data.success) {
+            status.className = 'text-sm text-emerald-500';
+            status.textContent = '✓ Test notification sent!';
+        } else {
+            status.className = 'text-sm text-amber-500';
+            status.textContent = '⚠ Sent to history (ntfy server not reachable)';
+        }
+    } catch (err) {
+        status.className = 'text-sm text-red-500';
+        status.textContent = '✗ Failed to send test notification';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Send Test';
+        setTimeout(() => { status.textContent = ''; }, 5000);
+    }
+});
 
 // --- Home Airport Logic ---
 const homeInput = document.getElementById('home_airport_search');
@@ -645,12 +770,20 @@ document.getElementById('settings-form').addEventListener('submit', async (e) =>
     // Fallback to single airport if none selected (should ideally have validation)
     const primaryHomeAirport = homeAirports.length > 0 ? homeAirports[0] : '';
     
+    const quietStart = form.notification_quiet_hours_start.value;
+    const quietEnd = form.notification_quiet_hours_end.value;
+
     const data = {
         home_airport: primaryHomeAirport,
         home_airports: homeAirports,
         home_region: form.home_region.value,
         watched_destinations: watchedDests,
         preferred_currency: form.preferred_currency.value,
+        notifications_enabled: form.notifications_enabled.checked,
+        notification_quiet_hours_start: quietStart ? parseInt(quietStart) : null,
+        notification_quiet_hours_end: quietEnd ? parseInt(quietEnd) : null,
+        notification_cooldown_minutes: parseInt(form.notification_cooldown_minutes.value) || 60,
+        timezone: form.timezone.value,
         anthropic_api_key: form.anthropic_api_key.value,
         serpapi_key: form.serpapi_key.value,
         skyscanner_api_key: form.skyscanner_api_key.value,

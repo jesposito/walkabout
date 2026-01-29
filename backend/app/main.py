@@ -8,7 +8,7 @@ import os
 from app.api import routes, prices, health, status, notifications, deals, trips
 from app.api import settings as settings_api
 from app.scheduler import start_scheduler, stop_scheduler
-from app.services.notification import InMemoryNotifier
+from app.services.notification import get_global_notifier, shutdown_notifier
 from app.config import get_settings
 from app.database import engine, Base, ensure_sqlite_columns
 from app.models import SearchDefinition, ScrapeHealth, FlightPrice, Route, Alert, Deal, FeedHealth, TripPlan, TripPlanMatch
@@ -37,26 +37,30 @@ async def lifespan(app: FastAPI):
         # Start the scheduler
         start_scheduler()
         logger.info("✅ APScheduler started")
-        
+
         # Send startup notification
-        notifier = InMemoryNotifier()
+        notifier = get_global_notifier()
         await notifier.send_startup_notification()
         logger.info("✅ Startup notification sent")
-        
+
     except Exception as e:
         logger.error(f"❌ Startup failed: {e}")
-    
+
     # Application is running
     yield
-    
+
     # Shutdown
     logger.info("🛑 Shutting down Walkabout")
-    
+
     try:
         # Stop scheduler
         stop_scheduler()
         logger.info("✅ APScheduler stopped")
-        
+
+        # Close notifier HTTP client
+        await shutdown_notifier()
+        logger.info("✅ Notifier shutdown")
+
     except Exception as e:
         logger.error(f"❌ Shutdown error: {e}")
 

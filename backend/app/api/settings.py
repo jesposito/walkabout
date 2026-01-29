@@ -33,6 +33,10 @@ class SettingsUpdate(BaseModel):
     preferred_currency: Optional[str] = None
     notifications_enabled: Optional[bool] = None
     notification_min_discount_percent: Optional[int] = None
+    notification_quiet_hours_start: Optional[int] = None
+    notification_quiet_hours_end: Optional[int] = None
+    notification_cooldown_minutes: Optional[int] = None
+    timezone: Optional[str] = None
     anthropic_api_key: Optional[str] = None
     serpapi_key: Optional[str] = None
     skyscanner_api_key: Optional[str] = None
@@ -53,6 +57,10 @@ class SettingsResponse(BaseModel):
     preferred_currency: str
     notifications_enabled: bool
     notification_min_discount_percent: int
+    notification_quiet_hours_start: Optional[int] = None
+    notification_quiet_hours_end: Optional[int] = None
+    notification_cooldown_minutes: int = 60
+    timezone: str = "Pacific/Auckland"
     anthropic_api_key: Optional[str] = None
     serpapi_key: Optional[str] = None
     skyscanner_api_key: Optional[str] = None
@@ -62,7 +70,7 @@ class SettingsResponse(BaseModel):
     ai_api_key: Optional[str] = None
     ai_ollama_url: Optional[str] = None
     ai_model: Optional[str] = None
-    
+
     class Config:
         from_attributes = True
 
@@ -82,6 +90,10 @@ async def get_settings(db: Session = Depends(get_db)):
         preferred_currency=settings.preferred_currency or "NZD",
         notifications_enabled=settings.notifications_enabled,
         notification_min_discount_percent=settings.notification_min_discount_percent,
+        notification_quiet_hours_start=settings.notification_quiet_hours_start,
+        notification_quiet_hours_end=settings.notification_quiet_hours_end,
+        notification_cooldown_minutes=settings.notification_cooldown_minutes or 60,
+        timezone=settings.timezone or "Pacific/Auckland",
         anthropic_api_key=mask_api_key(settings.anthropic_api_key),
         serpapi_key=mask_api_key(settings.serpapi_key),
         skyscanner_api_key=mask_api_key(settings.skyscanner_api_key),
@@ -119,7 +131,15 @@ async def update_settings(
         settings.notifications_enabled = updates.notifications_enabled
     if updates.notification_min_discount_percent is not None:
         settings.notification_min_discount_percent = updates.notification_min_discount_percent
-    
+    if updates.notification_quiet_hours_start is not None:
+        settings.notification_quiet_hours_start = updates.notification_quiet_hours_start
+    if updates.notification_quiet_hours_end is not None:
+        settings.notification_quiet_hours_end = updates.notification_quiet_hours_end
+    if updates.notification_cooldown_minutes is not None:
+        settings.notification_cooldown_minutes = updates.notification_cooldown_minutes
+    if updates.timezone is not None:
+        settings.timezone = updates.timezone.strip()
+
     # Handle API keys - only update if a new value is provided (not masked placeholder)
     if updates.anthropic_api_key is not None and not updates.anthropic_api_key.startswith("*"):
         settings.anthropic_api_key = updates.anthropic_api_key.strip() if updates.anthropic_api_key else None
@@ -159,6 +179,10 @@ async def update_settings(
         preferred_currency=settings.preferred_currency or "NZD",
         notifications_enabled=settings.notifications_enabled,
         notification_min_discount_percent=settings.notification_min_discount_percent,
+        notification_quiet_hours_start=settings.notification_quiet_hours_start,
+        notification_quiet_hours_end=settings.notification_quiet_hours_end,
+        notification_cooldown_minutes=settings.notification_cooldown_minutes or 60,
+        timezone=settings.timezone or "Pacific/Auckland",
         anthropic_api_key=mask_api_key(settings.anthropic_api_key),
         serpapi_key=mask_api_key(settings.serpapi_key),
         skyscanner_api_key=mask_api_key(settings.skyscanner_api_key),
