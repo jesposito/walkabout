@@ -1,6 +1,0 @@
-{
-  "$schema": "./settings.schema.json",
-  "user": {
-    "email": "your-email@company.com"
-  }
-}
