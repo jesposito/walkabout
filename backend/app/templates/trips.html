@@ -22,10 +22,10 @@
     {%- endmacro %}
 
     <!-- Header -->
-    <div class="bg-white/50 dark:bg-slate-100 dark:bg-slate-800/50 border-b border-slate-800">
+    <div class="bg-white/50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
         <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <h1 class="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Trip Plans</h1>
-            <p class="text-slate-600 dark:text-slate-600 dark:text-slate-400 mt-2">Tell us when you're free and where you want to go. We'll watch for deals that match.</p>
+            <p class="text-slate-600 dark:text-slate-400 mt-2">Tell us when you're free and where you want to go. We'll watch for deals that match.</p>
         </div>
     </div>
 
@@ -60,20 +60,20 @@
                     <div>
                         <label for="name" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Trip Name</label>
                         <input type="text" id="name" name="name" required
-                               class="w-full px-4 py-3 bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                               class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
                                placeholder="e.g. August Japan Trip">
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label for="budget_max" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Max Budget</label>
                             <input type="number" id="budget_max" name="budget_max" required
-                                   class="w-full px-4 py-3 bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                                   class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
                                    placeholder="2000">
                         </div>
                         <div>
                             <label for="budget_currency" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Currency</label>
                             <select id="budget_currency" name="budget_currency"
-                                    class="w-full px-4 py-3 bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
+                                    class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
                                 <option value="NZD">NZD</option>
                                 <option value="AUD">AUD</option>
                                 <option value="USD">USD</option>
@@ -90,24 +90,24 @@
                         <div>
                             <label for="available_from" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Earliest Departure</label>
                             <input type="date" id="available_from" name="available_from" required
-                                   class="w-full px-4 py-3 bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent [color-scheme:dark]">
+                                   class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent dark:[color-scheme:dark]">
                         </div>
                         <div>
                             <label for="available_to" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Latest Return</label>
                             <input type="date" id="available_to" name="available_to" required
-                                   class="w-full px-4 py-3 bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent [color-scheme:dark]">
+                                   class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent dark:[color-scheme:dark]">
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label for="trip_duration_min" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Min Days</label>
                             <input type="number" id="trip_duration_min" name="trip_duration_min" value="5" min="1"
-                                   class="w-full px-4 py-3 bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
+                                   class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
                         </div>
                         <div>
                             <label for="trip_duration_max" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Max Days</label>
                             <input type="number" id="trip_duration_max" name="trip_duration_max" value="14" min="1"
-                                   class="w-full px-4 py-3 bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
+                                   class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
                         </div>
                     </div>
                 </div>
@@ -118,12 +118,12 @@
                         <div>
                             <label for="travelers_adults" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Adults</label>
                             <input type="number" id="travelers_adults" name="travelers_adults" value="2" min="1" max="9"
-                                   class="w-full px-4 py-3 bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
+                                   class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
                         </div>
                         <div>
                             <label for="travelers_children" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Children</label>
                             <input type="number" id="travelers_children" name="travelers_children" value="0" min="0" max="9"
-                                   class="w-full px-4 py-3 bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
+                                   class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
                         </div>
                     </div>
                     <div class="flex items-end pb-1">
@@ -144,9 +144,9 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
                             </svg>
                         </div>
-                        <input type="text" id="origin_search" 
-                               class="w-full pl-11 pr-4 py-3 bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white 
-                                      placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 
+                        <input type="text" id="origin_search"
+                               class="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white
+                                      placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500
                                       focus:border-transparent font-sans transition-all"
                                placeholder="Search airport (e.g. Wellington, WLG)..."
                                autocomplete="off">
@@ -179,7 +179,7 @@
                         {% for type_code, type_label in types %}
                         <button type="button" 
                                 data-value="{{ type_code }}"
-                                class="destination-chip px-3 py-2 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-900 text-slate-600 dark:text-slate-400 text-sm font-medium transition-all hover:bg-slate-800 hover:border-slate-500">
+                                class="destination-chip px-3 py-2 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 text-sm font-medium transition-all hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500">
                             {{ type_label }}
                         </button>
                         {% endfor %}
@@ -201,9 +201,9 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                             </svg>
                         </div>
-                        <input type="text" id="destination_search" 
-                               class="w-full pl-11 pr-4 py-3 bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white 
-                                      placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-violet-500 
+                        <input type="text" id="destination_search"
+                               class="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white
+                                      placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-violet-500
                                       focus:border-transparent font-sans transition-all"
                                placeholder="Search by city or airport (e.g. Nadi, NAN)..."
                                autocomplete="off">
@@ -217,7 +217,7 @@
                 <div>
                     <label for="check_frequency_hours" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Check Frequency</label>
                     <select id="check_frequency_hours" name="check_frequency_hours"
-                            class="w-full md:w-1/3 px-4 py-3 bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
+                            class="w-full md:w-1/3 px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
                         <option value="6">Every 6 hours</option>
                         <option value="12" selected>Every 12 hours</option>
                         <option value="24">Daily</option>
@@ -233,11 +233,11 @@
                 <!-- Submit -->
                 <div class="pt-4 flex justify-end gap-3">
                     <button type="button" id="cancel-edit-btn" onclick="cancelEdit()" 
-                            class="hidden px-6 py-3 bg-slate-700 hover:bg-slate-600 text-slate-900 dark:text-white font-semibold rounded-lg transition-all">
+                            class="hidden px-6 py-3 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-white font-semibold rounded-lg transition-all">
                         Cancel
                     </button>
                     <button type="submit" id="submit-btn"
-                            class="px-6 py-3 bg-cyan-500 hover:bg-cyan-400 text-slate-900 dark:text-white font-semibold rounded-lg shadow-lg shadow-cyan-500/25 transition-all flex items-center gap-2">
+                            class="px-6 py-3 bg-cyan-500 hover:bg-cyan-400 text-white font-semibold rounded-lg shadow-lg shadow-cyan-500/25 transition-all flex items-center gap-2">
                         <svg id="submit-icon" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                         </svg>
@@ -359,7 +359,7 @@
                     <!-- Tags & Details -->
                     <div class="px-6 py-4 bg-slate-100 dark:bg-slate-800/50 flex flex-wrap gap-2">
                         {% for type in trip.destination_types %}
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-600">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600">
                             {{ get_vibes_label(type) }}
                         </span>
                         {% endfor %}
@@ -569,10 +569,10 @@
             if (selectedTypes.has(value)) {
                 selectedTypes.delete(value);
                 chip.classList.remove('bg-cyan-500/20', 'text-cyan-400', 'border-cyan-500/50');
-                chip.classList.add('bg-slate-900', 'text-slate-400', 'border-slate-700');
+                chip.classList.add('bg-white', 'dark:bg-slate-900', 'text-slate-400', 'border-slate-700');
             } else {
                 selectedTypes.add(value);
-                chip.classList.remove('bg-slate-900', 'text-slate-400', 'border-slate-700');
+                chip.classList.remove('bg-white', 'dark:bg-slate-900', 'text-slate-400', 'border-slate-700');
                 chip.classList.add('bg-cyan-500/20', 'text-cyan-400', 'border-cyan-500/50');
             }
             hiddenInput.value = Array.from(selectedTypes).join(',');
@@ -609,13 +609,13 @@
                             originDropdown.innerHTML = `<div class="px-4 py-3 text-sm text-slate-500 italic">Already added</div>`;
                         } else {
                             originDropdown.innerHTML = available.map(a => `
-                                <button type="button" class="w-full px-4 py-3 text-left hover:bg-slate-700 flex items-center justify-between group transition-colors border-b border-slate-200 dark:border-slate-700/50 last:border-0"
+                                <button type="button" class="w-full px-4 py-3 text-left hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-between group transition-colors border-b border-slate-200 dark:border-slate-700/50 last:border-0"
                                         onclick="addOrigin('${a.code}', '${a.city}')">
                                     <div class="flex flex-col">
                                         <span class="font-bold text-slate-900 dark:text-white group-hover:text-cyan-400 transition-colors">${a.city}</span>
                                         <span class="text-xs text-slate-400">${a.country}</span>
                                     </div>
-                                    <span class="font-mono text-sm font-bold text-slate-500 group-hover:text-slate-900 dark:text-white bg-slate-900 px-2 py-1 rounded">${a.code}</span>
+                                    <span class="font-mono text-sm font-bold text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white bg-slate-100 dark:bg-slate-900 px-2 py-1 rounded">${a.code}</span>
                                 </button>
                             `).join('');
                         }
@@ -700,14 +700,14 @@
                             destDropdown.innerHTML = `<div class="px-4 py-3 text-sm text-slate-500 italic">Already added</div>`;
                         } else {
                             destDropdown.innerHTML = available.map(a => `
-                                <button type="button" 
-                                        class="w-full px-4 py-3 text-left hover:bg-slate-700 flex items-center justify-between group transition-colors border-b border-slate-200 dark:border-slate-700/50 last:border-0"
+                                <button type="button"
+                                        class="w-full px-4 py-3 text-left hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-between group transition-colors border-b border-slate-200 dark:border-slate-700/50 last:border-0"
                                         onclick="addDestination('${a.code}', '${a.city}', '${a.country}')">
                                     <div class="flex flex-col">
                                         <span class="font-bold text-slate-900 dark:text-white group-hover:text-violet-400 transition-colors">${a.city}</span>
                                         <span class="text-xs text-slate-400">${a.country}</span>
                                     </div>
-                                    <span class="font-mono text-sm font-bold text-slate-500 group-hover:text-slate-900 dark:text-white bg-slate-900 px-2 py-1 rounded">${a.code}</span>
+                                    <span class="font-mono text-sm font-bold text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white bg-slate-100 dark:bg-slate-900 px-2 py-1 rounded">${a.code}</span>
                                 </button>
                             `).join('');
                         }
@@ -905,7 +905,7 @@
             selectedTypes.add(t);
             const chip = document.querySelector(`.destination-chip[data-value="${t}"]`);
             if (chip) {
-                chip.classList.remove('bg-slate-900', 'text-slate-400', 'border-slate-700');
+                chip.classList.remove('bg-white', 'dark:bg-slate-900', 'text-slate-400', 'border-slate-700');
                 chip.classList.add('bg-cyan-500/20', 'text-cyan-400', 'border-cyan-500/50');
             }
         });
@@ -936,7 +936,7 @@
         selectedTypes.clear();
         document.querySelectorAll('.destination-chip').forEach(chip => {
             chip.classList.remove('bg-cyan-500/20', 'text-cyan-400', 'border-cyan-500/50');
-            chip.classList.add('bg-slate-900', 'text-slate-400', 'border-slate-700');
+            chip.classList.add('bg-white', 'dark:bg-slate-900', 'text-slate-400', 'border-slate-700');
         });
         document.getElementById('destination_types_input').value = '';
     }
@@ -1094,7 +1094,7 @@
              grid.innerHTML = `
                 <div class="col-span-full text-center py-6">
                      <p class="text-sm text-slate-500 italic mb-3">No flights found matching criteria.</p>
-                     <button onclick="searchPrices(${tripId})" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-900 dark:text-white text-sm font-semibold rounded-lg transition-all inline-flex items-center gap-2">
+                     <button onclick="searchPrices(${tripId})" class="px-4 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-white text-sm font-semibold rounded-lg transition-all inline-flex items-center gap-2">
                         Try Again
                     </button>
                 </div>

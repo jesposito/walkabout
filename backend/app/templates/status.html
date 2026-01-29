@@ -3,7 +3,7 @@
 {% block content %}
 <div class="bg-slate-100 dark:bg-slate-900 min-h-full pb-12">
     <!-- Title Bar -->
-    <div class="bg-white/50 dark:bg-slate-100 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
+    <div class="bg-white/50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
@@ -44,15 +44,15 @@
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-slate-200 dark:border-slate-700/50">
                     <span class="text-slate-600 dark:text-slate-400">Next Scrape</span>
-                    <span class="font-mono text-slate-200">{{ scheduler.next_run or "Not scheduled" }}</span>
+                    <span class="font-mono text-slate-700 dark:text-slate-200">{{ scheduler.next_run or "Not scheduled" }}</span>
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-slate-200 dark:border-slate-700/50">
                     <span class="text-slate-600 dark:text-slate-400">Active Monitors</span>
-                    <span class="font-mono text-slate-200">{{ search_definitions|length }}</span>
+                    <span class="font-mono text-slate-700 dark:text-slate-200">{{ search_definitions|length }}</span>
                 </div>
                 <div class="flex justify-between items-center py-2">
                     <span class="text-slate-600 dark:text-slate-400">Total Prices</span>
-                    <span class="font-mono text-slate-200">{{ total_prices }}</span>
+                    <span class="font-mono text-slate-700 dark:text-slate-200">{{ total_prices }}</span>
                 </div>
             </div>
             <div class="mt-4 text-xs text-slate-500 font-mono text-right">Last updated: {{ current_time }}</div>
@@ -96,7 +96,7 @@
                 <div class="space-y-6">
                 {% for search_def in search_definitions %}
                     {% set health = health_data[search_def.id] %}
-                    <div class="bg-slate-900/50 rounded-lg p-5 border border-slate-700">
+                    <div class="bg-slate-100 dark:bg-slate-900/50 rounded-lg p-5 border border-slate-200 dark:border-slate-700">
                         <div class="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-3">
                             <h4 class="text-lg font-bold text-slate-900 dark:text-white">{{ search_def.display_name }}</h4>
                             <span class="px-2.5 py-1 rounded text-xs font-bold uppercase tracking-wide

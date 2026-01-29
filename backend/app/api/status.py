@@ -96,29 +96,6 @@ async def status_page(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse("status.html", template_vars)
 
 
-@router.post("/api/scrape/manual/{search_definition_id}")
-async def manual_scrape_single(search_definition_id: int, db: Session = Depends(get_db)):
-    """Manually trigger a scrape for a specific search definition."""
-    search_def = db.query(SearchDefinition).filter(
-        SearchDefinition.id == search_definition_id
-    ).first()
-    
-    if not search_def:
-        raise HTTPException(status_code=404, detail="Search definition not found")
-    
-    try:
-        success = await manual_scrape_definition(search_definition_id)
-        return {
-            "success": success,
-            "message": f"Scrape {'completed' if success else 'failed'} for {search_def.display_name}"
-        }
-    except Exception as e:
-        return {
-            "success": False,
-            "error": str(e)
-        }
-
-
 @router.post("/api/scrape/manual/all")
 async def manual_scrape_all(db: Session = Depends(get_db)):
     """Manually trigger scraping for all active search definitions."""
@@ -153,6 +130,29 @@ async def manual_scrape_all(db: Session = Depends(get_db)):
         "successes": successes,
         "failures": failures
     }
+
+
+@router.post("/api/scrape/manual/{search_definition_id}")
+async def manual_scrape_single(search_definition_id: int, db: Session = Depends(get_db)):
+    """Manually trigger a scrape for a specific search definition."""
+    search_def = db.query(SearchDefinition).filter(
+        SearchDefinition.id == search_definition_id
+    ).first()
+
+    if not search_def:
+        raise HTTPException(status_code=404, detail="Search definition not found")
+
+    try:
+        success = await manual_scrape_definition(search_definition_id)
+        return {
+            "success": success,
+            "message": f"Scrape {'completed' if success else 'failed'} for {search_def.display_name}"
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e)
+        }
 
 
 @router.post("/api/notifications/test")
