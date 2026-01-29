@@ -9,8 +9,8 @@ from alembic import op
 import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
-revision = '003_notification_preferences'
-down_revision = '002_oracle_review_models'
+revision = '003'
+down_revision = '002'
 branch_labels = None
 depends_on = None
 
