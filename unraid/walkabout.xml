@@ -1,0 +1,65 @@
+<?xml version="1.0"?>
+<Container version="2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://raw.githubusercontent.com/nwithan8/unraid_templates/main/templates/template_schema.xsd template_schema.xsd">
+    <Name>Walkabout</Name>
+    <Repository>ghcr.io/jesposito/walkabout/backend:latest</Repository>
+    <Registry>ghcr.io/jesposito/walkabout</Registry>
+    <Branch>
+        <Tag>latest</Tag>
+        <TagDescription>Latest stable release</TagDescription>
+    </Branch>
+    <Branch>
+        <Tag>dev</Tag>
+        <TagDescription>Development release</TagDescription>
+    </Branch>
+    <Network>bridge</Network>
+    <WebUI>http://[IP]:[PORT:8000]/</WebUI>
+    <Privileged>false</Privileged>
+    <Support>https://github.com/jesposito/walkabout/issues</Support>
+    <Project>https://github.com/jesposito/walkabout</Project>
+    <Overview>
+        Walkabout is a self-hosted flight deal monitoring system that tracks prices from Google Flights and alerts you to exceptional deals. &#xD;
+        &#xD;
+        Features: &#xD;
+        - Monitor routes from your home airports &#xD;
+        - Statistical deal detection (z-score analysis) &#xD;
+        - Push notifications via ntfy or Discord &#xD;
+        - Trip planning with date flexibility &#xD;
+        - Server-rendered dashboard (no JavaScript required) &#xD;
+        &#xD;
+        Requires a PostgreSQL database (use the official postgres:15 container). &#xD;
+        &#xD;
+        Created by Jed Esposito. Also check out Facet - a self-hosted personal profile platform: https://github.com/jesposito/Facet
+    </Overview>
+    <Beta>False</Beta>
+    <Category>Productivity: Tools: Other: Status:Stable</Category>
+    <ExtraSearchTerms>flight deals travel airfare price monitor google flights cheap flights airline deals trip planner notifications ntfy discord</ExtraSearchTerms>
+    <Icon>https://raw.githubusercontent.com/jesposito/walkabout/main/assets/icon.png</Icon>
+    <TemplateURL>https://raw.githubusercontent.com/jesposito/unraid_templates/main/templates/walkabout.xml</TemplateURL>
+    <Maintainer>
+        <WebPage>https://github.com/jesposito</WebPage>
+    </Maintainer>
+    <Requires>
+        Requires a PostgreSQL 15+ database container. Create the database before starting Walkabout.
+    </Requires>
+    <Changes>
+        ### 2026-01-30
+
+        Initial release
+    </Changes>
+    <Config Name="Web UI Port" Target="8000" Default="8000" Mode="tcp" Description="Container Port: 8000" Type="Port" Display="always-hide" Required="true" Mask="false">8000</Config>
+    <Config Name="Database URL" Target="DATABASE_URL" Default="postgresql://walkabout:password@postgres:5432/walkabout" Description="PostgreSQL connection string. Format: postgresql://user:password@host:port/database" Type="Variable" Display="always" Required="true" Mask="false">postgresql://walkabout:password@postgres:5432/walkabout</Config>
+    <Config Name="Public URL" Target="BASE_URL" Default="http://IP_ADDRESS:8000" Description="Public URL for Walkabout. Used for notification links." Type="Variable" Display="always" Required="true" Mask="false">http://IP_ADDRESS:8000</Config>
+    <Config Name="Timezone" Target="TZ" Default="Pacific/Auckland" Description="Timezone for scheduling and display" Type="Variable" Display="always" Required="true" Mask="false">Pacific/Auckland</Config>
+    <Config Name="Scheduler Enabled" Target="SCHEDULER_ENABLED" Default="true|false" Description="Enable automatic price scraping on schedule" Type="Variable" Display="always" Required="true" Mask="false"/>
+    <Config Name="Scrape Frequency (Hours)" Target="SCRAPE_FREQUENCY_HOURS" Default="12" Description="How often to check prices (in hours)" Type="Variable" Display="always" Required="true" Mask="false">12</Config>
+    <Config Name="Notifications - ntfy URL" Target="NTFY_URL" Default="" Description="Self-hosted ntfy server URL (e.g., http://ntfy:80). Leave empty if not using ntfy." Type="Variable" Display="always" Required="false" Mask="false"/>
+    <Config Name="Notifications - ntfy Topic" Target="NTFY_TOPIC" Default="walkabout-deals" Description="ntfy topic for deal alerts" Type="Variable" Display="always" Required="false" Mask="false">walkabout-deals</Config>
+    <Config Name="AI - Anthropic API Key" Target="ANTHROPIC_API_KEY" Default="" Description="API key for AI-powered deal descriptions (optional)" Type="Variable" Display="always" Required="false" Mask="true"/>
+    <Config Name="Seats.aero API Key" Target="SEATS_AERO_API_KEY" Default="" Description="API key for award flight tracking (optional)" Type="Variable" Display="always" Required="false" Mask="true"/>
+    <Config Name="Deal Detection - Z-Score Threshold" Target="DEAL_THRESHOLD_Z_SCORE" Default="-1.5" Description="Statistical threshold for deal alerts. Lower = more selective. Recommended: -1.5 to -2.0" Type="Variable" Display="advanced" Required="true" Mask="false">-1.5</Config>
+    <Config Name="Deal Detection - Min History" Target="MIN_HISTORY_FOR_ANALYSIS" Default="10" Description="Minimum price samples needed before deal detection activates" Type="Variable" Display="advanced" Required="true" Mask="false">10</Config>
+    <Config Name="App Data" Target="/app/data" Default="/mnt/user/appdata/walkabout/data" Description="Path to app data (screenshots, snapshots)" Type="Path" Display="advanced-hide" Required="true" Mask="false">/mnt/user/appdata/walkabout/data</Config>
+    <Config Name="Environment" Target="ENV" Default="prod|dev" Description="Environment mode. Use 'prod' for production." Type="Variable" Display="advanced-hide" Required="true" Mask="false"/>
+    <Config Name="PUID" Target="PUID" Default="099" Description="" Type="Variable" Display="advanced" Required="true" Mask="false">099</Config>
+    <Config Name="PGID" Target="PGID" Default="100" Description="" Type="Variable" Display="advanced" Required="true" Mask="false">100</Config>
+</Container>
