@@ -1,12 +1,17 @@
 import asyncio
 import random
 import os
+import logging
 from datetime import date, datetime
 from decimal import Decimal
 from dataclasses import dataclass, field
 from typing import List, Optional, Literal
 from pathlib import Path
 from playwright.async_api import async_playwright, Page, Browser, TimeoutError as PlaywrightTimeout
+
+from app.scrapers.extractors import UnifiedExtractor, PriceExtractor
+
+logger = logging.getLogger(__name__)
 
 
 # Failure reason classification
@@ -311,18 +316,18 @@ class GoogleFlightsScraper:
                     duration_ms=int((datetime.utcnow() - start_time).total_seconds() * 1000)
                 )
             
-            # Wait for flight results to load - try multiple selectors
-            price_selector_used = None
-            for selector in self.PRICE_SELECTORS:
+            # Wait for page to have content - try primary selectors first
+            page_ready = False
+            for selector in self.PRICE_SELECTORS[:3]:  # Try top 3 selectors
                 try:
                     await page.wait_for_selector(selector, timeout=5000)
-                    price_selector_used = selector
+                    page_ready = True
                     break
                 except PlaywrightTimeout:
                     continue
-            
-            if not price_selector_used:
-                # None of our selectors worked - check if no results or layout change
+
+            if not page_ready:
+                # Check if it's a no-results page vs layout change
                 no_flights_indicators = [
                     "no flights found",
                     "no matching flights",
@@ -330,80 +335,56 @@ class GoogleFlightsScraper:
                     "we couldn't find",
                 ]
                 content = (await page.content()).lower()
-                
+
                 if any(indicator in content for indicator in no_flights_indicators):
                     return ScrapeResult(
                         status="no_results",
                         error_message="No flights found for this route/date combination",
                         duration_ms=int((datetime.utcnow() - start_time).total_seconds() * 1000)
                     )
-                else:
-                    # Likely a layout change if no selector worked
-                    screenshot_path, html_path = await self._save_failure_artifacts(
-                        page, search_definition_id, "layout_change"
-                    )
-                    return ScrapeResult(
-                        status="layout_change",
-                        error_message=f"Expected price elements not found (tried {len(self.PRICE_SELECTORS)} selectors) - Google may have changed page structure",
-                        screenshot_path=screenshot_path,
-                        html_snapshot_path=html_path,
-                        duration_ms=int((datetime.utcnow() - start_time).total_seconds() * 1000)
-                    )
-            
-            # Parse price elements using the selector that worked
-            price_elements = await page.query_selector_all(price_selector_used)
-            
-            import re
-            seen_prices = set()  # Deduplicate
-            
-            for element in price_elements[:30]:  # Check more elements for better coverage
-                try:
-                    # Try inner_text first, then aria-label as fallback
-                    price_text = await element.inner_text()
-                    
-                    # Also check aria-label which often contains the price
-                    aria_label = await element.get_attribute("aria-label")
-                    if aria_label:
-                        price_text = f"{price_text} {aria_label}"
-                    
-                    # Extract price using multiple patterns
-                    # Pattern 1: Currency symbol followed by number (NZ$1,234 or $1234)
-                    # Pattern 2: Number followed by currency (1234 NZD)
-                    # Pattern 3: Just a number that looks like a price (3-5 digits)
-                    price_patterns = [
-                        r'(?:NZ\$|AU\$|\$|€|£)\s*([\d,]+)',  # Currency symbol prefix
-                        r'([\d,]+)\s*(?:NZD|AUD|USD|EUR|GBP)',  # Currency suffix
-                        r'\b(\d{3,5})\b',  # 3-5 digit number (typical flight price)
-                    ]
-                    
-                    price_val = None
-                    for pattern in price_patterns:
-                        match = re.search(pattern, price_text.replace(',', ''))
-                        if match:
-                            price_clean = match.group(1).replace(',', '')
-                            if price_clean.isdigit():
-                                val = int(price_clean)
-                                # Filter reasonable flight prices (50 to 50000)
-                                if 50 <= val <= 50000:
-                                    price_val = val
-                                    break
-                    
-                    if price_val and price_val not in seen_prices:
-                        seen_prices.add(price_val)
-                        results.append(FlightResult(
-                            price_nzd=Decimal(price_val),
-                            airline="Unknown",  # TODO: Extract airline
-                            stops=0,            # TODO: Extract stops
-                            duration_minutes=0, # TODO: Extract duration
-                            departure_time="",
-                            arrival_time="",
-                            raw_data={
-                                "price_text": price_text,
-                                "selector_used": price_selector_used
-                            }
-                        ))
-                except Exception:
-                    continue
+
+            # Use the unified extractor with 20+ fallback strategies
+            logger.info(f"Starting extraction for {origin}->{destination}")
+            flights = await UnifiedExtractor.extract_all(page)
+
+            if not flights:
+                # No flights extracted - try to determine why
+                screenshot_path, html_path = await self._save_failure_artifacts(
+                    page, search_definition_id, "layout_change"
+                )
+                return ScrapeResult(
+                    status="layout_change",
+                    error_message="No prices extracted using 20+ fallback strategies - Google may have changed page structure",
+                    screenshot_path=screenshot_path,
+                    html_snapshot_path=html_path,
+                    duration_ms=int((datetime.utcnow() - start_time).total_seconds() * 1000)
+                )
+
+            # Convert extracted flights to FlightResult objects
+            for flight in flights:
+                results.append(FlightResult(
+                    price_nzd=Decimal(flight.price),
+                    airline=flight.airline or "Unknown",
+                    stops=flight.stops if flight.stops is not None else 0,
+                    duration_minutes=flight.duration_minutes or 0,
+                    departure_time="",
+                    arrival_time="",
+                    raw_data={
+                        "price_confidence": flight.price_confidence,
+                        "price_strategy": flight.price_strategy,
+                        "airline_confidence": flight.airline_confidence,
+                        "airline_strategy": flight.airline_strategy,
+                        "stops_confidence": flight.stops_confidence,
+                        "duration_confidence": flight.duration_confidence,
+                        "overall_confidence": flight.overall_confidence,
+                        "extraction_summary": flight.extraction_summary,
+                    }
+                ))
+
+            logger.info(
+                f"Extracted {len(results)} flights for {origin}->{destination}. "
+                f"Best price: ${results[0].price_nzd if results else 'N/A'}"
+            )
             
             if not results:
                 screenshot_path, html_path = await self._save_failure_artifacts(
