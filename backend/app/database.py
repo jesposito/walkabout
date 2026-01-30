@@ -68,7 +68,16 @@ def ensure_sqlite_columns():
         ("user_settings", "ai_api_key", "VARCHAR(200)"),
         ("user_settings", "ai_ollama_url", "VARCHAR(200)"),
         ("user_settings", "ai_model", "VARCHAR(50)"),
-        # Granular notification settings
+        # Notification provider settings (migration 003)
+        ("user_settings", "notification_provider", "VARCHAR(20) DEFAULT 'none'"),
+        ("user_settings", "notification_ntfy_url", "VARCHAR(200)"),
+        ("user_settings", "notification_ntfy_topic", "VARCHAR(100)"),
+        ("user_settings", "notification_discord_webhook", "VARCHAR(300)"),
+        ("user_settings", "notification_quiet_hours_start", "INTEGER"),
+        ("user_settings", "notification_quiet_hours_end", "INTEGER"),
+        ("user_settings", "notification_cooldown_minutes", "INTEGER DEFAULT 60"),
+        ("user_settings", "timezone", "VARCHAR(50) DEFAULT 'Pacific/Auckland'"),
+        # Granular notification settings (migration 004)
         ("user_settings", "notify_deals", "BOOLEAN DEFAULT 1"),
         ("user_settings", "notify_trip_matches", "BOOLEAN DEFAULT 1"),
         ("user_settings", "notify_route_updates", "BOOLEAN DEFAULT 1"),
