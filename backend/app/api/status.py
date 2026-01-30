@@ -4,6 +4,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from datetime import datetime, timedelta
+from pathlib import Path
 
 from app.database import get_db
 from app.models import SearchDefinition, ScrapeHealth, FlightPrice
@@ -11,11 +12,23 @@ from app.scheduler import get_scheduler_status, manual_scrape_definition
 from app.services.notification import NtfyNotifier
 from app.services.scraping_service import ScrapingService
 from app.config import get_settings
-from app.utils.version import get_version
 
 settings = get_settings()
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
+
+
+def get_version() -> str:
+    """Read the current version from LATEST_VERSION file."""
+    possible_paths = [
+        Path(__file__).parent.parent.parent / "LATEST_VERSION",  # repo root
+        Path("/app/LATEST_VERSION"),  # Docker container path
+        Path.cwd() / "LATEST_VERSION",  # Current working directory
+    ]
+    for path in possible_paths:
+        if path.exists():
+            return path.read_text().strip()
+    return "v0.0.0-dev"
 
 
 @router.get("/", response_class=HTMLResponse)
