@@ -3,69 +3,69 @@
 {% block content %}
 <div class="bg-slate-100 dark:bg-slate-900 min-h-full pb-12">
     <div class="bg-white/50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
-        <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <h1 class="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Settings</h1>
-            <p class="text-slate-600 dark:text-slate-400 mt-2">Personalize Walkabout to show deals relevant to you</p>
+        <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Settings</h1>
+                    <p class="text-slate-600 dark:text-slate-400 text-sm mt-1">Personalize your deal feed</p>
+                </div>
+                <a href="/about/" class="text-xs font-mono text-slate-500 hover:text-cyan-500 transition-colors flex items-center gap-1.5">
+                    <span class="hidden sm:inline">Version</span> {{ version }}
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    </svg>
+                </a>
+            </div>
         </div>
     </div>
 
-    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
-        <form id="settings-form" class="space-y-8">
-            
-            <!-- Home Airport Section -->
-            <div class="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">
-                <div class="flex items-start gap-4 mb-6">
-                    <div class="w-10 h-10 rounded-lg bg-cyan-500/10 flex items-center justify-center flex-shrink-0">
-                        <svg class="w-5 h-5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                    </div>
-                    <div>
-                        <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Your Home Airports</h2>
-                        <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">Deals departing from these airports will be highlighted as most relevant to you</p>
-                    </div>
-                </div>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                            Home Airports
-                        </label>
-                        <input type="hidden" id="home_airports" name="home_airports" 
-                               value="{{ settings.home_airports | join(',') if settings.home_airports else settings.home_airport }}">
-                        <input type="hidden" id="home_airport" name="home_airport" 
-                               value="{{ settings.home_airport }}">
-                        
-                        <div class="relative group">
-                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                <svg class="h-5 w-5 text-slate-500 group-focus-within:text-cyan-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
-                            </div>
-                            <input type="text" id="home_airport_search" 
-                                   class="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white 
-                                          placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 
-                                          focus:border-transparent font-sans transition-all uppercase placeholder:normal-case"
-                                   placeholder="Search airport (e.g. SYD, MEL)..."
-                                   autocomplete="off">
-                            <div id="home-airport-dropdown" class="hidden absolute z-20 w-full mt-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-xl shadow-black/50 max-h-60 overflow-y-auto overflow-x-hidden"></div>
-                        </div>
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+        <form id="settings-form" class="space-y-4">
 
-                        <div id="home-airports-container" class="flex flex-wrap gap-2 mt-4 min-h-[32px]">
+            <!-- Home & Destinations (Collapsible) -->
+            <details class="group bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm" open>
+                <summary class="flex items-center justify-between p-4 cursor-pointer select-none hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-xl transition-colors">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-lg bg-cyan-500/10 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-5 h-5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
                         </div>
-                        <p class="mt-2 text-xs text-slate-500">
-                            Add multiple airports to track deals from all of them.
-                        </p>
+                        <div>
+                            <h2 class="font-semibold text-slate-900 dark:text-white">Location & Destinations</h2>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Home airports and dream destinations</p>
+                        </div>
                     </div>
-                    
+                    <svg class="w-5 h-5 text-slate-400 group-open:rotate-180 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </summary>
+                <div class="px-4 pb-4 pt-2 space-y-5 border-t border-slate-200 dark:border-slate-700">
+                    <!-- Home Airports -->
                     <div>
-                        <label for="home_region" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                            Region
-                        </label>
+                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Home Airports</label>
+                        <input type="hidden" id="home_airports" name="home_airports" value="{{ settings.home_airports | join(',') if settings.home_airports else settings.home_airport }}">
+                        <input type="hidden" id="home_airport" name="home_airport" value="{{ settings.home_airport }}">
+                        <div class="relative">
+                            <input type="text" id="home_airport_search"
+                                   class="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white
+                                          placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-sm uppercase placeholder:normal-case"
+                                   placeholder="Search airports..."
+                                   autocomplete="off">
+                            <svg class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                            <div id="home-airport-dropdown" class="hidden absolute z-20 w-full mt-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-xl max-h-48 overflow-y-auto"></div>
+                        </div>
+                        <div id="home-airports-container" class="flex flex-wrap gap-2 mt-3 min-h-[32px]"></div>
+                    </div>
+
+                    <!-- Region -->
+                    <div>
+                        <label for="home_region" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Region</label>
                         <select id="home_region" name="home_region"
-                                class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white 
-                                       focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
+                                class="w-full px-3 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500">
                             <option value="Oceania" {% if settings.home_region == 'Oceania' %}selected{% endif %}>Oceania (NZ/AU/Pacific)</option>
                             <option value="North America" {% if settings.home_region == 'North America' %}selected{% endif %}>North America</option>
                             <option value="Europe" {% if settings.home_region == 'Europe' %}selected{% endif %}>Europe</option>
@@ -73,259 +73,68 @@
                             <option value="South America" {% if settings.home_region == 'South America' %}selected{% endif %}>South America</option>
                             <option value="Africa" {% if settings.home_region == 'Africa' %}selected{% endif %}>Africa</option>
                         </select>
-                        <p class="mt-2 text-xs text-slate-500">Deals from nearby airports in your region are also highlighted</p>
                     </div>
-                </div>
-            </div>
 
-            <!-- Watched Destinations Section -->
-            <div class="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">
-                <div class="flex items-start gap-4 mb-6">
-                    <div class="w-10 h-10 rounded-lg bg-violet-500/10 flex items-center justify-center flex-shrink-0">
-                        <svg class="w-5 h-5 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                        </svg>
-                    </div>
+                    <!-- Dream Destinations -->
                     <div>
-                        <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Dream Destinations</h2>
-                        <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">Add places you'd love to visit — we'll flag deals to these destinations and similar alternatives</p>
-                    </div>
-                </div>
-                
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                            Destinations
-                        </label>
-                        <input type="hidden" id="watched_destinations" name="watched_destinations" 
-                               value="{{ settings.watched_destinations | join(',') }}">
-                        
-                        <div class="relative group">
-                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                <svg class="h-5 w-5 text-slate-500 group-focus-within:text-cyan-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
-                            </div>
-                            <input type="text" id="destination_search" 
-                                   class="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white 
-                                          placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 
-                                          focus:border-transparent font-sans transition-all"
-                                   placeholder="Search by city or airport (e.g. Tokyo, Fiji)..."
+                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Dream Destinations</label>
+                        <input type="hidden" id="watched_destinations" name="watched_destinations" value="{{ settings.watched_destinations | join(',') }}">
+                        <div class="relative">
+                            <input type="text" id="destination_search"
+                                   class="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white
+                                          placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-sm"
+                                   placeholder="Search destinations..."
                                    autocomplete="off">
-                            <div id="destination-dropdown" class="hidden absolute z-20 w-full mt-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-xl shadow-black/50 max-h-60 overflow-y-auto overflow-x-hidden"></div>
+                            <svg class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                            <div id="destination-dropdown" class="hidden absolute z-20 w-full mt-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-xl max-h-48 overflow-y-auto"></div>
                         </div>
+                        <div id="destinations-container" class="flex flex-wrap gap-2 mt-3 min-h-[32px]"></div>
+                    </div>
 
-                        <div id="destinations-container" class="flex flex-wrap gap-2 mt-4 min-h-[32px]">
-                        </div>
-                        <p class="mt-2 text-xs text-slate-500">
-                            Search and add as many destinations as you like.
-                        </p>
-                    </div>
-                    
-                    <div class="bg-slate-100 dark:bg-slate-900/50 rounded-lg p-4 border border-slate-200 dark:border-slate-700/50">
-                        <p class="text-sm text-slate-600 dark:text-slate-400">
-                            <span class="text-violet-600 dark:text-violet-400 font-medium">💡 Smart matching:</span> 
-                            If you add "NAN" (Fiji), we'll also show deals to similar destinations like Rarotonga, Samoa, and Tahiti.
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Currency Section -->
-            <div class="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">
-                <div class="flex items-start gap-4 mb-6">
-                    <div class="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
-                        <svg class="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                    </div>
+                    <!-- Currency -->
                     <div>
-                        <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Currency Preference</h2>
-                        <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">See prices converted to your preferred currency</p>
-                    </div>
-                </div>
-                
-                <div>
-                    <label for="preferred_currency" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                        Display Currency
-                    </label>
-                    <select id="preferred_currency" name="preferred_currency"
-                            class="w-full max-w-xs px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white 
-                                   focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
-                        <option value="NZD" {% if (settings.preferred_currency or 'NZD') == 'NZD' %}selected{% endif %}>🇳🇿 NZD - New Zealand Dollar</option>
-                        <option value="AUD" {% if settings.preferred_currency == 'AUD' %}selected{% endif %}>🇦🇺 AUD - Australian Dollar</option>
-                        <option value="USD" {% if settings.preferred_currency == 'USD' %}selected{% endif %}>🇺🇸 USD - US Dollar</option>
-                        <option value="EUR" {% if settings.preferred_currency == 'EUR' %}selected{% endif %}>🇪🇺 EUR - Euro</option>
-                        <option value="GBP" {% if settings.preferred_currency == 'GBP' %}selected{% endif %}>🇬🇧 GBP - British Pound</option>
-                        <option value="SGD" {% if settings.preferred_currency == 'SGD' %}selected{% endif %}>🇸🇬 SGD - Singapore Dollar</option>
-                        <option value="JPY" {% if settings.preferred_currency == 'JPY' %}selected{% endif %}>🇯🇵 JPY - Japanese Yen</option>
-                        <option value="CAD" {% if settings.preferred_currency == 'CAD' %}selected{% endif %}>🇨🇦 CAD - Canadian Dollar</option>
-                    </select>
-                    <p class="mt-2 text-xs text-slate-500">Original price is always shown alongside the conversion</p>
-                </div>
-            </div>
-
-            <!-- AI Deal Parsing Section -->
-            <div class="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">
-                <div class="flex items-start gap-4 mb-6">
-                    <div class="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center flex-shrink-0">
-                        <svg class="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                        </svg>
-                    </div>
-                    <div>
-                        <h2 class="text-lg font-semibold text-slate-900 dark:text-white">AI Deal Parsing</h2>
-                        <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">Enable AI to accurately extract routes and prices from deal titles. Without AI, only basic keyword matching is available.</p>
-                    </div>
-                </div>
-                
-                <div class="space-y-4">
-                    <div class="bg-purple-50 dark:bg-purple-500/10 rounded-lg p-4 border border-purple-200 dark:border-purple-500/20 mb-4">
-                        <p class="text-sm text-purple-700 dark:text-purple-300">
-                            <span class="font-medium">Why AI?</span> Deal titles like "Hong Kong from Melbourne $522, Sydney $541" are ambiguous. AI understands context and extracts accurate routes.
-                        </p>
-                    </div>
-                    
-                    <div>
-                        <label for="ai_provider" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                            AI Provider
-                        </label>
-                        <select id="ai_provider" name="ai_provider"
-                                class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white 
-                                       focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                onchange="toggleAIFields()">
-                            <option value="none" {% if not settings.ai_provider or settings.ai_provider == 'none' %}selected{% endif %}>None (Basic mode)</option>
-                            <option value="anthropic" {% if settings.ai_provider == 'anthropic' %}selected{% endif %}>Anthropic (Claude)</option>
-                            <option value="openai" {% if settings.ai_provider == 'openai' %}selected{% endif %}>OpenAI (GPT)</option>
-                            <option value="gemini" {% if settings.ai_provider == 'gemini' %}selected{% endif %}>Google (Gemini)</option>
-                            <option value="ollama" {% if settings.ai_provider == 'ollama' %}selected{% endif %}>Ollama (Local)</option>
-                            <option value="openai_compatible" {% if settings.ai_provider == 'openai_compatible' %}selected{% endif %}>OpenAI-Compatible (Groq, Together, etc.)</option>
+                        <label for="preferred_currency" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Display Currency</label>
+                        <select id="preferred_currency" name="preferred_currency"
+                                class="w-full sm:w-48 px-3 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                            <option value="NZD" {% if (settings.preferred_currency or 'NZD') == 'NZD' %}selected{% endif %}>NZD</option>
+                            <option value="AUD" {% if settings.preferred_currency == 'AUD' %}selected{% endif %}>AUD</option>
+                            <option value="USD" {% if settings.preferred_currency == 'USD' %}selected{% endif %}>USD</option>
+                            <option value="EUR" {% if settings.preferred_currency == 'EUR' %}selected{% endif %}>EUR</option>
+                            <option value="GBP" {% if settings.preferred_currency == 'GBP' %}selected{% endif %}>GBP</option>
+                            <option value="SGD" {% if settings.preferred_currency == 'SGD' %}selected{% endif %}>SGD</option>
+                            <option value="JPY" {% if settings.preferred_currency == 'JPY' %}selected{% endif %}>JPY</option>
+                            <option value="CAD" {% if settings.preferred_currency == 'CAD' %}selected{% endif %}>CAD</option>
                         </select>
                     </div>
-                    
-                    <div id="ai_api_key_field" class="hidden">
-                        <label for="ai_api_key" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                            API Key
-                        </label>
-                        <input type="password" id="ai_api_key" name="ai_api_key" 
-                               value="{{ settings.ai_api_key or '' }}"
-                               class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white 
-                                      placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 
-                                      focus:border-transparent font-mono text-sm"
-                               placeholder="Your API key">
-                        <p id="ai_key_help" class="mt-1 text-xs text-slate-500"></p>
-                    </div>
-                    
-                    <div id="ai_ollama_url_field" class="hidden">
-                        <label for="ai_ollama_url" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                            Base URL
-                        </label>
-                        <input type="text" id="ai_ollama_url" name="ai_ollama_url" 
-                               value="{{ settings.ai_ollama_url or '' }}"
-                               class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white 
-                                      placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 
-                                      focus:border-transparent font-mono text-sm"
-                               placeholder="http://localhost:11434">
-                    </div>
-                    
-                    <div id="ai_model_field" class="hidden">
-                        <label for="ai_model" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                            Model <span class="text-slate-400 font-normal">(optional, uses default if empty)</span>
-                        </label>
-                        <input type="text" id="ai_model" name="ai_model" 
-                               value="{{ settings.ai_model or '' }}"
-                               class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white 
-                                      placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 
-                                      focus:border-transparent font-mono text-sm"
-                               placeholder="e.g., claude-3-haiku-20240307">
-                        <p id="ai_model_help" class="mt-1 text-xs text-slate-500"></p>
-                    </div>
                 </div>
-            </div>
+            </details>
 
-            <div class="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">
-                <div class="flex items-start gap-4 mb-6">
-                    <div class="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center flex-shrink-0">
-                        <svg class="w-5 h-5 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                        </svg>
+            <!-- Notifications (Collapsible) -->
+            <details class="group bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                <summary class="flex items-center justify-between p-4 cursor-pointer select-none hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-xl transition-colors">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h2 class="font-semibold text-slate-900 dark:text-white">Notifications</h2>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Push alerts for deals</p>
+                        </div>
                     </div>
-                    <div>
-                        <h2 class="text-lg font-semibold text-slate-900 dark:text-white">API Keys (Optional)</h2>
-                        <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">Add API keys for better price tracking. Without keys, we'll use browser scraping as fallback.</p>
-                    </div>
-                </div>
-                
-                <div class="space-y-4">
-                    <div class="bg-slate-100 dark:bg-slate-900/50 rounded-lg p-4 border border-slate-200 dark:border-slate-700/50 mb-4">
-                        <p class="text-sm text-slate-600 dark:text-slate-400">
-                            <span class="text-cyan-600 dark:text-cyan-400 font-medium">How it works:</span> 
-                            Price tracking tries API sources first (faster, more reliable), then falls back to browser scraping.
-                            AI analysis requires an Anthropic API key.
-                        </p>
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                            Anthropic API Key <span class="text-violet-500 dark:text-violet-400">(enables AI recommendations)</span>
-                        </label>
-                        <input type="password" id="anthropic_api_key" name="anthropic_api_key" 
-                               value="{{ settings.anthropic_api_key or '' }}"
-                               class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white 
-                                      placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 
-                                      focus:border-transparent font-mono text-sm"
-                               placeholder="sk-ant-...">
-                        <p class="mt-1 text-xs text-slate-500">Get from <a href="https://console.anthropic.com/" target="_blank" class="text-cyan-400 hover:underline">console.anthropic.com</a></p>
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                            SerpAPI Key <span class="text-emerald-600 dark:text-emerald-400">(Google Flights data)</span>
-                        </label>
-                        <input type="password" id="serpapi_key" name="serpapi_key" 
-                               value="{{ settings.serpapi_key or '' }}"
-                               class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white 
-                                      placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 
-                                      focus:border-transparent font-mono text-sm"
-                               placeholder="your-serpapi-key">
-                        <p class="mt-1 text-xs text-slate-500">Get from <a href="https://serpapi.com/" target="_blank" class="text-cyan-400 hover:underline">serpapi.com</a> - 100 free searches/month</p>
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                            Skyscanner RapidAPI Key
-                        </label>
-                        <input type="password" id="skyscanner_api_key" name="skyscanner_api_key" 
-                               value="{{ settings.skyscanner_api_key or '' }}"
-                               class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white 
-                                      placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 
-                                      focus:border-transparent font-mono text-sm"
-                               placeholder="your-rapidapi-key">
-                        <p class="mt-1 text-xs text-slate-500">Get from <a href="https://rapidapi.com/apiheya/api/sky-scanner3" target="_blank" class="text-cyan-400 hover:underline">RapidAPI</a> - free tier available</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Notifications Section -->
-            <div class="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">
-                <div class="flex items-start gap-4 mb-6">
-                    <div class="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
-                        <svg class="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                        </svg>
-                    </div>
-                    <div>
-                        <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Notifications</h2>
-                        <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">Get push alerts for hot deals (optional)</p>
-                    </div>
-                </div>
-
-                <div class="space-y-6">
-                    <!-- Enable/Disable Toggle -->
+                    <svg class="w-5 h-5 text-slate-400 group-open:rotate-180 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </summary>
+                <div class="px-4 pb-4 pt-2 space-y-5 border-t border-slate-200 dark:border-slate-700">
+                    <!-- Master Toggle -->
                     <div class="flex items-center justify-between">
                         <div>
                             <span class="text-sm font-medium text-slate-900 dark:text-white">Push Notifications</span>
-                            <p class="text-xs text-slate-500 dark:text-slate-400">Receive alerts when deals are found</p>
+                            <p class="text-xs text-slate-500">Enable to receive alerts</p>
                         </div>
                         <label class="relative inline-flex items-center cursor-pointer">
                             <input type="checkbox" id="notifications_enabled" name="notifications_enabled"
@@ -339,279 +148,316 @@
                         </label>
                     </div>
 
-                    <!-- Provider Selection -->
+                    <!-- Provider -->
                     <div>
-                        <label for="notification_provider" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                            Notification Method
-                        </label>
-                        <select id="notification_provider" name="notification_provider"
-                                onchange="toggleNotificationFields()"
-                                class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white
-                                       focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent">
-                            <option value="none" {% if not settings.notification_provider or settings.notification_provider == 'none' %}selected{% endif %}>None (in-app history only)</option>
-                            <option value="ntfy_sh" {% if settings.notification_provider == 'ntfy_sh' %}selected{% endif %}>ntfy.sh (free, public)</option>
+                        <label for="notification_provider" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Method</label>
+                        <select id="notification_provider" name="notification_provider" onchange="toggleNotificationFields()"
+                                class="w-full px-3 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+                            <option value="none" {% if not settings.notification_provider or settings.notification_provider == 'none' %}selected{% endif %}>None (in-app only)</option>
+                            <option value="ntfy_sh" {% if settings.notification_provider == 'ntfy_sh' %}selected{% endif %}>ntfy.sh (free)</option>
                             <option value="ntfy_self" {% if settings.notification_provider == 'ntfy_self' %}selected{% endif %}>ntfy (self-hosted)</option>
                             <option value="discord" {% if settings.notification_provider == 'discord' %}selected{% endif %}>Discord Webhook</option>
                         </select>
-                        <p class="mt-2 text-xs text-slate-500">Choose how you want to receive deal alerts</p>
                     </div>
 
-                    <!-- ntfy.sh Topic (for ntfy_sh) -->
-                    <div id="ntfy_sh_fields" class="hidden space-y-4">
+                    <!-- Provider-specific fields -->
+                    <div id="ntfy_sh_fields" class="hidden space-y-3">
                         <div>
-                            <label for="notification_ntfy_topic_sh" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                                ntfy.sh Topic
-                            </label>
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">ntfy.sh Topic</label>
                             <input type="text" id="notification_ntfy_topic_sh" name="notification_ntfy_topic"
                                    value="{{ settings.notification_ntfy_topic or '' }}"
-                                   class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white
-                                          placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                                   placeholder="walkabout-deals-xyz123">
-                            <p class="mt-1 text-xs text-slate-500">Use a unique topic name. Install <a href="https://ntfy.sh/" target="_blank" class="text-amber-500 hover:underline">ntfy app</a> and subscribe to this topic.</p>
+                                   class="w-full px-3 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                   placeholder="walkabout-deals-xyz">
                         </div>
                     </div>
 
-                    <!-- Self-hosted ntfy fields -->
-                    <div id="ntfy_self_fields" class="hidden space-y-4">
+                    <div id="ntfy_self_fields" class="hidden space-y-3">
                         <div>
-                            <label for="notification_ntfy_url" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                                ntfy Server URL
-                            </label>
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Server URL</label>
                             <input type="text" id="notification_ntfy_url" name="notification_ntfy_url"
                                    value="{{ settings.notification_ntfy_url or '' }}"
-                                   class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white
-                                          placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent font-mono text-sm"
+                                   class="w-full px-3 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white text-sm font-mono focus:outline-none focus:ring-2 focus:ring-amber-500"
                                    placeholder="http://your-server:8080">
                         </div>
                         <div>
-                            <label for="notification_ntfy_topic_self" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                                Topic Name
-                            </label>
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Topic</label>
                             <input type="text" id="notification_ntfy_topic_self" name="notification_ntfy_topic"
                                    value="{{ settings.notification_ntfy_topic or '' }}"
-                                   class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white
-                                          placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                                   class="w-full px-3 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
                                    placeholder="walkabout-deals">
                         </div>
                     </div>
 
-                    <!-- Discord webhook field -->
                     <div id="discord_fields" class="hidden">
-                        <label for="notification_discord_webhook" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                            Discord Webhook URL
-                        </label>
+                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Webhook URL</label>
                         <input type="password" id="notification_discord_webhook" name="notification_discord_webhook"
                                value="{{ settings.notification_discord_webhook or '' }}"
-                               class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white
-                                      placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent font-mono text-sm"
+                               class="w-full px-3 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white text-sm font-mono focus:outline-none focus:ring-2 focus:ring-amber-500"
                                placeholder="https://discord.com/api/webhooks/...">
-                        <p class="mt-1 text-xs text-slate-500">Create a webhook in your Discord server settings → Integrations</p>
                     </div>
 
-                    <!-- Test Notification Button -->
-                    <div class="flex items-center gap-4">
+                    <!-- Test Button -->
+                    <div class="flex items-center gap-3">
                         <button type="button" id="test-notification-btn"
-                                class="px-4 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400
-                                       font-medium rounded-lg border border-amber-500/20 transition-colors">
+                                class="px-3 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 text-sm font-medium rounded-lg border border-amber-500/20 transition-colors">
                             Send Test
                         </button>
                         <span id="test-notification-status" class="text-sm text-slate-500"></span>
                     </div>
 
-                    <!-- Timezone -->
-                    <div>
-                        <label for="timezone" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                            Timezone
-                        </label>
-                        <select id="timezone" name="timezone"
-                                class="w-full max-w-xs px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white
-                                       focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent">
-                            <option value="Pacific/Auckland" {% if (settings.timezone or 'Pacific/Auckland') == 'Pacific/Auckland' %}selected{% endif %}>Pacific/Auckland (NZST)</option>
-                            <option value="Pacific/Chatham" {% if settings.timezone == 'Pacific/Chatham' %}selected{% endif %}>Pacific/Chatham</option>
-                            <option value="Australia/Sydney" {% if settings.timezone == 'Australia/Sydney' %}selected{% endif %}>Australia/Sydney (AEST)</option>
-                            <option value="Australia/Melbourne" {% if settings.timezone == 'Australia/Melbourne' %}selected{% endif %}>Australia/Melbourne</option>
-                            <option value="Australia/Brisbane" {% if settings.timezone == 'Australia/Brisbane' %}selected{% endif %}>Australia/Brisbane</option>
-                            <option value="Australia/Perth" {% if settings.timezone == 'Australia/Perth' %}selected{% endif %}>Australia/Perth (AWST)</option>
-                            <option value="Asia/Singapore" {% if settings.timezone == 'Asia/Singapore' %}selected{% endif %}>Asia/Singapore</option>
-                            <option value="Asia/Tokyo" {% if settings.timezone == 'Asia/Tokyo' %}selected{% endif %}>Asia/Tokyo (JST)</option>
-                            <option value="Europe/London" {% if settings.timezone == 'Europe/London' %}selected{% endif %}>Europe/London (GMT)</option>
-                            <option value="America/Los_Angeles" {% if settings.timezone == 'America/Los_Angeles' %}selected{% endif %}>America/Los Angeles (PT)</option>
-                            <option value="America/New_York" {% if settings.timezone == 'America/New_York' %}selected{% endif %}>America/New York (ET)</option>
-                        </select>
-                        <p class="mt-2 text-xs text-slate-500">Used for quiet hours calculation</p>
-                    </div>
+                    <!-- Notification Types -->
+                    <div class="border-t border-slate-200 dark:border-slate-700 pt-4 space-y-3">
+                        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Notification Types</p>
 
-                    <!-- Quiet Hours -->
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                            Quiet Hours <span class="text-slate-400 font-normal">(optional)</span>
-                        </label>
-                        <div class="flex items-center gap-3">
-                            <select id="notification_quiet_hours_start" name="notification_quiet_hours_start"
-                                    class="px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white
-                                           focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent">
-                                <option value="">Off</option>
-                                {% for h in range(24) %}
-                                <option value="{{ h }}" {% if settings.notification_quiet_hours_start == h %}selected{% endif %}>{{ '%02d:00'|format(h) }}</option>
-                                {% endfor %}
-                            </select>
-                            <span class="text-slate-500">to</span>
-                            <select id="notification_quiet_hours_end" name="notification_quiet_hours_end"
-                                    class="px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white
-                                           focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent">
-                                <option value="">Off</option>
-                                {% for h in range(24) %}
-                                <option value="{{ h }}" {% if settings.notification_quiet_hours_end == h %}selected{% endif %}>{{ '%02d:00'|format(h) }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <p class="mt-2 text-xs text-slate-500">No notifications during these hours (e.g., 22:00 to 07:00)</p>
-                    </div>
-
-                    <!-- Cooldown -->
-                    <div>
-                        <label for="notification_cooldown_minutes" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                            Cooldown Period
-                        </label>
-                        <select id="notification_cooldown_minutes" name="notification_cooldown_minutes"
-                                class="w-full max-w-xs px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white
-                                       focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent">
-                            <option value="30" {% if (settings.notification_cooldown_minutes or 60) == 30 %}selected{% endif %}>30 minutes</option>
-                            <option value="60" {% if (settings.notification_cooldown_minutes or 60) == 60 %}selected{% endif %}>1 hour</option>
-                            <option value="120" {% if settings.notification_cooldown_minutes == 120 %}selected{% endif %}>2 hours</option>
-                            <option value="360" {% if settings.notification_cooldown_minutes == 360 %}selected{% endif %}>6 hours</option>
-                            <option value="720" {% if settings.notification_cooldown_minutes == 720 %}selected{% endif %}>12 hours</option>
-                            <option value="1440" {% if settings.notification_cooldown_minutes == 1440 %}selected{% endif %}>24 hours</option>
-                        </select>
-                        <p class="mt-2 text-xs text-slate-500">Minimum time between notifications for the same route</p>
-                    </div>
-
-                    <!-- Granular Notification Types -->
-                    <div class="border-t border-slate-200 dark:border-slate-700 pt-6 mt-6">
-                        <h3 class="text-sm font-semibold text-slate-900 dark:text-white mb-4">Notification Types</h3>
-                        <div class="space-y-3">
-                            <label class="flex items-center justify-between">
-                                <div>
-                                    <span class="text-sm text-slate-700 dark:text-slate-300">Deal Alerts</span>
-                                    <p class="text-xs text-slate-500">Flight deal notifications</p>
-                                </div>
+                        <div class="flex items-center justify-between py-1">
+                            <span class="text-sm text-slate-700 dark:text-slate-300">Deal Alerts</span>
+                            <label class="relative inline-flex items-center cursor-pointer">
                                 <input type="checkbox" id="notify_deals" name="notify_deals"
                                        {% if settings.notify_deals is none or settings.notify_deals %}checked{% endif %}
-                                       class="w-5 h-5 rounded border-slate-300 dark:border-slate-600 text-amber-500 focus:ring-amber-500">
+                                       class="sr-only peer">
+                                <div class="w-9 h-5 bg-slate-300 dark:bg-slate-700 rounded-full peer peer-checked:bg-amber-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-4"></div>
                             </label>
-                            <label class="flex items-center justify-between">
-                                <div>
-                                    <span class="text-sm text-slate-700 dark:text-slate-300">Trip Plan Matches</span>
-                                    <p class="text-xs text-slate-500">When deals match your saved trip plans</p>
-                                </div>
+                        </div>
+
+                        <div class="flex items-center justify-between py-1">
+                            <span class="text-sm text-slate-700 dark:text-slate-300">Trip Plan Matches</span>
+                            <label class="relative inline-flex items-center cursor-pointer">
                                 <input type="checkbox" id="notify_trip_matches" name="notify_trip_matches"
                                        {% if settings.notify_trip_matches is none or settings.notify_trip_matches %}checked{% endif %}
-                                       class="w-5 h-5 rounded border-slate-300 dark:border-slate-600 text-amber-500 focus:ring-amber-500">
+                                       class="sr-only peer">
+                                <div class="w-9 h-5 bg-slate-300 dark:bg-slate-700 rounded-full peer peer-checked:bg-amber-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-4"></div>
                             </label>
-                            <label class="flex items-center justify-between">
-                                <div>
-                                    <span class="text-sm text-slate-700 dark:text-slate-300">Route Updates</span>
-                                    <p class="text-xs text-slate-500">Price changes on tracked routes</p>
-                                </div>
+                        </div>
+
+                        <div class="flex items-center justify-between py-1">
+                            <span class="text-sm text-slate-700 dark:text-slate-300">Route Price Updates</span>
+                            <label class="relative inline-flex items-center cursor-pointer">
                                 <input type="checkbox" id="notify_route_updates" name="notify_route_updates"
                                        {% if settings.notify_route_updates is none or settings.notify_route_updates %}checked{% endif %}
-                                       class="w-5 h-5 rounded border-slate-300 dark:border-slate-600 text-amber-500 focus:ring-amber-500">
+                                       class="sr-only peer">
+                                <div class="w-9 h-5 bg-slate-300 dark:bg-slate-700 rounded-full peer peer-checked:bg-amber-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-4"></div>
                             </label>
-                            <label class="flex items-center justify-between">
-                                <div>
-                                    <span class="text-sm text-slate-700 dark:text-slate-300">System Alerts</span>
-                                    <p class="text-xs text-slate-500">Startup, errors, and maintenance</p>
-                                </div>
+                        </div>
+
+                        <div class="flex items-center justify-between py-1">
+                            <span class="text-sm text-slate-700 dark:text-slate-300">System Alerts</span>
+                            <label class="relative inline-flex items-center cursor-pointer">
                                 <input type="checkbox" id="notify_system" name="notify_system"
                                        {% if settings.notify_system is none or settings.notify_system %}checked{% endif %}
-                                       class="w-5 h-5 rounded border-slate-300 dark:border-slate-600 text-amber-500 focus:ring-amber-500">
+                                       class="sr-only peer">
+                                <div class="w-9 h-5 bg-slate-300 dark:bg-slate-700 rounded-full peer peer-checked:bg-amber-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-4"></div>
                             </label>
                         </div>
                     </div>
 
                     <!-- Deal Quality Filter -->
-                    <div class="border-t border-slate-200 dark:border-slate-700 pt-6 mt-6">
-                        <h3 class="text-sm font-semibold text-slate-900 dark:text-white mb-4">Deal Quality Filter</h3>
+                    <div class="border-t border-slate-200 dark:border-slate-700 pt-4">
+                        <label for="deal_notify_min_rating" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Minimum Deal Rating</label>
+                        <select id="deal_notify_min_rating" name="deal_notify_min_rating"
+                                class="w-full sm:w-48 px-3 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+                            <option value="1" {% if settings.deal_notify_min_rating == 1 %}selected{% endif %}>1+ (All)</option>
+                            <option value="2" {% if settings.deal_notify_min_rating == 2 %}selected{% endif %}>2+</option>
+                            <option value="3" {% if (settings.deal_notify_min_rating or 3) == 3 %}selected{% endif %}>3+</option>
+                            <option value="4" {% if settings.deal_notify_min_rating == 4 %}selected{% endif %}>4+</option>
+                            <option value="5" {% if settings.deal_notify_min_rating == 5 %}selected{% endif %}>5 only</option>
+                        </select>
+                    </div>
+
+                    <!-- Timing -->
+                    <div class="border-t border-slate-200 dark:border-slate-700 pt-4 space-y-4">
                         <div>
-                            <label for="deal_notify_min_rating" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                                Minimum Deal Rating
-                            </label>
-                            <select id="deal_notify_min_rating" name="deal_notify_min_rating"
-                                    class="w-full max-w-xs px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white
-                                           focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent">
-                                <option value="1" {% if settings.deal_notify_min_rating == 1 %}selected{% endif %}>⭐ 1+ (All deals)</option>
-                                <option value="2" {% if settings.deal_notify_min_rating == 2 %}selected{% endif %}>⭐⭐ 2+ (Good+)</option>
-                                <option value="3" {% if (settings.deal_notify_min_rating or 3) == 3 %}selected{% endif %}>⭐⭐⭐ 3+ (Great+)</option>
-                                <option value="4" {% if settings.deal_notify_min_rating == 4 %}selected{% endif %}>⭐⭐⭐⭐ 4+ (Excellent+)</option>
-                                <option value="5" {% if settings.deal_notify_min_rating == 5 %}selected{% endif %}>⭐⭐⭐⭐⭐ 5 (Exceptional only)</option>
+                            <label for="timezone" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Timezone</label>
+                            <select id="timezone" name="timezone"
+                                    class="w-full sm:w-64 px-3 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+                                <option value="Pacific/Auckland" {% if (settings.timezone or 'Pacific/Auckland') == 'Pacific/Auckland' %}selected{% endif %}>Pacific/Auckland</option>
+                                <option value="Australia/Sydney" {% if settings.timezone == 'Australia/Sydney' %}selected{% endif %}>Australia/Sydney</option>
+                                <option value="Australia/Melbourne" {% if settings.timezone == 'Australia/Melbourne' %}selected{% endif %}>Australia/Melbourne</option>
+                                <option value="Asia/Singapore" {% if settings.timezone == 'Asia/Singapore' %}selected{% endif %}>Asia/Singapore</option>
+                                <option value="Asia/Tokyo" {% if settings.timezone == 'Asia/Tokyo' %}selected{% endif %}>Asia/Tokyo</option>
+                                <option value="Europe/London" {% if settings.timezone == 'Europe/London' %}selected{% endif %}>Europe/London</option>
+                                <option value="America/Los_Angeles" {% if settings.timezone == 'America/Los_Angeles' %}selected{% endif %}>America/Los Angeles</option>
+                                <option value="America/New_York" {% if settings.timezone == 'America/New_York' %}selected{% endif %}>America/New York</option>
                             </select>
-                            <p class="mt-2 text-xs text-slate-500">Only get notified for deals rated at or above this level</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Quiet Hours</label>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <select id="notification_quiet_hours_start" name="notification_quiet_hours_start"
+                                        class="px-3 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+                                    <option value="">Off</option>
+                                    {% for h in range(24) %}
+                                    <option value="{{ h }}" {% if settings.notification_quiet_hours_start == h %}selected{% endif %}>{{ '%02d:00'|format(h) }}</option>
+                                    {% endfor %}
+                                </select>
+                                <span class="text-slate-500 text-sm">to</span>
+                                <select id="notification_quiet_hours_end" name="notification_quiet_hours_end"
+                                        class="px-3 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+                                    <option value="">Off</option>
+                                    {% for h in range(24) %}
+                                    <option value="{{ h }}" {% if settings.notification_quiet_hours_end == h %}selected{% endif %}>{{ '%02d:00'|format(h) }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="notification_cooldown_minutes" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Cooldown (same route)</label>
+                            <select id="notification_cooldown_minutes" name="notification_cooldown_minutes"
+                                    class="w-full sm:w-40 px-3 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+                                <option value="30" {% if (settings.notification_cooldown_minutes or 60) == 30 %}selected{% endif %}>30 min</option>
+                                <option value="60" {% if (settings.notification_cooldown_minutes or 60) == 60 %}selected{% endif %}>1 hour</option>
+                                <option value="120" {% if settings.notification_cooldown_minutes == 120 %}selected{% endif %}>2 hours</option>
+                                <option value="360" {% if settings.notification_cooldown_minutes == 360 %}selected{% endif %}>6 hours</option>
+                                <option value="1440" {% if settings.notification_cooldown_minutes == 1440 %}selected{% endif %}>24 hours</option>
+                            </select>
                         </div>
                     </div>
+                </div>
+            </details>
 
-                    <!-- Info box -->
-                    <div class="bg-slate-100 dark:bg-slate-900/50 rounded-lg p-4 border border-slate-200 dark:border-slate-700/50">
-                        <p class="text-sm text-slate-600 dark:text-slate-400">
-                            <span class="text-amber-600 dark:text-amber-400 font-medium">💡 Tip:</span>
-                            Notifications are completely optional. All deals are saved in-app regardless of notification settings.
-                        </p>
+            <!-- AI & APIs (Collapsible) -->
+            <details class="group bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                <summary class="flex items-center justify-between p-4 cursor-pointer select-none hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-xl transition-colors">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-lg bg-purple-500/10 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h2 class="font-semibold text-slate-900 dark:text-white">AI & API Keys</h2>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Optional integrations</p>
+                        </div>
+                    </div>
+                    <svg class="w-5 h-5 text-slate-400 group-open:rotate-180 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </summary>
+                <div class="px-4 pb-4 pt-2 space-y-5 border-t border-slate-200 dark:border-slate-700">
+                    <!-- AI Provider -->
+                    <div>
+                        <label for="ai_provider" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">AI Provider</label>
+                        <select id="ai_provider" name="ai_provider" onchange="toggleAIFields()"
+                                class="w-full px-3 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                            <option value="none" {% if not settings.ai_provider or settings.ai_provider == 'none' %}selected{% endif %}>None (Basic mode)</option>
+                            <option value="anthropic" {% if settings.ai_provider == 'anthropic' %}selected{% endif %}>Anthropic (Claude)</option>
+                            <option value="openai" {% if settings.ai_provider == 'openai' %}selected{% endif %}>OpenAI (GPT)</option>
+                            <option value="gemini" {% if settings.ai_provider == 'gemini' %}selected{% endif %}>Google (Gemini)</option>
+                            <option value="ollama" {% if settings.ai_provider == 'ollama' %}selected{% endif %}>Ollama (Local)</option>
+                            <option value="openai_compatible" {% if settings.ai_provider == 'openai_compatible' %}selected{% endif %}>OpenAI-Compatible</option>
+                        </select>
+                        <p class="mt-1 text-xs text-slate-500">AI helps accurately parse deal routes</p>
+                    </div>
+
+                    <div id="ai_api_key_field" class="hidden">
+                        <label for="ai_api_key" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">API Key</label>
+                        <input type="password" id="ai_api_key" name="ai_api_key" value="{{ settings.ai_api_key or '' }}"
+                               class="w-full px-3 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white text-sm font-mono focus:outline-none focus:ring-2 focus:ring-purple-500"
+                               placeholder="Your API key">
+                        <p id="ai_key_help" class="mt-1 text-xs text-slate-500"></p>
+                    </div>
+
+                    <div id="ai_ollama_url_field" class="hidden">
+                        <label for="ai_ollama_url" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Base URL</label>
+                        <input type="text" id="ai_ollama_url" name="ai_ollama_url" value="{{ settings.ai_ollama_url or '' }}"
+                               class="w-full px-3 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white text-sm font-mono focus:outline-none focus:ring-2 focus:ring-purple-500"
+                               placeholder="http://localhost:11434">
+                    </div>
+
+                    <div id="ai_model_field" class="hidden">
+                        <label for="ai_model" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Model <span class="text-slate-400 font-normal">(optional)</span></label>
+                        <input type="text" id="ai_model" name="ai_model" value="{{ settings.ai_model or '' }}"
+                               class="w-full px-3 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white text-sm font-mono focus:outline-none focus:ring-2 focus:ring-purple-500"
+                               placeholder="Uses default if empty">
+                        <p id="ai_model_help" class="mt-1 text-xs text-slate-500"></p>
+                    </div>
+
+                    <!-- Other API Keys -->
+                    <div class="border-t border-slate-200 dark:border-slate-700 pt-4 space-y-4">
+                        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Data Sources</p>
+
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Anthropic API Key</label>
+                            <input type="password" id="anthropic_api_key" name="anthropic_api_key" value="{{ settings.anthropic_api_key or '' }}"
+                                   class="w-full px-3 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white text-sm font-mono focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                   placeholder="sk-ant-...">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">SerpAPI Key <span class="text-emerald-500 text-xs">(Google Flights)</span></label>
+                            <input type="password" id="serpapi_key" name="serpapi_key" value="{{ settings.serpapi_key or '' }}"
+                                   class="w-full px-3 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white text-sm font-mono focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                   placeholder="your-serpapi-key">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Skyscanner RapidAPI Key</label>
+                            <input type="password" id="skyscanner_api_key" name="skyscanner_api_key" value="{{ settings.skyscanner_api_key or '' }}"
+                                   class="w-full px-3 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white text-sm font-mono focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                   placeholder="your-rapidapi-key">
+                        </div>
                     </div>
                 </div>
-            </div>
+            </details>
 
-            <!-- Save Button -->
-            <div class="flex items-center justify-between pt-4">
-                <a href="/deals/" class="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                    </svg>
-                    Back to Deals
-                </a>
-                <button type="submit" 
-                        class="px-8 py-3 bg-cyan-500 hover:bg-cyan-400 text-white font-semibold rounded-lg 
-                               shadow-lg shadow-cyan-500/25 transition-all flex items-center gap-2">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                    Save Settings
-                </button>
+            <!-- Save Button - Sticky on mobile -->
+            <div class="sticky bottom-0 bg-slate-100 dark:bg-slate-900 py-4 -mx-4 px-4 sm:relative sm:bg-transparent sm:py-0 sm:mx-0 sm:px-0 border-t border-slate-200 dark:border-slate-800 sm:border-0">
+                <div class="flex items-center justify-between gap-4">
+                    <a href="/deals/" class="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors flex items-center gap-1 text-sm">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                        </svg>
+                        Back
+                    </a>
+                    <button type="submit"
+                            class="flex-1 sm:flex-none px-6 py-2.5 bg-cyan-500 hover:bg-cyan-400 text-white font-semibold rounded-lg shadow-lg shadow-cyan-500/25 transition-all flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        Save Settings
+                    </button>
+                </div>
             </div>
         </form>
-        
-        <div id="save-status" class="hidden mt-6 p-4 rounded-lg text-center"></div>
+
+        <div id="save-status" class="hidden mt-4 p-3 rounded-lg text-center text-sm"></div>
     </div>
 </div>
 
 <script>
-// Shared Data
 const airportNames = {
     'SYD': 'Sydney', 'MEL': 'Melbourne', 'AKL': 'Auckland', 'CHC': 'Christchurch',
     'NAN': 'Nadi', 'HNL': 'Honolulu', 'SIN': 'Singapore', 'BNE': 'Brisbane',
     'TYO': 'Tokyo', 'NRT': 'Tokyo Narita', 'HND': 'Tokyo Haneda',
-    'LHR': 'London Heathrow', 'LGW': 'London Gatwick', 'LAX': 'Los Angeles',
-    'JFK': 'New York JFK', 'DXB': 'Dubai', 'BKK': 'Bangkok', 'DPS': 'Bali',
-    'RAR': 'Rarotonga', 'WLG': 'Wellington', 'ZQN': 'Queenstown'
+    'LHR': 'London Heathrow', 'LAX': 'Los Angeles', 'JFK': 'New York JFK',
+    'DXB': 'Dubai', 'BKK': 'Bangkok', 'DPS': 'Bali', 'RAR': 'Rarotonga'
 };
 
 const aiProviderConfig = {
     'none': { showKey: false, showUrl: false, showModel: false },
-    'anthropic': { showKey: true, showUrl: false, showModel: true, keyHelp: 'Get from <a href="https://console.anthropic.com/" target="_blank" class="text-purple-400 hover:underline">console.anthropic.com</a>', modelHelp: 'Default: claude-3-haiku-20240307' },
-    'openai': { showKey: true, showUrl: false, showModel: true, keyHelp: 'Get from <a href="https://platform.openai.com/" target="_blank" class="text-purple-400 hover:underline">platform.openai.com</a>', modelHelp: 'Default: gpt-4o-mini' },
-    'gemini': { showKey: true, showUrl: false, showModel: true, keyHelp: 'Get from <a href="https://aistudio.google.com/" target="_blank" class="text-purple-400 hover:underline">aistudio.google.com</a>', modelHelp: 'Default: gemini-1.5-flash' },
+    'anthropic': { showKey: true, showUrl: false, showModel: true, keyHelp: 'console.anthropic.com', modelHelp: 'Default: claude-3-haiku' },
+    'openai': { showKey: true, showUrl: false, showModel: true, keyHelp: 'platform.openai.com', modelHelp: 'Default: gpt-4o-mini' },
+    'gemini': { showKey: true, showUrl: false, showModel: true, keyHelp: 'aistudio.google.com', modelHelp: 'Default: gemini-1.5-flash' },
     'ollama': { showKey: false, showUrl: true, showModel: true, modelHelp: 'Default: llama3.2' },
-    'openai_compatible': { showKey: true, showUrl: true, showModel: true, keyHelp: 'API key for your provider', modelHelp: 'Required: e.g., llama-3.1-70b-versatile (Groq)' },
+    'openai_compatible': { showKey: true, showUrl: true, showModel: true, keyHelp: 'Your provider', modelHelp: 'Required' },
 };
 
 function toggleAIFields() {
     const provider = document.getElementById('ai_provider').value;
     const config = aiProviderConfig[provider] || aiProviderConfig['none'];
-    
     document.getElementById('ai_api_key_field').classList.toggle('hidden', !config.showKey);
     document.getElementById('ai_ollama_url_field').classList.toggle('hidden', !config.showUrl);
     document.getElementById('ai_model_field').classList.toggle('hidden', !config.showModel);
-    
-    if (config.keyHelp) document.getElementById('ai_key_help').innerHTML = config.keyHelp;
+    if (config.keyHelp) document.getElementById('ai_key_help').textContent = config.keyHelp;
     if (config.modelHelp) document.getElementById('ai_model_help').textContent = config.modelHelp;
+}
+
+function toggleNotificationFields() {
+    const provider = document.getElementById('notification_provider').value;
+    document.getElementById('ntfy_sh_fields').classList.toggle('hidden', provider !== 'ntfy_sh');
+    document.getElementById('ntfy_self_fields').classList.toggle('hidden', provider !== 'ntfy_self');
+    document.getElementById('discord_fields').classList.toggle('hidden', provider !== 'discord');
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -619,119 +465,90 @@ document.addEventListener('DOMContentLoaded', function() {
     toggleNotificationFields();
 });
 
-// Notification provider field toggling
-function toggleNotificationFields() {
-    const provider = document.getElementById('notification_provider').value;
-
-    document.getElementById('ntfy_sh_fields').classList.toggle('hidden', provider !== 'ntfy_sh');
-    document.getElementById('ntfy_self_fields').classList.toggle('hidden', provider !== 'ntfy_self');
-    document.getElementById('discord_fields').classList.toggle('hidden', provider !== 'discord');
-}
-
-// Test Notification Handler
-document.getElementById('test-notification-btn')?.addEventListener('click', async function() {
+// Test Notification
+document.getElementById('test-notification-btn').addEventListener('click', async function() {
     const btn = this;
     const status = document.getElementById('test-notification-status');
-    const originalText = btn.textContent;
-
     btn.disabled = true;
     btn.textContent = 'Sending...';
-
     try {
         const response = await fetch('/api/notifications/test', { method: 'POST' });
         const data = await response.json();
-
-        if (data.success) {
-            status.className = 'text-sm text-emerald-500';
-            status.textContent = '✓ Test notification sent!';
-        } else {
-            status.className = 'text-sm text-amber-500';
-            status.textContent = '⚠ Sent to history (ntfy server not reachable)';
-        }
+        status.className = data.success ? 'text-sm text-emerald-500' : 'text-sm text-amber-500';
+        status.textContent = data.success ? 'Sent!' : 'Check config';
     } catch (err) {
         status.className = 'text-sm text-red-500';
-        status.textContent = '✗ Failed to send test notification';
+        status.textContent = 'Failed';
     } finally {
         btn.disabled = false;
         btn.textContent = 'Send Test';
-        setTimeout(() => { status.textContent = ''; }, 5000);
+        setTimeout(() => { status.textContent = ''; }, 3000);
     }
 });
 
-// --- Home Airport Logic ---
+// Home Airports
 const homeInput = document.getElementById('home_airport_search');
 const homeDropdown = document.getElementById('home-airport-dropdown');
 const homeContainer = document.getElementById('home-airports-container');
 const homeHidden = document.getElementById('home_airports');
 const homeLegacyHidden = document.getElementById('home_airport');
 
-let selectedHomeAirports = homeHidden.value
-    .split(',')
-    .map(s => s.trim())
-    .filter(s => s)
-    .map(code => ({
-        code: code,
-        name: airportNames[code] || code 
-    }));
-
+let selectedHomeAirports = homeHidden.value.split(',').map(s => s.trim()).filter(s => s).map(code => ({ code, name: airportNames[code] || code }));
 renderHomeAirports();
 
 let homeDebounceTimer;
-
 homeInput.addEventListener('input', (e) => {
     clearTimeout(homeDebounceTimer);
     const query = e.target.value.trim();
-    
-    if (query.length < 2) {
-        homeDropdown.classList.add('hidden');
-        return;
-    }
-    
+    if (query.length < 2) { homeDropdown.classList.add('hidden'); return; }
     homeDebounceTimer = setTimeout(async () => {
         try {
-            const response = await fetch(`/settings/api/airports/search?q=${encodeURIComponent(query)}&limit=8`);
+            const response = await fetch('/settings/api/airports/search?q=' + encodeURIComponent(query) + '&limit=6');
             const data = await response.json();
-            
             if (data.results && data.results.length > 0) {
                 const available = data.results.filter(r => !selectedHomeAirports.find(s => s.code === r.code));
-                
                 if (available.length === 0) {
-                    homeDropdown.innerHTML = `<div class="px-4 py-3 text-sm text-slate-500 italic">Already added</div>`;
+                    homeDropdown.textContent = '';
+                    const div = document.createElement('div');
+                    div.className = 'px-3 py-2 text-sm text-slate-500 italic';
+                    div.textContent = 'Already added';
+                    homeDropdown.appendChild(div);
                 } else {
-                    homeDropdown.innerHTML = available.map(a => `
-                        <button type="button" 
-                                class="w-full px-4 py-3 text-left hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-between group transition-colors border-b border-slate-200 dark:border-slate-700/50 last:border-0"
-                                onclick="addHomeAirport('${a.code}', '${a.city}', '${a.country}')">
-                            <div class="flex flex-col">
-                                <span class="font-bold text-slate-900 dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">${a.city}</span>
-                                <span class="text-xs text-slate-500 dark:text-slate-400">${a.country}</span>
-                            </div>
-                            <span class="font-mono text-sm font-bold text-slate-600 dark:text-slate-500 group-hover:text-slate-900 dark:group-hover:text-white bg-slate-100 dark:bg-slate-900 px-2 py-1 rounded">${a.code}</span>
-                        </button>
-                    `).join('');
+                    homeDropdown.textContent = '';
+                    available.forEach(a => {
+                        const btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.className = 'w-full px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-between text-sm';
+                        const span1 = document.createElement('span');
+                        span1.className = 'font-medium';
+                        span1.textContent = a.city;
+                        const span2 = document.createElement('span');
+                        span2.className = 'font-mono text-slate-500';
+                        span2.textContent = a.code;
+                        btn.appendChild(span1);
+                        btn.appendChild(span2);
+                        btn.addEventListener('click', () => addHomeAirport(a.code, a.city));
+                        homeDropdown.appendChild(btn);
+                    });
                 }
                 homeDropdown.classList.remove('hidden');
             } else {
-                homeDropdown.innerHTML = `<div class="px-4 py-3 text-sm text-slate-500">No results found</div>`;
+                homeDropdown.textContent = '';
+                const div = document.createElement('div');
+                div.className = 'px-3 py-2 text-sm text-slate-500';
+                div.textContent = 'No results';
+                homeDropdown.appendChild(div);
                 homeDropdown.classList.remove('hidden');
             }
-        } catch (err) {
-            console.error('Home airport search failed:', err);
-        }
+        } catch (err) { console.error(err); }
     }, 200);
 });
 
-function addHomeAirport(code, city, country) {
+function addHomeAirport(code, city) {
     if (selectedHomeAirports.some(d => d.code === code)) return;
-    
-    selectedHomeAirports.push({
-        code: code,
-        name: city
-    });
-    
+    selectedHomeAirports.push({ code, name: city });
     updateHomeAirports();
     homeInput.value = '';
-    homeInput.focus();
     homeDropdown.classList.add('hidden');
 }
 
@@ -741,108 +558,92 @@ function removeHomeAirport(code) {
 }
 
 function updateHomeAirports() {
-    // Update main list
     homeHidden.value = selectedHomeAirports.map(d => d.code).join(',');
-    
-    // Update legacy field (first airport or empty)
     homeLegacyHidden.value = selectedHomeAirports.length > 0 ? selectedHomeAirports[0].code : '';
-    
     renderHomeAirports();
 }
 
 function renderHomeAirports() {
-    homeContainer.innerHTML = selectedHomeAirports.map(dest => `
-        <div class="inline-flex items-center pl-3 pr-2 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 group hover:border-cyan-500/50 transition-all shadow-sm">
-            <span class="text-sm font-medium mr-2">
-                <span class="font-mono text-cyan-600 dark:text-cyan-400 font-bold mr-1.5">${dest.code}</span>
-                ${dest.name !== dest.code ? `<span class="text-slate-600 dark:text-slate-400 border-l border-slate-300 dark:border-slate-700 pl-1.5">${dest.name}</span>` : ''}
-            </span>
-            <button type="button" 
-                    onclick="removeHomeAirport('${dest.code}')"
-                    class="p-1 rounded-md text-slate-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-slate-200 dark:hover:bg-slate-700/50 transition-colors"
-                    aria-label="Remove ${dest.code}">
-                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
-        </div>
-    `).join('');
+    homeContainer.textContent = '';
+    selectedHomeAirports.forEach(dest => {
+        const span = document.createElement('span');
+        span.className = 'inline-flex items-center gap-1 pl-2 pr-1 py-1 rounded-md bg-slate-100 dark:bg-slate-700 text-sm';
+        const codeSpan = document.createElement('span');
+        codeSpan.className = 'font-mono text-cyan-600 dark:text-cyan-400 font-bold';
+        codeSpan.textContent = dest.code;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'p-0.5 hover:text-red-500';
+        btn.innerHTML = '<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>';
+        btn.addEventListener('click', () => removeHomeAirport(dest.code));
+        span.appendChild(codeSpan);
+        span.appendChild(btn);
+        homeContainer.appendChild(span);
+    });
 }
 
-
-// --- Destinations Logic ---
+// Destinations
 const destInput = document.getElementById('destination_search');
 const destDropdown = document.getElementById('destination-dropdown');
 const destContainer = document.getElementById('destinations-container');
 const destHidden = document.getElementById('watched_destinations');
 
-let selectedDestinations = destHidden.value
-    .split(',')
-    .map(s => s.trim())
-    .filter(s => s)
-    .map(code => ({
-        code: code,
-        name: airportNames[code] || code 
-    }));
-
+let selectedDestinations = destHidden.value.split(',').map(s => s.trim()).filter(s => s).map(code => ({ code, name: airportNames[code] || code }));
 renderDestinations();
 
 let destDebounceTimer;
-
 destInput.addEventListener('input', (e) => {
     clearTimeout(destDebounceTimer);
     const query = e.target.value.trim();
-    
-    if (query.length < 2) {
-        destDropdown.classList.add('hidden');
-        return;
-    }
-    
+    if (query.length < 2) { destDropdown.classList.add('hidden'); return; }
     destDebounceTimer = setTimeout(async () => {
         try {
-            const response = await fetch(`/settings/api/airports/search?q=${encodeURIComponent(query)}&limit=8`);
+            const response = await fetch('/settings/api/airports/search?q=' + encodeURIComponent(query) + '&limit=6');
             const data = await response.json();
-            
             if (data.results && data.results.length > 0) {
                 const available = data.results.filter(r => !selectedDestinations.find(s => s.code === r.code));
-                
                 if (available.length === 0) {
-                    destDropdown.innerHTML = `<div class="px-4 py-3 text-sm text-slate-500 italic">Already added</div>`;
+                    destDropdown.textContent = '';
+                    const div = document.createElement('div');
+                    div.className = 'px-3 py-2 text-sm text-slate-500 italic';
+                    div.textContent = 'Already added';
+                    destDropdown.appendChild(div);
                 } else {
-                    destDropdown.innerHTML = available.map(a => `
-                        <button type="button" 
-                                class="w-full px-4 py-3 text-left hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-between group transition-colors border-b border-slate-200 dark:border-slate-700/50 last:border-0"
-                                onclick="addDestination('${a.code}', '${a.city}', '${a.country}')">
-                            <div class="flex flex-col">
-                                <span class="font-bold text-slate-900 dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">${a.city}</span>
-                                <span class="text-xs text-slate-500 dark:text-slate-400">${a.country}</span>
-                            </div>
-                            <span class="font-mono text-sm font-bold text-slate-600 dark:text-slate-500 group-hover:text-slate-900 dark:group-hover:text-white bg-slate-100 dark:bg-slate-900 px-2 py-1 rounded">${a.code}</span>
-                        </button>
-                    `).join('');
+                    destDropdown.textContent = '';
+                    available.forEach(a => {
+                        const btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.className = 'w-full px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-between text-sm';
+                        const span1 = document.createElement('span');
+                        span1.className = 'font-medium';
+                        span1.textContent = a.city;
+                        const span2 = document.createElement('span');
+                        span2.className = 'font-mono text-slate-500';
+                        span2.textContent = a.code;
+                        btn.appendChild(span1);
+                        btn.appendChild(span2);
+                        btn.addEventListener('click', () => addDestination(a.code, a.city));
+                        destDropdown.appendChild(btn);
+                    });
                 }
                 destDropdown.classList.remove('hidden');
             } else {
-                destDropdown.innerHTML = `<div class="px-4 py-3 text-sm text-slate-500">No results found</div>`;
+                destDropdown.textContent = '';
+                const div = document.createElement('div');
+                div.className = 'px-3 py-2 text-sm text-slate-500';
+                div.textContent = 'No results';
+                destDropdown.appendChild(div);
                 destDropdown.classList.remove('hidden');
             }
-        } catch (err) {
-            console.error('Search failed:', err);
-        }
+        } catch (err) { console.error(err); }
     }, 200);
 });
 
-function addDestination(code, city, country) {
+function addDestination(code, city) {
     if (selectedDestinations.some(d => d.code === code)) return;
-    
-    selectedDestinations.push({
-        code: code,
-        name: city
-    });
-    
+    selectedDestinations.push({ code, name: city });
     updateDestinations();
     destInput.value = '';
-    destInput.focus();
     destDropdown.classList.add('hidden');
 }
 
@@ -857,71 +658,51 @@ function updateDestinations() {
 }
 
 function renderDestinations() {
-    destContainer.innerHTML = selectedDestinations.map(dest => `
-        <div class="inline-flex items-center pl-3 pr-2 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 group hover:border-cyan-500/50 transition-all shadow-sm">
-            <span class="text-sm font-medium mr-2">
-                <span class="font-mono text-cyan-600 dark:text-cyan-400 font-bold mr-1.5">${dest.code}</span>
-                ${dest.name !== dest.code ? `<span class="text-slate-600 dark:text-slate-400 border-l border-slate-300 dark:border-slate-700 pl-1.5">${dest.name}</span>` : ''}
-            </span>
-            <button type="button" 
-                    onclick="removeDestination('${dest.code}')"
-                    class="p-1 rounded-md text-slate-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-slate-200 dark:hover:bg-slate-700/50 transition-colors"
-                    aria-label="Remove ${dest.code}">
-                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
-        </div>
-    `).join('');
+    destContainer.textContent = '';
+    selectedDestinations.forEach(dest => {
+        const span = document.createElement('span');
+        span.className = 'inline-flex items-center gap-1 pl-2 pr-1 py-1 rounded-md bg-slate-100 dark:bg-slate-700 text-sm';
+        const codeSpan = document.createElement('span');
+        codeSpan.className = 'font-mono text-cyan-600 dark:text-cyan-400 font-bold';
+        codeSpan.textContent = dest.code;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'p-0.5 hover:text-red-500';
+        btn.innerHTML = '<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>';
+        btn.addEventListener('click', () => removeDestination(dest.code));
+        span.appendChild(codeSpan);
+        span.appendChild(btn);
+        destContainer.appendChild(span);
+    });
 }
 
-
-// --- Global Click Handler ---
+// Close dropdowns on outside click
 document.addEventListener('click', (e) => {
-    if (homeInput && !homeInput.contains(e.target) && !homeDropdown.contains(e.target)) {
-        homeDropdown.classList.add('hidden');
-    }
-    if (destInput && !destInput.contains(e.target) && !destDropdown.contains(e.target)) {
-        destDropdown.classList.add('hidden');
-    }
+    if (!homeInput.contains(e.target) && !homeDropdown.contains(e.target)) homeDropdown.classList.add('hidden');
+    if (!destInput.contains(e.target) && !destDropdown.contains(e.target)) destDropdown.classList.add('hidden');
 });
 
-
-// --- Form Submission ---
+// Form Submit
 document.getElementById('settings-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    
     const form = e.target;
     const statusEl = document.getElementById('save-status');
     const submitBtn = form.querySelector('button[type="submit"]');
-    
+
     submitBtn.disabled = true;
-    submitBtn.innerHTML = '<svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Saving...';
-    
-    const watchedDests = form.watched_destinations.value
-        .split(',')
-        .map(s => s.trim().toUpperCase())
-        .filter(s => s.length > 0);
-        
-    const homeAirports = form.home_airports.value
-        .split(',')
-        .map(s => s.trim().toUpperCase())
-        .filter(s => s.length > 0);
-    
-    // Fallback to single airport if none selected (should ideally have validation)
+    const origHTML = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg> Saving...';
+
+    const watchedDests = form.watched_destinations.value.split(',').map(s => s.trim().toUpperCase()).filter(s => s);
+    const homeAirports = form.home_airports.value.split(',').map(s => s.trim().toUpperCase()).filter(s => s);
     const primaryHomeAirport = homeAirports.length > 0 ? homeAirports[0] : '';
-    
     const quietStart = form.notification_quiet_hours_start.value;
     const quietEnd = form.notification_quiet_hours_end.value;
 
-    // Get notification topic from the appropriate field based on provider
     const notifProvider = form.notification_provider.value;
     let ntfyTopic = null;
-    if (notifProvider === 'ntfy_sh') {
-        ntfyTopic = document.getElementById('notification_ntfy_topic_sh').value || null;
-    } else if (notifProvider === 'ntfy_self') {
-        ntfyTopic = document.getElementById('notification_ntfy_topic_self').value || null;
-    }
+    if (notifProvider === 'ntfy_sh') ntfyTopic = document.getElementById('notification_ntfy_topic_sh').value || null;
+    else if (notifProvider === 'ntfy_self') ntfyTopic = document.getElementById('notification_ntfy_topic_self').value || null;
 
     const data = {
         home_airport: primaryHomeAirport,
@@ -931,21 +712,18 @@ document.getElementById('settings-form').addEventListener('submit', async (e) =>
         preferred_currency: form.preferred_currency.value,
         notifications_enabled: form.notifications_enabled.checked,
         notification_provider: notifProvider,
-        notification_ntfy_url: form.notification_ntfy_url?.value || null,
+        notification_ntfy_url: form.notification_ntfy_url ? form.notification_ntfy_url.value : null,
         notification_ntfy_topic: ntfyTopic,
-        notification_discord_webhook: form.notification_discord_webhook?.value || null,
+        notification_discord_webhook: form.notification_discord_webhook ? form.notification_discord_webhook.value : null,
         notification_quiet_hours_start: quietStart ? parseInt(quietStart) : null,
         notification_quiet_hours_end: quietEnd ? parseInt(quietEnd) : null,
         notification_cooldown_minutes: parseInt(form.notification_cooldown_minutes.value) || 60,
         timezone: form.timezone.value,
-        // Granular notification toggles
-        notify_deals: form.notify_deals?.checked ?? true,
-        notify_trip_matches: form.notify_trip_matches?.checked ?? true,
-        notify_route_updates: form.notify_route_updates?.checked ?? true,
-        notify_system: form.notify_system?.checked ?? true,
-        // Deal quality filter
-        deal_notify_min_rating: parseInt(form.deal_notify_min_rating?.value) || 3,
-        // API keys
+        notify_deals: form.notify_deals ? form.notify_deals.checked : true,
+        notify_trip_matches: form.notify_trip_matches ? form.notify_trip_matches.checked : true,
+        notify_route_updates: form.notify_route_updates ? form.notify_route_updates.checked : true,
+        notify_system: form.notify_system ? form.notify_system.checked : true,
+        deal_notify_min_rating: parseInt(form.deal_notify_min_rating ? form.deal_notify_min_rating.value : 3) || 3,
         anthropic_api_key: form.anthropic_api_key.value,
         serpapi_key: form.serpapi_key.value,
         skyscanner_api_key: form.skyscanner_api_key.value,
@@ -954,29 +732,26 @@ document.getElementById('settings-form').addEventListener('submit', async (e) =>
         ai_ollama_url: form.ai_ollama_url.value,
         ai_model: form.ai_model.value,
     };
-    
+
     try {
         const response = await fetch('/settings/api/settings', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data),
         });
-        
         if (response.ok) {
-            statusEl.className = 'mt-6 p-4 rounded-lg text-center bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
-            statusEl.textContent = '✓ Settings saved! Your deal feed has been updated.';
+            statusEl.className = 'mt-4 p-3 rounded-lg text-center text-sm bg-emerald-500/10 text-emerald-500 border border-emerald-500/20';
+            statusEl.textContent = 'Settings saved!';
             statusEl.classList.remove('hidden');
-            setTimeout(() => statusEl.classList.add('hidden'), 4000);
-        } else {
-            throw new Error('Failed to save');
-        }
+            setTimeout(() => statusEl.classList.add('hidden'), 3000);
+        } else { throw new Error('Failed'); }
     } catch (err) {
-        statusEl.className = 'mt-6 p-4 rounded-lg text-center bg-red-500/10 text-red-400 border border-red-500/20';
-        statusEl.textContent = '✗ Failed to save settings. Please try again.';
+        statusEl.className = 'mt-4 p-3 rounded-lg text-center text-sm bg-red-500/10 text-red-500 border border-red-500/20';
+        statusEl.textContent = 'Failed to save. Please try again.';
         statusEl.classList.remove('hidden');
     } finally {
         submitBtn.disabled = false;
-        submitBtn.innerHTML = '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg> Save Settings';
+        submitBtn.innerHTML = origHTML;
     }
 });
 </script>
