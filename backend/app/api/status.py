@@ -11,6 +11,7 @@ from app.scheduler import get_scheduler_status, manual_scrape_definition
 from app.services.notification import NtfyNotifier
 from app.services.scraping_service import ScrapingService
 from app.config import get_settings
+from app.utils.version import get_version
 
 settings = get_settings()
 router = APIRouter()
@@ -36,19 +37,29 @@ async def status_page(request: Request, db: Session = Depends(get_db)):
     ).all()
     
     # Enhance search definitions with health data and recent prices
+    # Use a separate dict to store computed health data to avoid SQLAlchemy issues
+    health_data = {}
     for search_def in search_definitions:
         health = search_def.scrape_health
         if health:
-            # Add recent prices count
             recent_count = db.query(FlightPrice).filter(
                 FlightPrice.search_definition_id == search_def.id,
                 FlightPrice.scraped_at >= datetime.utcnow() - timedelta(days=7)
             ).count()
-            health.recent_prices_count = recent_count
-            health.healthy = health.is_healthy
+            health_data[search_def.id] = {
+                'total_attempts': health.total_attempts,
+                'total_successes': health.total_successes,
+                'total_failures': health.total_failures,
+                'consecutive_failures': health.consecutive_failures,
+                'success_rate': health.success_rate,
+                'healthy': health.is_healthy,
+                'last_success_at': health.last_success_at,
+                'last_failure_reason': health.last_failure_reason,
+                'recent_prices_count': recent_count,
+                'has_data': True,
+            }
         else:
-            # Create mock health for display
-            search_def.scrape_health = type('MockHealth', (), {
+            health_data[search_def.id] = {
                 'total_attempts': 0,
                 'total_successes': 0,
                 'total_failures': 0,
@@ -57,8 +68,9 @@ async def status_page(request: Request, db: Session = Depends(get_db)):
                 'healthy': True,
                 'last_success_at': None,
                 'last_failure_reason': None,
-                'recent_prices_count': 0
-            })()
+                'recent_prices_count': 0,
+                'has_data': False,
+            }
     
     # Get total prices across all search definitions
     total_prices = db.query(FlightPrice).count()
@@ -73,38 +85,17 @@ async def status_page(request: Request, db: Session = Depends(get_db)):
     template_vars = {
         "request": request,
         "search_definitions": search_definitions,
+        "health_data": health_data,
         "scheduler": scheduler_status,
         "total_prices": total_prices,
         "current_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "ntfy_working": ntfy_working,
         "ntfy_url": settings.ntfy_url,
         "ntfy_topic": settings.ntfy_topic,
+        "version": get_version(),
     }
-    
+
     return templates.TemplateResponse("status.html", template_vars)
-
-
-@router.post("/api/scrape/manual/{search_definition_id}")
-async def manual_scrape_single(search_definition_id: int, db: Session = Depends(get_db)):
-    """Manually trigger a scrape for a specific search definition."""
-    search_def = db.query(SearchDefinition).filter(
-        SearchDefinition.id == search_definition_id
-    ).first()
-    
-    if not search_def:
-        raise HTTPException(status_code=404, detail="Search definition not found")
-    
-    try:
-        success = await manual_scrape_definition(search_definition_id)
-        return {
-            "success": success,
-            "message": f"Scrape {'completed' if success else 'failed'} for {search_def.display_name}"
-        }
-    except Exception as e:
-        return {
-            "success": False,
-            "error": str(e)
-        }
 
 
 @router.post("/api/scrape/manual/all")
@@ -113,34 +104,76 @@ async def manual_scrape_all(db: Session = Depends(get_db)):
     active_definitions = db.query(SearchDefinition).filter(
         SearchDefinition.is_active == True
     ).all()
-    
+
     if not active_definitions:
         return {
             "success": True,
             "message": "No active search definitions to scrape",
             "successes": 0,
-            "failures": 0
+            "failures": 0,
+            "errors": []
         }
-    
+
     successes = 0
     failures = 0
-    
+    errors = []
+
     for search_def in active_definitions:
         try:
-            success = await manual_scrape_definition(search_def.id)
-            if success:
+            result = await manual_scrape_definition(search_def.id)
+            if result["success"]:
                 successes += 1
             else:
                 failures += 1
-        except Exception:
+                errors.append({
+                    "route": search_def.display_name,
+                    "error": result.get("error", "Unknown error")
+                })
+        except Exception as e:
             failures += 1
-    
+            errors.append({
+                "route": search_def.display_name,
+                "error": str(e)
+            })
+
     return {
-        "success": successes > 0,
+        "success": successes > 0 or failures == 0,
         "message": f"Scraped {len(active_definitions)} definitions",
         "successes": successes,
-        "failures": failures
+        "failures": failures,
+        "errors": errors
     }
+
+
+@router.post("/api/scrape/manual/{search_definition_id}")
+async def manual_scrape_single(search_definition_id: int, db: Session = Depends(get_db)):
+    """Manually trigger a scrape for a specific search definition."""
+    search_def = db.query(SearchDefinition).filter(
+        SearchDefinition.id == search_definition_id
+    ).first()
+
+    if not search_def:
+        raise HTTPException(status_code=404, detail="Search definition not found")
+
+    try:
+        result = await manual_scrape_definition(search_definition_id)
+
+        if result["success"]:
+            return {
+                "success": True,
+                "message": f"Found {result.get('prices_found', 0)} prices for {search_def.display_name}"
+            }
+        else:
+            return {
+                "success": False,
+                "error": result.get("error", "Unknown error"),
+                "message": f"Scrape failed for {search_def.display_name}"
+            }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e)
+        }
 
 
 @router.post("/api/notifications/test")
