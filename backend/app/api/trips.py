@@ -16,6 +16,7 @@ from app.models.user_settings import UserSettings
 from app.services.trip_matcher import TripMatcher
 from app.services.currency import CurrencyService
 from app.utils.template_helpers import get_airports_dict
+from app.utils.version import get_version
 from app.services.airports import AIRPORTS, AirportService
 from app.services.trip_plan_search import TripPlanSearchService
 
@@ -102,6 +103,7 @@ async def trips_page(request: Request, db: Session = Depends(get_db)):
             "trips": trips_with_matches,
             "settings": settings,
             "airports": get_airports_dict(),
+            "version": get_version(),
         }
     )
 

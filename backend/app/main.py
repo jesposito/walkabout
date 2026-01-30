@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 import logging
 import os
 
-from app.api import routes, prices, health, status, notifications, deals, trips
+from app.api import routes, prices, health, status, notifications, deals, trips, about
 from app.api import settings as settings_api
 from app.scheduler import start_scheduler, stop_scheduler
 from app.services.notification import get_global_notifier, shutdown_notifier
@@ -98,6 +98,7 @@ app.include_router(health.router, tags=["health"])
 app.include_router(routes.router, prefix="/api/routes", tags=["routes"])
 app.include_router(prices.router, prefix="/prices", tags=["prices"])
 app.include_router(notifications.router, prefix="/api", tags=["notifications"])
+app.include_router(about.router, prefix="/about", tags=["about"])
 
 
 # Health check for monitoring/Docker

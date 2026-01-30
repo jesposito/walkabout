@@ -257,10 +257,31 @@
                     </div>
                 </div>
 
-                <div class="absolute inset-0 z-10 flex items-center justify-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white/60 dark:bg-slate-900/60 backdrop-blur-[2px]">
-                    <a href="{{ deal.link }}" target="_blank" rel="noopener noreferrer" 
+                <!-- Mobile: Always visible action bar -->
+                <div class="md:hidden border-t border-slate-200 dark:border-slate-700/50 px-6 py-3 flex gap-2">
+                    <a href="{{ deal.link }}" target="_blank" rel="noopener noreferrer"
+                       class="flex-1 px-4 py-2.5 {% if current_tab == 'local' %}bg-cyan-500 active:bg-cyan-600{% elif current_tab == 'regional' %}bg-emerald-500 active:bg-emerald-600{% else %}bg-violet-500 active:bg-violet-600{% endif %} text-white font-semibold rounded-lg text-center text-sm flex items-center justify-center gap-2">
+                        View Deal
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                    </a>
+                    {% if deal.parsed_origin and deal.parsed_destination %}
+                    <button onclick="trackRoute('{{ deal.parsed_origin }}', '{{ deal.parsed_destination }}', '{{ deal.parsed_cabin_class or "economy" }}')"
+                            class="px-4 py-2.5 bg-slate-200 dark:bg-slate-700 active:bg-slate-300 dark:active:bg-slate-600 text-slate-700 dark:text-white font-semibold rounded-lg text-sm flex items-center justify-center gap-1">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Track
+                    </button>
+                    {% endif %}
+                </div>
+
+                <!-- Desktop: Hover overlay -->
+                <div class="hidden md:flex absolute inset-0 z-10 items-center justify-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white/60 dark:bg-slate-900/60 backdrop-blur-[2px]">
+                    <a href="{{ deal.link }}" target="_blank" rel="noopener noreferrer"
                        class="px-5 py-2 {% if current_tab == 'local' %}bg-cyan-500 hover:bg-cyan-400{% elif current_tab == 'regional' %}bg-emerald-500 hover:bg-emerald-400{% else %}bg-violet-500 hover:bg-violet-400{% endif %} text-white font-semibold rounded-full shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-all duration-200 flex items-center gap-2">
-                        View Deal 
+                        View Deal
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                         </svg>
@@ -305,7 +326,7 @@
     </div>
 </div>
 
-<div id="track-toast" class="hidden fixed bottom-6 right-6 z-50 px-6 py-4 rounded-xl shadow-2xl transition-all transform translate-y-4 opacity-0">
+<div id="track-toast" class="hidden fixed bottom-4 left-4 right-4 md:left-auto md:right-6 md:w-auto z-50 px-6 py-4 rounded-xl shadow-2xl transition-all transform translate-y-4 opacity-0">
 </div>
 
 <script>

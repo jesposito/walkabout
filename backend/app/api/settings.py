@@ -10,6 +10,7 @@ from app.database import get_db
 from app.models.user_settings import UserSettings
 from app.services.relevance import RelevanceService
 from app.services.airports import AirportService
+from app.utils.version import get_version
 
 router = APIRouter()
 
@@ -227,6 +228,7 @@ async def settings_page(request: Request, db: Session = Depends(get_db)):
         {
             "request": request,
             "settings": settings,
+            "version": get_version(),
         }
     )
 

@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, text, event
 from sqlalchemy.orm import sessionmaker, declarative_base
 from app.config import get_settings
 import logging
@@ -14,6 +14,14 @@ if is_sqlite:
         db_url,
         connect_args={"check_same_thread": False}
     )
+
+    # Enable foreign key constraints for SQLite
+    # Without this, ON DELETE CASCADE doesn't work!
+    @event.listens_for(engine, "connect")
+    def set_sqlite_pragma(dbapi_connection, connection_record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
 else:
     engine = create_engine(
         db_url,

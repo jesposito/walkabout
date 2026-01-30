@@ -13,6 +13,7 @@ from app.services.currency import CurrencyService, convert_deal_price
 from app.models.deal import DealSource
 from app.models.user_settings import UserSettings
 from app.utils.template_helpers import get_airports_dict
+from app.utils.version import get_version
 
 router = APIRouter()
 
@@ -115,6 +116,7 @@ async def deals_page(
             "major_hubs": MAJOR_HUBS,
             "preferred_currency": preferred_currency,
             "ai_enabled": ai_enabled,
+            "version": get_version(),
         }
     )
 

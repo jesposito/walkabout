@@ -11,6 +11,7 @@ from app.scheduler import get_scheduler_status, manual_scrape_definition
 from app.services.notification import NtfyNotifier
 from app.services.scraping_service import ScrapingService
 from app.config import get_settings
+from app.utils.version import get_version
 
 settings = get_settings()
 router = APIRouter()
@@ -91,8 +92,9 @@ async def status_page(request: Request, db: Session = Depends(get_db)):
         "ntfy_working": ntfy_working,
         "ntfy_url": settings.ntfy_url,
         "ntfy_topic": settings.ntfy_topic,
+        "version": get_version(),
     }
-    
+
     return templates.TemplateResponse("status.html", template_vars)
 
 

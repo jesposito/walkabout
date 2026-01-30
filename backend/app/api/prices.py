@@ -13,6 +13,7 @@ from app.database import get_db
 from app.models.flight_price import FlightPrice
 from app.models.search_definition import SearchDefinition, TripType, CabinClass, StopsFilter
 from app.utils.template_helpers import get_airports_dict, build_google_flights_url
+from app.utils.version import get_version
 from app.services.airports import AirportService
 
 router = APIRouter()
@@ -101,6 +102,7 @@ async def prices_page(request: Request, db: Session = Depends(get_db)):
             "available_sources": source_status["sources"],
             "ai_enabled": source_status["ai_enabled"],
             "airports": get_airports_dict(),
+            "version": get_version(),
         }
     )
 
