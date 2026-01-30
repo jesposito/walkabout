@@ -150,7 +150,7 @@ class NotificationService:
             endpoint = f"{url.rstrip('/')}/{topic}"
 
             headers = {
-                "Title": title,
+                "Title": title.encode('utf-8').decode('utf-8'),
                 "Priority": self.NTFY_PRIORITY_MAP.get(priority, "3"),
             }
 
@@ -159,7 +159,11 @@ class NotificationService:
             if click_url:
                 headers["Click"] = click_url
 
-            response = await client.post(endpoint, content=message, headers=headers)
+            response = await client.post(
+                endpoint,
+                content=message.encode('utf-8'),
+                headers=headers
+            )
 
             if response.status_code == 200:
                 logger.info(f"ntfy notification sent: {title}")

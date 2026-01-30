@@ -42,6 +42,23 @@ class SettingsUpdate(BaseModel):
     notification_quiet_hours_end: Optional[int] = None
     notification_cooldown_minutes: Optional[int] = None
     timezone: Optional[str] = None
+    # Granular notification toggles
+    notify_deals: Optional[bool] = None
+    notify_trip_matches: Optional[bool] = None
+    notify_route_updates: Optional[bool] = None
+    notify_system: Optional[bool] = None
+    # Deal notification filters
+    deal_notify_min_rating: Optional[int] = None
+    deal_notify_categories: Optional[list[str]] = None
+    deal_notify_cabin_classes: Optional[list[str]] = None
+    # Frequency controls
+    deal_cooldown_minutes: Optional[int] = None
+    trip_cooldown_hours: Optional[int] = None
+    route_cooldown_hours: Optional[int] = None
+    # Daily digest
+    daily_digest_enabled: Optional[bool] = None
+    daily_digest_hour: Optional[int] = None
+    # API keys
     anthropic_api_key: Optional[str] = None
     serpapi_key: Optional[str] = None
     skyscanner_api_key: Optional[str] = None
@@ -70,6 +87,23 @@ class SettingsResponse(BaseModel):
     notification_quiet_hours_end: Optional[int] = None
     notification_cooldown_minutes: int = 60
     timezone: str = "Pacific/Auckland"
+    # Granular notification toggles
+    notify_deals: bool = True
+    notify_trip_matches: bool = True
+    notify_route_updates: bool = True
+    notify_system: bool = True
+    # Deal notification filters
+    deal_notify_min_rating: int = 3
+    deal_notify_categories: list[str] = ["local", "regional"]
+    deal_notify_cabin_classes: list[str] = ["economy", "premium_economy", "business", "first"]
+    # Frequency controls
+    deal_cooldown_minutes: int = 60
+    trip_cooldown_hours: int = 6
+    route_cooldown_hours: int = 24
+    # Daily digest
+    daily_digest_enabled: bool = False
+    daily_digest_hour: int = 8
+    # API keys
     anthropic_api_key: Optional[str] = None
     serpapi_key: Optional[str] = None
     skyscanner_api_key: Optional[str] = None
@@ -84,9 +118,8 @@ class SettingsResponse(BaseModel):
         from_attributes = True
 
 
-@router.get("/api/settings", response_model=SettingsResponse)
-async def get_settings(db: Session = Depends(get_db)):
-    settings = UserSettings.get_or_create(db)
+def build_settings_response(settings: UserSettings) -> SettingsResponse:
+    """Build a SettingsResponse from UserSettings model."""
     home_airports = settings.home_airports or []
     if not home_airports and settings.home_airport:
         home_airports = [settings.home_airport]
@@ -102,11 +135,28 @@ async def get_settings(db: Session = Depends(get_db)):
         notification_ntfy_url=settings.notification_ntfy_url,
         notification_ntfy_topic=settings.notification_ntfy_topic,
         notification_discord_webhook=mask_api_key(settings.notification_discord_webhook),
-        notification_min_discount_percent=settings.notification_min_discount_percent,
+        notification_min_discount_percent=settings.notification_min_discount_percent or 20,
         notification_quiet_hours_start=settings.notification_quiet_hours_start,
         notification_quiet_hours_end=settings.notification_quiet_hours_end,
         notification_cooldown_minutes=settings.notification_cooldown_minutes or 60,
         timezone=settings.timezone or "Pacific/Auckland",
+        # Granular notification toggles
+        notify_deals=settings.notify_deals if settings.notify_deals is not None else True,
+        notify_trip_matches=settings.notify_trip_matches if settings.notify_trip_matches is not None else True,
+        notify_route_updates=settings.notify_route_updates if settings.notify_route_updates is not None else True,
+        notify_system=settings.notify_system if settings.notify_system is not None else True,
+        # Deal notification filters
+        deal_notify_min_rating=settings.deal_notify_min_rating or 3,
+        deal_notify_categories=settings.deal_notify_categories or ["local", "regional"],
+        deal_notify_cabin_classes=settings.deal_notify_cabin_classes or ["economy", "premium_economy", "business", "first"],
+        # Frequency controls
+        deal_cooldown_minutes=settings.deal_cooldown_minutes or 60,
+        trip_cooldown_hours=settings.trip_cooldown_hours or 6,
+        route_cooldown_hours=settings.route_cooldown_hours or 24,
+        # Daily digest
+        daily_digest_enabled=settings.daily_digest_enabled if settings.daily_digest_enabled is not None else False,
+        daily_digest_hour=settings.daily_digest_hour or 8,
+        # API keys
         anthropic_api_key=mask_api_key(settings.anthropic_api_key),
         serpapi_key=mask_api_key(settings.serpapi_key),
         skyscanner_api_key=mask_api_key(settings.skyscanner_api_key),
@@ -117,6 +167,12 @@ async def get_settings(db: Session = Depends(get_db)):
         ai_ollama_url=settings.ai_ollama_url,
         ai_model=settings.ai_model,
     )
+
+
+@router.get("/api/settings", response_model=SettingsResponse)
+async def get_settings(db: Session = Depends(get_db)):
+    settings = UserSettings.get_or_create(db)
+    return build_settings_response(settings)
 
 
 @router.put("/api/settings", response_model=SettingsResponse)
@@ -181,43 +237,46 @@ async def update_settings(
         settings.ai_ollama_url = updates.ai_ollama_url.strip() if updates.ai_ollama_url else None
     if updates.ai_model is not None:
         settings.ai_model = updates.ai_model.strip() if updates.ai_model else None
-    
+
+    # Granular notification toggles
+    if updates.notify_deals is not None:
+        settings.notify_deals = updates.notify_deals
+    if updates.notify_trip_matches is not None:
+        settings.notify_trip_matches = updates.notify_trip_matches
+    if updates.notify_route_updates is not None:
+        settings.notify_route_updates = updates.notify_route_updates
+    if updates.notify_system is not None:
+        settings.notify_system = updates.notify_system
+
+    # Deal notification filters
+    if updates.deal_notify_min_rating is not None:
+        settings.deal_notify_min_rating = max(1, min(5, updates.deal_notify_min_rating))
+    if updates.deal_notify_categories is not None:
+        settings.deal_notify_categories = updates.deal_notify_categories
+    if updates.deal_notify_cabin_classes is not None:
+        settings.deal_notify_cabin_classes = updates.deal_notify_cabin_classes
+
+    # Frequency controls
+    if updates.deal_cooldown_minutes is not None:
+        settings.deal_cooldown_minutes = max(0, updates.deal_cooldown_minutes)
+    if updates.trip_cooldown_hours is not None:
+        settings.trip_cooldown_hours = max(0, updates.trip_cooldown_hours)
+    if updates.route_cooldown_hours is not None:
+        settings.route_cooldown_hours = max(0, updates.route_cooldown_hours)
+
+    # Daily digest
+    if updates.daily_digest_enabled is not None:
+        settings.daily_digest_enabled = updates.daily_digest_enabled
+    if updates.daily_digest_hour is not None:
+        settings.daily_digest_hour = max(0, min(23, updates.daily_digest_hour))
+
     db.commit()
     db.refresh(settings)
-    
+
     relevance = RelevanceService(db)
     updated_count = relevance.update_all_deals()
-    
-    home_airports = settings.home_airports or []
-    if not home_airports and settings.home_airport:
-        home_airports = [settings.home_airport]
-    return SettingsResponse(
-        home_airport=settings.home_airport,
-        home_airports=home_airports,
-        home_region=settings.home_region,
-        watched_destinations=settings.watched_destinations or [],
-        watched_regions=settings.watched_regions or [],
-        preferred_currency=settings.preferred_currency or "NZD",
-        notifications_enabled=settings.notifications_enabled,
-        notification_provider=settings.notification_provider or "none",
-        notification_ntfy_url=settings.notification_ntfy_url,
-        notification_ntfy_topic=settings.notification_ntfy_topic,
-        notification_discord_webhook=mask_api_key(settings.notification_discord_webhook),
-        notification_min_discount_percent=settings.notification_min_discount_percent,
-        notification_quiet_hours_start=settings.notification_quiet_hours_start,
-        notification_quiet_hours_end=settings.notification_quiet_hours_end,
-        notification_cooldown_minutes=settings.notification_cooldown_minutes or 60,
-        timezone=settings.timezone or "Pacific/Auckland",
-        anthropic_api_key=mask_api_key(settings.anthropic_api_key),
-        serpapi_key=mask_api_key(settings.serpapi_key),
-        skyscanner_api_key=mask_api_key(settings.skyscanner_api_key),
-        amadeus_client_id=mask_api_key(settings.amadeus_client_id),
-        amadeus_client_secret=mask_api_key(settings.amadeus_client_secret),
-        ai_provider=settings.ai_provider or "none",
-        ai_api_key=mask_api_key(settings.ai_api_key),
-        ai_ollama_url=settings.ai_ollama_url,
-        ai_model=settings.ai_model,
-    )
+
+    return build_settings_response(settings)
 
 
 @router.get("/", response_class=HTMLResponse)

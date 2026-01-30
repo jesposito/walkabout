@@ -39,6 +39,26 @@ class UserSettings(Base):
     notification_cooldown_minutes = Column(Integer, default=60)      # Min time between notifications
     timezone = Column(String(50), default="Pacific/Auckland")
 
+    # Granular notification toggles
+    notify_deals = Column(Boolean, default=True)           # Flight deal alerts
+    notify_trip_matches = Column(Boolean, default=True)    # Trip plan match alerts
+    notify_route_updates = Column(Boolean, default=True)   # Route price change alerts
+    notify_system = Column(Boolean, default=True)          # System alerts (errors, startup)
+
+    # Deal notification filters
+    deal_notify_min_rating = Column(Integer, default=3)    # 1-5, only notify deals rated >= this
+    deal_notify_categories = Column(JSON, default=lambda: ["local", "regional"])  # local, regional, hub
+    deal_notify_cabin_classes = Column(JSON, default=lambda: ["economy", "premium_economy", "business", "first"])
+
+    # Frequency controls
+    deal_cooldown_minutes = Column(Integer, default=60)    # Per-route deal cooldown
+    trip_cooldown_hours = Column(Integer, default=6)       # Trip match cooldown
+    route_cooldown_hours = Column(Integer, default=24)     # Route update cooldown
+
+    # Daily digest option
+    daily_digest_enabled = Column(Boolean, default=False)  # Send daily summary instead of instant
+    daily_digest_hour = Column(Integer, default=8)         # Hour to send digest (0-23)
+
     last_notified_deal_id = Column(Integer, nullable=True)
     
     created_at = Column(DateTime, server_default=func.now())
