@@ -1,95 +1,229 @@
+# Walkabout Docker Image Build & Publish
+#
+# Builds and publishes multi-architecture Docker images to GitHub Container Registry.
+# Uses native ARM runners for faster arm64 builds (no QEMU emulation).
+#
+# Triggers on:
+#   - Version tags (v1.0.0 publishes as :1.0.0, :1.0, :latest)
+#   - Feature branches (publishes as :dev for testing)
+#   - Manual dispatch (workflow_dispatch)
+#
+# Images are published to: ghcr.io/jesposito/walkabout/backend
+
 name: Build and Deploy
 
 on:
   push:
-    branches: 
+    branches:
       - main
-      - 'feature/**'
-    tags: [ 'v*' ]
+      - 'feature/*'
+      - 'fix/*'
+    tags:
+      - 'v*.*.*'
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      push:
+        description: 'Push image to registry'
+        required: false
+        default: 'true'
+        type: boolean
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: jesposito/walkabout/backend
 
 jobs:
+  # =========================================
+  # Build per-architecture images in parallel
+  # =========================================
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+            suffix: amd64
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+            suffix: arm64
+
+    runs-on: ${{ matrix.runner }}
+
     permissions:
       contents: read
       packages: write
 
-    outputs:
-      image-tag: ${{ steps.meta.outputs.tags }}
-      image-digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Get version from git
+        id: version
+        run: echo "WALKABOUT_VERSION=$(git describe --tags --always)" >> $GITHUB_OUTPUT
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=build-${{ matrix.suffix }}
+          labels: |
+            org.opencontainers.image.title=Walkabout
+            org.opencontainers.image.description=Self-hosted flight deal monitoring system
+            org.opencontainers.image.vendor=jesposito
+
+      - name: Build and push by digest
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          platforms: ${{ matrix.platform }}
+          push: ${{ github.event_name != 'pull_request' }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            WALKABOUT_VERSION=${{ steps.version.outputs.WALKABOUT_VERSION }}
+          cache-from: type=gha,scope=build-${{ matrix.suffix }}
+          cache-to: type=gha,scope=build-${{ matrix.suffix }},mode=max
+          outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=${{ github.event_name != 'pull_request' }}
+
+      - name: Export digest
+        if: github.event_name != 'pull_request'
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ matrix.suffix }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  # =========================================
+  # Merge architectures into multi-arch manifest
+  # =========================================
+  merge:
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
+    needs: build
+
+    permissions:
+      contents: read
+      packages: write
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests
+          pattern: digests-*
+          merge-multiple: true
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-    - name: Log in to Container Registry
-      if: github.event_name != 'pull_request'
-      uses: docker/login-action@v3
-      with:
-        registry: ${{ env.REGISTRY }}
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Extract metadata (tags, labels) for backend
-      id: meta
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend
-        tags: |
-          type=raw,value=dev,enable=${{ startsWith(github.ref, 'refs/heads/feature/') }}
-          type=raw,value=latest,enable={{is_default_branch}}
-          type=semver,pattern={{version}}
-          type=semver,pattern={{major}}.{{minor}}
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            # Latest tag for version tags (releases) and main branch
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' }}
+            # Dev tag for feature and fix branches
+            type=raw,value=dev,enable=${{ startsWith(github.ref, 'refs/heads/feature/') || startsWith(github.ref, 'refs/heads/fix/') }}
+            # Tag name (e.g., v1.0.0 -> 1.0.0)
+            type=semver,pattern={{version}}
+            # Major.minor (e.g., v1.0.0 -> 1.0)
+            type=semver,pattern={{major}}.{{minor}}
+            # Git short SHA
+            type=sha,prefix=sha-
 
-    - name: Build and push backend image
-      id: build
-      uses: docker/build-push-action@v5
-      with:
-        context: ./backend
-        platforms: linux/amd64,linux/arm64
-        push: ${{ github.event_name != 'pull_request' }}
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
+      - name: Create manifest list and push
+        working-directory: /tmp/digests
+        run: |
+          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@sha256:%s ' *)
 
+      - name: Inspect image
+        run: |
+          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
 
+      - name: Output image details
+        run: |
+          echo "## Docker Image Published" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Registry:** \`${{ env.REGISTRY }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Image:** \`${{ env.IMAGE_NAME }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Tags" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Architectures" >> $GITHUB_STEP_SUMMARY
+          echo "- linux/amd64 (native build)" >> $GITHUB_STEP_SUMMARY
+          echo "- linux/arm64 (native build)" >> $GITHUB_STEP_SUMMARY
 
+  # =========================================
   # Create release on tags
+  # =========================================
   release:
     runs-on: ubuntu-latest
-    needs: build
+    needs: merge
     if: startsWith(github.ref, 'refs/tags/v')
+
     permissions:
       contents: write
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
 
-    - name: Create Release
-      uses: softprops/action-gh-release@v1
-      with:
-        generate_release_notes: true
-        body: |
-          ## Docker Images
-          
-          Pull the latest images:
-          ```bash
-          docker pull ghcr.io/${{ github.repository }}/backend:${{ github.ref_name }}
-          ```
-          
-          ## Deployment
-          
-          See [UNRAID_DEPLOYMENT.md](./UNRAID_DEPLOYMENT.md) for deployment instructions.
-        files: |
-          docker-compose.prod.yml
-          UNRAID_DEPLOYMENT.md
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          generate_release_notes: true
+          body: |
+            ## Docker Images
+
+            Pull the latest images:
+            ```bash
+            docker pull ghcr.io/${{ github.repository }}/backend:${{ github.ref_name }}
+            ```
+
+            ## Deployment
+
+            See [UNRAID_DEPLOYMENT.md](./UNRAID_DEPLOYMENT.md) for deployment instructions.
+          files: |
+            docker-compose.prod.yml
+            UNRAID_DEPLOYMENT.md
