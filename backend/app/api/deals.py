@@ -360,3 +360,37 @@ async def get_insights(
     watched = [d.strip() for d in destinations.split(",")]
     insights = await service.get_insights(home_airport, watched)
     return insights
+
+
+@router.post("/api/deals/{deal_id}/dismiss")
+async def dismiss_deal(deal_id: int, db: Session = Depends(get_db)):
+    """Dismiss a deal (mark as not relevant)."""
+    from app.models.deal import Deal
+
+    deal = db.query(Deal).filter(Deal.id == deal_id).first()
+    if not deal:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Deal not found")
+
+    deal.is_relevant = False
+    deal.relevance_reason = "Dismissed by user"
+    db.commit()
+
+    return {"success": True, "message": f"Deal {deal_id} dismissed"}
+
+
+@router.post("/api/deals/{deal_id}/restore")
+async def restore_deal(deal_id: int, db: Session = Depends(get_db)):
+    """Restore a dismissed deal."""
+    from app.models.deal import Deal
+
+    deal = db.query(Deal).filter(Deal.id == deal_id).first()
+    if not deal:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Deal not found")
+
+    deal.is_relevant = True
+    deal.relevance_reason = "Restored by user"
+    db.commit()
+
+    return {"success": True, "message": f"Deal {deal_id} restored"}

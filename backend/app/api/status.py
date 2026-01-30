@@ -2,10 +2,11 @@ from fastapi import APIRouter, Request, Depends, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, text
 from datetime import datetime, timedelta
 
 from app.database import get_db
+from app.models.user_settings import UserSettings
 from app.models import SearchDefinition, ScrapeHealth, FlightPrice
 from app.scheduler import get_scheduler_status, manual_scrape_definition
 from app.services.notification import NtfyNotifier
@@ -177,20 +178,23 @@ async def manual_scrape_single(search_definition_id: int, db: Session = Depends(
 
 
 @router.post("/api/notifications/test")
-async def test_notifications():
+async def test_notifications(db: Session = Depends(get_db)):
     """Send a test notification to verify ntfy is working."""
-    notifier = NtfyNotifier()
-    
+    from app.services.notification import get_global_notifier
+
+    notifier = get_global_notifier()
+    user_settings = UserSettings.get_or_create(db)
+
     try:
-        success = await notifier.send_test_notification()
+        success, message = await notifier.send_test_notification(user_settings=user_settings)
         return {
             "success": success,
-            "message": "Test notification sent" if success else "Failed to send test notification"
+            "message": message
         }
     except Exception as e:
         return {
             "success": False,
-            "error": str(e)
+            "message": str(e)
         }
 
 
@@ -199,7 +203,7 @@ async def health_check(db: Session = Depends(get_db)):
     """Simple health check endpoint for monitoring."""
     try:
         # Test database connection
-        db.execute("SELECT 1")
+        db.execute(text("SELECT 1"))
         
         # Get basic stats
         active_definitions = db.query(SearchDefinition).filter(
