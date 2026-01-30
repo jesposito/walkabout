@@ -68,6 +68,10 @@ def ensure_sqlite_columns():
         ("user_settings", "ai_api_key", "VARCHAR(200)"),
         ("user_settings", "ai_ollama_url", "VARCHAR(200)"),
         ("user_settings", "ai_model", "VARCHAR(50)"),
+        # Base notification settings
+        ("user_settings", "notifications_enabled", "BOOLEAN DEFAULT 0"),
+        ("user_settings", "notification_min_discount_percent", "INTEGER DEFAULT 20"),
+        ("user_settings", "last_notified_deal_id", "INTEGER"),
         # Notification provider settings (migration 003)
         ("user_settings", "notification_provider", "VARCHAR(20) DEFAULT 'none'"),
         ("user_settings", "notification_ntfy_url", "VARCHAR(200)"),
