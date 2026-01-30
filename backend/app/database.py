@@ -68,6 +68,19 @@ def ensure_sqlite_columns():
         ("user_settings", "ai_api_key", "VARCHAR(200)"),
         ("user_settings", "ai_ollama_url", "VARCHAR(200)"),
         ("user_settings", "ai_model", "VARCHAR(50)"),
+        # Granular notification settings
+        ("user_settings", "notify_deals", "BOOLEAN DEFAULT 1"),
+        ("user_settings", "notify_trip_matches", "BOOLEAN DEFAULT 1"),
+        ("user_settings", "notify_route_updates", "BOOLEAN DEFAULT 1"),
+        ("user_settings", "notify_system", "BOOLEAN DEFAULT 1"),
+        ("user_settings", "deal_notify_min_rating", "INTEGER DEFAULT 3"),
+        ("user_settings", "deal_notify_categories", "TEXT DEFAULT '[\"local\", \"regional\"]'"),
+        ("user_settings", "deal_notify_cabin_classes", "TEXT DEFAULT '[\"economy\", \"premium_economy\", \"business\", \"first\"]'"),
+        ("user_settings", "deal_cooldown_minutes", "INTEGER DEFAULT 60"),
+        ("user_settings", "trip_cooldown_hours", "INTEGER DEFAULT 6"),
+        ("user_settings", "route_cooldown_hours", "INTEGER DEFAULT 24"),
+        ("user_settings", "daily_digest_enabled", "BOOLEAN DEFAULT 0"),
+        ("user_settings", "daily_digest_hour", "INTEGER DEFAULT 8"),
     ]
     
     with engine.connect() as conn:
