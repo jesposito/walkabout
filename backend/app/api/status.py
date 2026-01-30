@@ -2,33 +2,21 @@ from fastapi import APIRouter, Request, Depends, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, text
 from datetime import datetime, timedelta
-from pathlib import Path
 
 from app.database import get_db
+from app.models.user_settings import UserSettings
 from app.models import SearchDefinition, ScrapeHealth, FlightPrice
 from app.scheduler import get_scheduler_status, manual_scrape_definition
 from app.services.notification import NtfyNotifier
 from app.services.scraping_service import ScrapingService
 from app.config import get_settings
+from app.utils.version import get_version
 
 settings = get_settings()
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
-
-
-def get_version() -> str:
-    """Read the current version from LATEST_VERSION file."""
-    possible_paths = [
-        Path(__file__).parent.parent.parent / "LATEST_VERSION",  # repo root
-        Path("/app/LATEST_VERSION"),  # Docker container path
-        Path.cwd() / "LATEST_VERSION",  # Current working directory
-    ]
-    for path in possible_paths:
-        if path.exists():
-            return path.read_text().strip()
-    return "v0.0.0-dev"
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -190,20 +178,23 @@ async def manual_scrape_single(search_definition_id: int, db: Session = Depends(
 
 
 @router.post("/api/notifications/test")
-async def test_notifications():
+async def test_notifications(db: Session = Depends(get_db)):
     """Send a test notification to verify ntfy is working."""
-    notifier = NtfyNotifier()
-    
+    from app.services.notification import get_global_notifier
+
+    notifier = get_global_notifier()
+    user_settings = UserSettings.get_or_create(db)
+
     try:
-        success = await notifier.send_test_notification()
+        success, message = await notifier.send_test_notification(user_settings=user_settings)
         return {
             "success": success,
-            "message": "Test notification sent" if success else "Failed to send test notification"
+            "message": message
         }
     except Exception as e:
         return {
             "success": False,
-            "error": str(e)
+            "message": str(e)
         }
 
 
@@ -212,7 +203,7 @@ async def health_check(db: Session = Depends(get_db)):
     """Simple health check endpoint for monitoring."""
     try:
         # Test database connection
-        db.execute("SELECT 1")
+        db.execute(text("SELECT 1"))
         
         # Get basic stats
         active_definitions = db.query(SearchDefinition).filter(

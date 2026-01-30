@@ -1,0 +1,1181 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="bg-slate-100 dark:bg-slate-900 min-h-full pb-12">
+    {% macro get_vibes_label(slug) -%}
+        {%- if slug == 'tropical' -%}🏝️ Tropical
+        {%- elif slug == 'pacific_islands' -%}🌺 Pacific Islands
+        {%- elif slug == 'australia' -%}🦘 Australia
+        {%- elif slug == 'japan' -%}🗾 Japan
+        {%- elif slug == 'southeast_asia' -%}🛕 SE Asia
+        {%- elif slug == 'europe' -%}🏰 Europe
+        {%- elif slug == 'uk' -%}🇬🇧 UK
+        {%- elif slug == 'usa_west' -%}🌉 USA West
+        {%- elif slug == 'usa_east' -%}🗽 USA East
+        {%- elif slug == 'hawaii' -%}🌴 Hawaii
+        {%- elif slug == 'family' -%}👨‍👩‍👧‍👦 Family
+        {%- elif slug == 'adventure' -%}🏔️ Adventure
+        {%- elif slug == 'city_break' -%}🌆 City Break
+        {%- elif slug == 'honeymoon' -%}💑 Honeymoon
+        {%- else -%}{{ slug|replace('_', ' ')|title }}
+        {%- endif -%}
+    {%- endmacro %}
+
+    <!-- Header -->
+    <div class="bg-white/50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <h1 class="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Trip Plans</h1>
+            <p class="text-slate-600 dark:text-slate-400 mt-2">Tell us when you're free and where you want to go. We'll watch for deals that match.</p>
+        </div>
+    </div>
+
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 space-y-8">
+        
+        <!-- Create New Trip Form -->
+        <details class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xl group" {% if not trips %}open{% endif %}>
+            <summary class="list-none p-6 cursor-pointer flex items-center justify-between">
+                <div class="flex items-start gap-4">
+                    <div class="w-10 h-10 rounded-lg bg-cyan-500/10 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-5 h-5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 id="form-title" class="text-lg font-semibold text-slate-900 dark:text-white group-hover:text-cyan-400 transition-colors">Create New Trip Plan</h2>
+                        <p id="form-subtitle" class="text-sm text-slate-600 dark:text-slate-400 mt-1">Set your criteria and let the deals come to you</p>
+                    </div>
+                </div>
+                <div class="text-slate-500 group-hover:text-cyan-400 transition-colors transform group-open:rotate-180 duration-200">
+                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </div>
+            </summary>
+
+            <div class="px-6 pb-6 border-t border-slate-200 dark:border-slate-700/50 pt-6">
+                <form id="create-trip-form" class="space-y-6">
+                <input type="hidden" id="editing_trip_id" name="editing_trip_id" value="">
+                <!-- Name & Budget -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="name" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Trip Name</label>
+                        <input type="text" id="name" name="name" required
+                               class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                               placeholder="e.g. August Japan Trip">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="budget_max" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Max Budget</label>
+                            <input type="number" id="budget_max" name="budget_max" required
+                                   class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                                   placeholder="2000">
+                        </div>
+                        <div>
+                            <label for="budget_currency" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Currency</label>
+                            <select id="budget_currency" name="budget_currency"
+                                    class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
+                                <option value="NZD">NZD</option>
+                                <option value="AUD">AUD</option>
+                                <option value="USD">USD</option>
+                                <option value="EUR">EUR</option>
+                                <option value="GBP">GBP</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dates & Duration -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="available_from" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Earliest Departure</label>
+                            <input type="date" id="available_from" name="available_from" required
+                                   class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent dark:[color-scheme:dark]">
+                        </div>
+                        <div>
+                            <label for="available_to" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Latest Return</label>
+                            <input type="date" id="available_to" name="available_to" required
+                                   class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent dark:[color-scheme:dark]">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="trip_duration_min" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Min Days</label>
+                            <input type="number" id="trip_duration_min" name="trip_duration_min" value="5" min="1"
+                                   class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
+                        </div>
+                        <div>
+                            <label for="trip_duration_max" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Max Days</label>
+                            <input type="number" id="trip_duration_max" name="trip_duration_max" value="14" min="1"
+                                   class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Travelers -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="travelers_adults" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Adults</label>
+                            <input type="number" id="travelers_adults" name="travelers_adults" value="2" min="1" max="9"
+                                   class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
+                        </div>
+                        <div>
+                            <label for="travelers_children" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Children</label>
+                            <input type="number" id="travelers_children" name="travelers_children" value="0" min="0" max="9"
+                                   class="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
+                        </div>
+                    </div>
+                    <div class="flex items-end pb-1">
+                        <p class="text-xs text-slate-500">Prices shown will be calculated for all travelers</p>
+                    </div>
+                </div>
+
+                <!-- Departure Airport(s) -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Departing From</label>
+                    <p class="text-xs text-slate-500 mb-3">Which airport(s) can you leave from?</p>
+                    
+                    <input type="hidden" id="origins_input" name="origins">
+                    
+                    <div class="relative group">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-slate-500 group-focus-within:text-cyan-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                            </svg>
+                        </div>
+                        <input type="text" id="origin_search"
+                               class="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white
+                                      placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500
+                                      focus:border-transparent font-sans transition-all"
+                               placeholder="Search airport (e.g. Wellington, WLG)..."
+                               autocomplete="off">
+                        <div id="origin-dropdown" class="hidden absolute z-20 w-full mt-2 bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-xl shadow-black/50 max-h-60 overflow-y-auto overflow-x-hidden"></div>
+                    </div>
+
+                    <div id="origins-container" class="flex flex-wrap gap-2 mt-4 min-h-[32px]"></div>
+                </div>
+
+                <!-- Destination Types -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">Destination Vibes (Select all that apply)</label>
+                    <div class="flex flex-wrap gap-2" id="destination-chips">
+                        {% set types = [
+                            ('tropical', '🏝️ Tropical'),
+                            ('pacific_islands', '🌺 Pacific Islands'),
+                            ('australia', '🦘 Australia'),
+                            ('japan', '🗾 Japan'),
+                            ('southeast_asia', '🛕 SE Asia'),
+                            ('europe', '🏰 Europe'),
+                            ('uk', '🇬🇧 UK'),
+                            ('usa_west', '🌉 USA West'),
+                            ('usa_east', '🗽 USA East'),
+                            ('hawaii', '🌴 Hawaii'),
+                            ('family', '👨‍👩‍👧‍👦 Family'),
+                            ('adventure', '🏔️ Adventure'),
+                            ('city_break', '🌆 City Break'),
+                            ('honeymoon', '💑 Honeymoon')
+                        ] %}
+                        {% for type_code, type_label in types %}
+                        <button type="button" 
+                                data-value="{{ type_code }}"
+                                class="destination-chip px-3 py-2 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 text-sm font-medium transition-all hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500">
+                            {{ type_label }}
+                        </button>
+                        {% endfor %}
+                    </div>
+                    <input type="hidden" name="destination_types" id="destination_types_input">
+                </div>
+
+                <!-- Specific Destinations (Optional) -->
+                <div class="pt-6 border-t border-slate-200 dark:border-slate-700/50">
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Specific Destinations <span class="text-slate-500 font-normal">(Optional)</span></label>
+                    <p class="text-xs text-slate-500 mb-3">Add specific airports if you have particular places in mind</p>
+                    
+                    <input type="hidden" id="destinations_input" name="destinations">
+                    
+                    <div class="relative group">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-slate-500 group-focus-within:text-violet-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                        </div>
+                        <input type="text" id="destination_search"
+                               class="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white
+                                      placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-violet-500
+                                      focus:border-transparent font-sans transition-all"
+                               placeholder="Search by city or airport (e.g. Nadi, NAN)..."
+                               autocomplete="off">
+                        <div id="destination-dropdown" class="hidden absolute z-20 w-full mt-2 bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-xl shadow-black/50 max-h-60 overflow-y-auto overflow-x-hidden"></div>
+                    </div>
+
+                    <div id="destinations-container" class="flex flex-wrap gap-2 mt-4 min-h-[32px]"></div>
+                </div>
+
+                <!-- Check Frequency -->
+                <div>
+                    <label for="check_frequency_hours" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Check Frequency</label>
+                    <select id="check_frequency_hours" name="check_frequency_hours"
+                            class="w-full md:w-1/3 px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
+                        <option value="6">Every 6 hours</option>
+                        <option value="12" selected>Every 12 hours</option>
+                        <option value="24">Daily</option>
+                        <option value="48">Every 2 days</option>
+                        <option value="168">Weekly</option>
+                    </select>
+                    <p class="text-xs text-slate-500 mt-1">How often to check for matching deals</p>
+                </div>
+
+                <!-- Error Message -->
+                <div id="form-error" class="hidden p-4 bg-red-500/20 border border-red-500/50 rounded-lg text-red-400 text-sm"></div>
+
+                <!-- Submit -->
+                <div class="pt-4 flex justify-end gap-3">
+                    <button type="button" id="cancel-edit-btn" onclick="cancelEdit()" 
+                            class="hidden px-6 py-3 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-white font-semibold rounded-lg transition-all">
+                        Cancel
+                    </button>
+                    <button type="submit" id="submit-btn"
+                            class="px-6 py-3 bg-cyan-500 hover:bg-cyan-400 text-white font-semibold rounded-lg shadow-lg shadow-cyan-500/25 transition-all flex items-center gap-2">
+                        <svg id="submit-icon" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        <span id="submit-text">Create Trip Plan</span>
+                    </button>
+                </div>
+            </form>
+            </div>
+        </details>
+
+        <!-- Existing Trips List -->
+        <div class="space-y-6">
+            <h2 class="text-xl font-bold text-slate-900 dark:text-white pl-1">Your Trip Plans</h2>
+            
+            {% if trips %}
+                {% for item in trips %}
+                {% set trip = item.trip %}
+                {% set matches = item.top_matches %}
+                
+                <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden transition-all hover:border-slate-600" id="trip-card-{{ trip.id }}">
+                    <!-- Trip Header -->
+                    <div class="p-6 border-b border-slate-200 dark:border-slate-700/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div class="flex items-start gap-4">
+                            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border border-violet-500/20 flex items-center justify-center flex-shrink-0">
+                                <span class="text-2xl">
+                                    {% if 'japan' in trip.destination_types %}🗾
+                                    {% elif 'tropical' in trip.destination_types %}🏝️
+                                    {% elif 'europe' in trip.destination_types %}🏰
+                                    {% elif 'usa_west' in trip.destination_types %}🌉
+                                    {% else %}✈️{% endif %}
+                                </span>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold text-slate-900 dark:text-white">{{ trip.name }}</h3>
+                                <div class="flex flex-wrap items-center gap-x-4 gap-y-2 mt-1 text-sm text-slate-600 dark:text-slate-400">
+                                    <span class="flex items-center gap-1.5">
+                                        <svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                        {{ trip.available_from.strftime('%d %b') }} - {{ trip.available_to.strftime('%d %b %Y') }}
+                                    </span>
+                                    <span class="flex items-center gap-1.5">
+                                        <svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        {{ trip.trip_duration_min }}-{{ trip.trip_duration_max }} days
+                                    </span>
+                                    <span class="flex items-center gap-1.5">
+                                        <svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <span class="font-mono">{{ trip.budget_currency }}</span> {{ trip.budget_max }}
+                                    </span>
+                                    <span class="flex items-center gap-1.5">
+                                        <svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                        </svg>
+                                        {{ trip.travelers_adults }} adult{% if trip.travelers_adults != 1 %}s{% endif %}{% if trip.travelers_children %}, {{ trip.travelers_children }} child{% if trip.travelers_children != 1 %}ren{% endif %}{% endif %}
+                                    </span>
+                                    <span class="flex items-center gap-1.5">
+                                        <svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                        </svg>
+                                        {% if trip.check_frequency_hours == 6 %}Every 6h
+                                        {% elif trip.check_frequency_hours == 24 %}Daily
+                                        {% elif trip.check_frequency_hours == 48 %}Every 2d
+                                        {% elif trip.check_frequency_hours == 168 %}Weekly
+                                        {% else %}Every {{ trip.check_frequency_hours or 12 }}h{% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-4 pl-16 sm:pl-0">
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" class="sr-only peer" 
+                                       onchange="toggleTrip('{{ trip.id }}')"
+                                       {% if trip.is_active %}checked{% endif %}>
+                                <div class="w-11 h-6 bg-slate-700 rounded-full peer peer-focus:ring-2 peer-focus:ring-cyan-500/50 
+                                            peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] 
+                                            after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 
+                                            after:border after:rounded-full after:h-5 after:w-5 after:transition-all 
+                                            peer-checked:bg-cyan-500"></div>
+                                <span class="ml-2 text-sm font-medium text-slate-400">Active</span>
+                            </label>
+                            
+                            <button onclick="editTrip({{ trip.id }}, {
+                                'id': {{ trip.id }},
+                                'name': '{{ trip.name | e }}',
+                                'origins': {{ trip.origins | tojson | safe }},
+                                'destinations': {{ trip.destinations | tojson | safe }},
+                                'destination_types': {{ trip.destination_types | tojson | safe }},
+                                'available_from': '{{ trip.available_from.strftime('%Y-%m-%d') if trip.available_from else '' }}',
+                                'available_to': '{{ trip.available_to.strftime('%Y-%m-%d') if trip.available_to else '' }}',
+                                'trip_duration_min': {{ trip.trip_duration_min }},
+                                'trip_duration_max': {{ trip.trip_duration_max }},
+                                'budget_max': {{ trip.budget_max or 'null' }},
+                                'budget_currency': '{{ trip.budget_currency }}',
+                                'travelers_adults': {{ trip.travelers_adults }},
+                                'travelers_children': {{ trip.travelers_children }},
+                                'check_frequency_hours': {{ trip.check_frequency_hours }}
+                            })" 
+                                    class="p-2 text-slate-500 hover:text-cyan-400 hover:bg-cyan-500/10 rounded-lg transition-colors"
+                                    title="Edit Trip Plan">
+                                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                            </button>
+                            <button onclick="deleteTrip('{{ trip.id }}')" 
+                                    class="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                                    title="Delete Trip Plan">
+                                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Tags & Details -->
+                    <div class="px-6 py-4 bg-slate-100 dark:bg-slate-800/50 flex flex-wrap gap-2">
+                        {% for type in trip.destination_types %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600">
+                            {{ get_vibes_label(type) }}
+                        </span>
+                        {% endfor %}
+                    </div>
+
+                    {% set flights = item.best_flights %}
+                    <!-- Best Flights Section -->
+                    <div class="px-6 py-4 bg-slate-50 dark:bg-slate-900/30 border-t border-slate-200 dark:border-slate-700/50" id="best-flights-{{ trip.id }}">
+                        <div class="flex items-center justify-between mb-3">
+                            <h4 class="text-sm font-semibold text-cyan-400 flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                                </svg>
+                                Best Flights
+                            </h4>
+                            {% if flights %}
+                            <button onclick="searchPrices({{ trip.id }})" 
+                                    id="search-btn-{{ trip.id }}"
+                                    class="px-3 py-1.5 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 text-xs font-medium rounded-lg transition-all inline-flex items-center gap-1.5 border border-cyan-500/30">
+                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                                Refresh
+                            </button>
+                            {% endif %}
+                        </div>
+
+                        <div class="flights-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {% if flights %}
+                                {% for flight in flights %}
+                                <a href="{{ flight.booking_url }}" target="_blank" 
+                                   class="group block p-4 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-cyan-500/50 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-all relative overflow-hidden">
+                                    <div class="absolute inset-0 bg-cyan-500/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none z-20">
+                                        <span class="px-3 py-1.5 bg-white/90 dark:bg-slate-900/90 rounded-lg text-cyan-400 text-sm font-bold shadow-xl transform translate-y-2 group-hover:translate-y-0 transition-transform">Book Now →</span>
+                                    </div>
+
+                                    <div class="flex justify-between items-start mb-2 gap-3 relative z-10">
+                                        <div class="min-w-0 flex-1">
+                                            <h5 class="font-bold text-slate-900 dark:text-white text-sm leading-tight mb-1 truncate" title="{{ flight.destination }}">
+                                                <span class="font-mono text-cyan-400">{{ flight.destination }}</span>
+                                                {% if airports.get(flight.destination) %}
+                                                <span class="text-slate-600 dark:text-slate-400 font-normal ml-1">{{ airports[flight.destination].city }}</span>
+                                                {% endif %}
+                                            </h5>
+                                            <div class="flex items-center text-xs text-slate-600 dark:text-slate-400 gap-2">
+                                                {% if flight.airline and flight.airline != 'Unknown' %}
+                                                <span>{{ flight.airline }}</span>
+                                                <span class="w-1 h-1 rounded-full bg-slate-600"></span>
+                                                {% endif %}
+                                                <span>{% if flight.stops == 0 %}Direct{% elif flight.stops == 1 %}1 stop{% else %}{{ flight.stops }} stops{% endif %}</span>
+                                            </div>
+                                        </div>
+                                        {% set total_travelers = trip.travelers_adults + trip.travelers_children %}
+                                        {% set total_price = (flight.price_nzd * total_travelers)|int %}
+                                        <div class="flex flex-col items-end flex-shrink-0">
+                                            <span class="font-mono text-cyan-400 font-bold text-base">NZ${{ total_price }}</span>
+                                            {% if total_travelers > 1 %}
+                                            <span class="text-[10px] text-slate-500">${{ flight.price_nzd|int }}/person × {{ total_travelers }}</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center justify-between text-xs text-slate-500 relative z-10 pt-2 border-t border-slate-200 dark:border-slate-700/50 mt-2">
+                                        <div class="flex items-center gap-3">
+                                            <span class="text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                                                <svg class="w-3 h-3 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                                {{ flight.departure_date.strftime('%d %b') }} - {{ flight.return_date.strftime('%d %b %Y') }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </a>
+                                {% endfor %}
+                            {% else %}
+                                <div class="col-span-full text-center py-6">
+                                     <p class="text-sm text-slate-500 italic mb-3">No flight data yet - click 'Search Google Flights'</p>
+                                     <button onclick="searchPrices({{ trip.id }})" 
+                                            id="search-btn-{{ trip.id }}"
+                                            class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-900 dark:text-white text-sm font-semibold rounded-lg shadow-lg shadow-cyan-500/25 transition-all inline-flex items-center gap-2">
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                        </svg>
+                                        Search Google Flights
+                                    </button>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Matches Section -->
+                    {% if matches %}
+                    <div class="px-6 py-4 bg-slate-50 dark:bg-slate-900/30 border-t border-slate-200 dark:border-slate-700/50">
+                        <div class="flex items-center justify-between mb-3">
+                            <h4 class="text-sm font-semibold text-emerald-400 flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                </svg>
+                                {{ matches|length }} Matching Deals from RSS
+                            </h4>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {% for deal, score in matches[:5] %}
+                            <a href="{{ deal.link }}" target="_blank" 
+                               class="group block p-4 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-500/50 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-all relative overflow-hidden">
+                                <div class="absolute inset-0 bg-emerald-500/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none z-20">
+                                    <span class="px-3 py-1.5 bg-white/90 dark:bg-slate-900/90 rounded-lg text-emerald-400 text-sm font-bold shadow-xl transform translate-y-2 group-hover:translate-y-0 transition-transform">View Deal →</span>
+                                </div>
+
+                                <div class="flex justify-between items-start mb-2 gap-3 relative z-10">
+                                    <div class="min-w-0 flex-1">
+                                        <h5 class="font-bold text-slate-900 dark:text-white text-sm leading-tight mb-1 line-clamp-2" title="{{ deal.raw_title }}">{{ deal.raw_title|truncate(70) }}</h5>
+                                        <div class="flex items-center text-xs text-slate-600 dark:text-slate-400 gap-2 flex-wrap">
+                                            {% if deal.parsed_origin %}
+                                            <span class="font-mono text-slate-500">{{ deal.parsed_origin }}</span>
+                                            <svg class="w-3 h-3 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                                            {% endif %}
+                                            <span class="font-mono text-slate-700 dark:text-slate-300 font-medium">
+                                                {{ deal.parsed_destination or 'Unknown' }}
+                                            </span>
+                                            {% if airports.get(deal.parsed_destination) %}
+                                            <span class="text-slate-500">({{ airports[deal.parsed_destination].city }})</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    {% if deal.parsed_price %}
+                                    <div class="flex flex-col items-end flex-shrink-0">
+                                        <span class="font-mono text-emerald-400 font-bold text-base">{{ deal.parsed_price|int }}</span>
+                                        <span class="text-[10px] text-slate-500 uppercase">{{ deal.parsed_currency or 'USD' }}</span>
+                                    </div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="flex items-center justify-between text-xs text-slate-500 relative z-10 pt-2 border-t border-slate-200 dark:border-slate-700/50 mt-2">
+                                    <div class="flex items-center gap-3">
+                                        {% if deal.parsed_travel_dates %}
+                                        <span class="text-cyan-400/80 flex items-center gap-1 truncate max-w-[120px]" title="{{ deal.parsed_travel_dates }}">
+                                            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                            {{ deal.parsed_travel_dates }}
+                                        </span>
+                                        {% endif %}
+                                        <span class="flex items-center gap-1">
+                                            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+                                            {{ deal.parsed_airline or deal.source.value }}
+                                        </span>
+                                    </div>
+                                    <span class="text-emerald-400/60 font-medium">{{ (score)|int }}% match</span>
+                                </div>
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="px-6 py-4 bg-slate-50 dark:bg-slate-900/30 border-t border-slate-200 dark:border-slate-700/50 text-center">
+                        <p class="text-sm text-slate-500 italic mb-3">No matches found yet. We're watching the skies...</p>
+                        <div class="flex flex-col sm:flex-row gap-3 justify-center items-center">
+                            <div class="text-center">
+                                <button onclick="checkMatches({{ trip.id }})" 
+                                        id="check-btn-{{ trip.id }}"
+                                        class="px-4 py-2 bg-violet-500 hover:bg-violet-400 text-slate-900 dark:text-white text-sm font-semibold rounded-lg shadow-lg shadow-violet-500/25 transition-all inline-flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+                                    </svg>
+                                    Check Deal Sites
+                                </button>
+                                <p class="text-[10px] text-slate-600 mt-1">Fly4Free, SecretFlying, etc.</p>
+                            </div>
+                            <div class="text-center">
+                                <button onclick="searchPrices({{ trip.id }})" 
+                                        id="search-btn-{{ trip.id }}"
+                                        class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-900 dark:text-white text-sm font-semibold rounded-lg shadow-lg shadow-cyan-500/25 transition-all inline-flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                    Search Google Flights
+                                </button>
+                                <p class="text-[10px] text-slate-600 mt-1">Live prices with booking links</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="text-center py-12 bg-slate-100 dark:bg-slate-800/30 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">
+                    <div class="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0121 18.382V7.618a1 1 0 01-.447-.894L15 7m0 13V7" />
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-medium text-slate-900 dark:text-white">No trip plans yet</h3>
+                    <p class="text-slate-500 mt-1">Create your first trip plan above to start finding deals.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    // Chip Selection Logic
+    const chips = document.querySelectorAll('.destination-chip');
+    const hiddenInput = document.getElementById('destination_types_input');
+    const selectedTypes = new Set();
+
+    chips.forEach(chip => {
+        chip.addEventListener('click', () => {
+            const value = chip.dataset.value;
+            
+            if (selectedTypes.has(value)) {
+                selectedTypes.delete(value);
+                chip.classList.remove('bg-cyan-500/20', 'text-cyan-400', 'border-cyan-500/50');
+                chip.classList.add('bg-white', 'dark:bg-slate-900', 'text-slate-400', 'border-slate-700');
+            } else {
+                selectedTypes.add(value);
+                chip.classList.remove('bg-white', 'dark:bg-slate-900', 'text-slate-400', 'border-slate-700');
+                chip.classList.add('bg-cyan-500/20', 'text-cyan-400', 'border-cyan-500/50');
+            }
+            hiddenInput.value = Array.from(selectedTypes).join(',');
+        });
+    });
+
+    // --- Origins Logic ---
+    const originInput = document.getElementById('origin_search');
+    const originDropdown = document.getElementById('origin-dropdown');
+    const originContainer = document.getElementById('origins-container');
+    const originHidden = document.getElementById('origins_input');
+    let selectedOrigins = [];
+
+    document.addEventListener('click', (e) => {
+        if (originInput && !originInput.contains(e.target) && !originDropdown.contains(e.target)) {
+            originDropdown.classList.add('hidden');
+        }
+    });
+
+    let originDebounceTimer;
+    if (originInput) {
+        originInput.addEventListener('input', (e) => {
+            clearTimeout(originDebounceTimer);
+            const query = e.target.value.trim();
+            if (query.length < 2) { originDropdown.classList.add('hidden'); return; }
+            
+            originDebounceTimer = setTimeout(async () => {
+                try {
+                    const response = await fetch(`/settings/api/airports/search?q=${encodeURIComponent(query)}&limit=8`);
+                    const data = await response.json();
+                    if (data.results && data.results.length > 0) {
+                        const available = data.results.filter(r => !selectedOrigins.find(s => s.code === r.code));
+                        if (available.length === 0) {
+                            originDropdown.innerHTML = `<div class="px-4 py-3 text-sm text-slate-500 italic">Already added</div>`;
+                        } else {
+                            originDropdown.innerHTML = available.map(a => `
+                                <button type="button" class="w-full px-4 py-3 text-left hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-between group transition-colors border-b border-slate-200 dark:border-slate-700/50 last:border-0"
+                                        onclick="addOrigin('${a.code}', '${a.city}')">
+                                    <div class="flex flex-col">
+                                        <span class="font-bold text-slate-900 dark:text-white group-hover:text-cyan-400 transition-colors">${a.city}</span>
+                                        <span class="text-xs text-slate-400">${a.country}</span>
+                                    </div>
+                                    <span class="font-mono text-sm font-bold text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white bg-slate-100 dark:bg-slate-900 px-2 py-1 rounded">${a.code}</span>
+                                </button>
+                            `).join('');
+                        }
+                        originDropdown.classList.remove('hidden');
+                    } else {
+                        originDropdown.innerHTML = `<div class="px-4 py-3 text-sm text-slate-500">No results found</div>`;
+                        originDropdown.classList.remove('hidden');
+                    }
+                } catch (err) { console.error('Origin search failed:', err); }
+            }, 200);
+        });
+    }
+
+    function addOrigin(code, city) {
+        if (selectedOrigins.some(o => o.code === code)) return;
+        selectedOrigins.push({ code, name: city });
+        updateOrigins();
+        originInput.value = '';
+        originInput.focus();
+        originDropdown.classList.add('hidden');
+    }
+    window.addOrigin = addOrigin;
+
+    function removeOrigin(code) {
+        selectedOrigins = selectedOrigins.filter(o => o.code !== code);
+        updateOrigins();
+    }
+    window.removeOrigin = removeOrigin;
+
+    function updateOrigins() {
+        originHidden.value = selectedOrigins.map(o => o.code).join(',');
+        originContainer.innerHTML = selectedOrigins.map(o => `
+            <div class="inline-flex items-center pl-3 pr-2 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 group hover:border-cyan-500/50 transition-all shadow-sm">
+                <span class="text-sm font-medium text-slate-200 mr-2">
+                    <span class="font-mono text-cyan-400 font-bold mr-1.5">${o.code}</span>
+                    <span class="text-slate-600 dark:text-slate-400 border-l border-slate-200 dark:border-slate-700 pl-1.5">${o.name}</span>
+                </span>
+                <button type="button" onclick="removeOrigin('${o.code}')" class="p-1 rounded-md text-slate-500 hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+        `).join('');
+    }
+
+    // --- Specific Destinations Logic ---
+    const destInput = document.getElementById('destination_search');
+    const destDropdown = document.getElementById('destination-dropdown');
+    const destContainer = document.getElementById('destinations-container');
+    const destHidden = document.getElementById('destinations_input');
+    let selectedDestinations = [];
+
+    document.addEventListener('click', (e) => {
+        if (destInput && !destInput.contains(e.target) && !destDropdown.contains(e.target)) {
+            destDropdown.classList.add('hidden');
+        }
+    });
+
+    let destDebounceTimer;
+
+    if (destInput) {
+        destInput.addEventListener('input', (e) => {
+            clearTimeout(destDebounceTimer);
+            const query = e.target.value.trim();
+            
+            if (query.length < 2) {
+                destDropdown.classList.add('hidden');
+                return;
+            }
+            
+            destDebounceTimer = setTimeout(async () => {
+                try {
+                    const response = await fetch(`/settings/api/airports/search?q=${encodeURIComponent(query)}&limit=8`);
+                    const data = await response.json();
+                    
+                    if (data.results && data.results.length > 0) {
+                        // Filter out already selected
+                        const available = data.results.filter(r => !selectedDestinations.find(s => s.code === r.code));
+                        
+                        if (available.length === 0) {
+                            destDropdown.innerHTML = `<div class="px-4 py-3 text-sm text-slate-500 italic">Already added</div>`;
+                        } else {
+                            destDropdown.innerHTML = available.map(a => `
+                                <button type="button"
+                                        class="w-full px-4 py-3 text-left hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-between group transition-colors border-b border-slate-200 dark:border-slate-700/50 last:border-0"
+                                        onclick="addDestination('${a.code}', '${a.city}', '${a.country}')">
+                                    <div class="flex flex-col">
+                                        <span class="font-bold text-slate-900 dark:text-white group-hover:text-violet-400 transition-colors">${a.city}</span>
+                                        <span class="text-xs text-slate-400">${a.country}</span>
+                                    </div>
+                                    <span class="font-mono text-sm font-bold text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white bg-slate-100 dark:bg-slate-900 px-2 py-1 rounded">${a.code}</span>
+                                </button>
+                            `).join('');
+                        }
+                        destDropdown.classList.remove('hidden');
+                    } else {
+                        destDropdown.innerHTML = `<div class="px-4 py-3 text-sm text-slate-500">No results found</div>`;
+                        destDropdown.classList.remove('hidden');
+                    }
+                } catch (err) {
+                    console.error('Search failed:', err);
+                }
+            }, 200);
+        });
+    }
+
+    function addDestination(code, city, country) {
+        if (selectedDestinations.some(d => d.code === code)) return;
+        
+        selectedDestinations.push({ code, name: city });
+        updateDestinations();
+        destInput.value = '';
+        destInput.focus();
+        destDropdown.classList.add('hidden');
+    }
+    
+    // Make globally accessible for onclick handlers
+    window.addDestination = addDestination;
+
+    function removeDestination(code) {
+        selectedDestinations = selectedDestinations.filter(d => d.code !== code);
+        updateDestinations();
+    }
+    window.removeDestination = removeDestination;
+
+    function updateDestinations() {
+        destHidden.value = selectedDestinations.map(d => d.code).join(',');
+        destContainer.innerHTML = selectedDestinations.map(dest => `
+            <div class="inline-flex items-center pl-3 pr-2 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 group hover:border-violet-500/50 transition-all shadow-sm">
+                <span class="text-sm font-medium text-slate-200 mr-2">
+                    <span class="font-mono text-violet-400 font-bold mr-1.5">${dest.code}</span>
+                    <span class="text-slate-600 dark:text-slate-400 border-l border-slate-200 dark:border-slate-700 pl-1.5">${dest.name}</span>
+                </span>
+                <button type="button" 
+                        onclick="removeDestination('${dest.code}')"
+                        class="p-1 rounded-md text-slate-500 hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors"
+                        aria-label="Remove ${dest.code}">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+        `).join('');
+    }
+
+    // Create Trip
+    document.getElementById('create-trip-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const submitBtn = form.querySelector('button[type="submit"]');
+        
+        if (selectedOrigins.length === 0) {
+            alert('Please select at least one departure airport');
+            return;
+        }
+        if (selectedTypes.size === 0 && selectedDestinations.length === 0) {
+            alert('Please select at least one destination vibe OR specific destination');
+            return;
+        }
+
+        const editingId = form.editing_trip_id.value;
+        const isEditing = !!editingId;
+        
+        const originalBtnContent = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `<svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> ${isEditing ? 'Saving...' : 'Creating...'}`;
+
+        const data = {
+            name: form.name.value,
+            origins: selectedOrigins.map(o => o.code),
+            budget_max: parseInt(form.budget_max.value),
+            budget_currency: form.budget_currency.value,
+            available_from: form.available_from.value,
+            available_to: form.available_to.value,
+            trip_duration_min: parseInt(form.trip_duration_min.value),
+            trip_duration_max: parseInt(form.trip_duration_max.value),
+            travelers_adults: parseInt(form.travelers_adults.value) || 2,
+            travelers_children: parseInt(form.travelers_children.value) || 0,
+            destination_types: Array.from(selectedTypes),
+            destinations: selectedDestinations.map(d => d.code),
+            check_frequency_hours: parseInt(form.check_frequency_hours.value),
+            is_active: true
+        };
+
+        try {
+            const url = isEditing ? `/trips/api/trips/${editingId}` : '/trips/api/trips';
+            const method = isEditing ? 'PUT' : 'POST';
+            
+            const response = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                const error = await response.json();
+                alert(`Error ${isEditing ? 'updating' : 'creating'} trip: ` + (error.detail || 'Unknown error'));
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Failed to connect to server');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnContent;
+        }
+    });
+
+    // Toggle Trip
+    async function toggleTrip(id) {
+        try {
+            const response = await fetch(`/trips/api/trips/${id}/toggle`, {
+                method: 'PUT'
+            });
+            if (!response.ok) {
+                // Revert toggle if failed (simplified, effectively just reloads or alerts)
+                alert('Failed to update status');
+                window.location.reload();
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Connection error');
+        }
+    }
+
+    // Delete Trip
+    async function deleteTrip(id) {
+        if (!confirm('Are you sure you want to delete this trip plan?')) return;
+        
+        const card = document.getElementById(`trip-card-${id}`);
+        card.style.opacity = '0.5';
+        
+        try {
+            const response = await fetch(`/trips/api/trips/${id}`, {
+                method: 'DELETE'
+            });
+            
+            if (response.ok) {
+                card.remove();
+                // If no trips left, reload to show empty state (optional optimization)
+                if (document.querySelectorAll('[id^="trip-card-"]').length === 0) {
+                    window.location.reload();
+                }
+            } else {
+                alert('Failed to delete trip');
+                card.style.opacity = '1';
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Connection error');
+            card.style.opacity = '1';
+        }
+    }
+
+    function editTrip(id, trip) {
+        const form = document.getElementById('create-trip-form');
+        const details = form.closest('details');
+        
+        document.getElementById('editing_trip_id').value = id;
+        document.getElementById('form-title').textContent = 'Edit Trip Plan';
+        document.getElementById('form-subtitle').textContent = 'Update your trip criteria';
+        document.getElementById('submit-text').textContent = 'Save Changes';
+        document.getElementById('submit-icon').innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />';
+        document.getElementById('cancel-edit-btn').classList.remove('hidden');
+        
+        form.name.value = trip.name || '';
+        form.budget_max.value = trip.budget_max || '';
+        form.budget_currency.value = trip.budget_currency || 'NZD';
+        form.available_from.value = trip.available_from ? trip.available_from.split('T')[0] : '';
+        form.available_to.value = trip.available_to ? trip.available_to.split('T')[0] : '';
+        form.trip_duration_min.value = trip.trip_duration_min || 5;
+        form.trip_duration_max.value = trip.trip_duration_max || 14;
+        form.travelers_adults.value = trip.travelers_adults || 2;
+        form.travelers_children.value = trip.travelers_children || 0;
+        form.check_frequency_hours.value = trip.check_frequency_hours || 12;
+        
+        selectedOrigins = (trip.origins || []).map(code => ({ code, name: code }));
+        updateOrigins();
+        
+        selectedDestinations = (trip.destinations || []).map(code => ({ code, name: code }));
+        updateDestinations();
+        
+        selectedTypes.clear();
+        (trip.destination_types || []).forEach(t => {
+            selectedTypes.add(t);
+            const chip = document.querySelector(`.destination-chip[data-value="${t}"]`);
+            if (chip) {
+                chip.classList.remove('bg-white', 'dark:bg-slate-900', 'text-slate-400', 'border-slate-700');
+                chip.classList.add('bg-cyan-500/20', 'text-cyan-400', 'border-cyan-500/50');
+            }
+        });
+        document.getElementById('destination_types_input').value = Array.from(selectedTypes).join(',');
+        
+        details.open = true;
+        details.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function cancelEdit() {
+        const form = document.getElementById('create-trip-form');
+        
+        document.getElementById('editing_trip_id').value = '';
+        document.getElementById('form-title').textContent = 'Create New Trip Plan';
+        document.getElementById('form-subtitle').textContent = 'Set your criteria and let the deals come to you';
+        document.getElementById('submit-text').textContent = 'Create Trip Plan';
+        document.getElementById('submit-icon').innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />';
+        document.getElementById('cancel-edit-btn').classList.add('hidden');
+        
+        form.reset();
+        
+        selectedOrigins = [];
+        updateOrigins();
+        
+        selectedDestinations = [];
+        updateDestinations();
+        
+        selectedTypes.clear();
+        document.querySelectorAll('.destination-chip').forEach(chip => {
+            chip.classList.remove('bg-cyan-500/20', 'text-cyan-400', 'border-cyan-500/50');
+            chip.classList.add('bg-white', 'dark:bg-slate-900', 'text-slate-400', 'border-slate-700');
+        });
+        document.getElementById('destination_types_input').value = '';
+    }
+
+    async function searchPrices(id) {
+        const btn = document.getElementById(`search-btn-${id}`);
+        const originalContent = btn.innerHTML;
+        
+        btn.disabled = true;
+        btn.innerHTML = '<svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Searching... (may take 1-2 min)';
+        
+        try {
+            const response = await fetch(`/trips/api/trips/${id}/search`, {
+                method: 'POST'
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                
+                if (data.status === 'already_searching') {
+                    btn.innerHTML = '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> Search in progress...';
+                    btn.classList.remove('bg-cyan-500', 'hover:bg-cyan-400');
+                    btn.classList.add('bg-amber-600', 'hover:bg-amber-500');
+                    setTimeout(() => {
+                        btn.innerHTML = originalContent;
+                        btn.classList.remove('bg-amber-600', 'hover:bg-amber-500');
+                        btn.classList.add('bg-cyan-500', 'hover:bg-cyan-400');
+                        btn.disabled = false;
+                    }, 5000);
+                    return;
+                }
+                
+                if (data.status === 'started') {
+                    btn.innerHTML = '<svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Running... (~2 min)';
+                    btn.classList.remove('bg-cyan-500', 'hover:bg-cyan-400');
+                    btn.classList.add('bg-violet-600', 'hover:bg-violet-500');
+                    
+                    let pollCount = 0;
+                    const maxPolls = 40;
+                    const pollInterval = setInterval(async () => {
+                        pollCount++;
+                        try {
+                            const checkResp = await fetch(`/trips/api/trips/${id}`);
+                            const tripData = await checkResp.json();
+                            if (!tripData.search_in_progress || pollCount >= maxPolls) {
+                                clearInterval(pollInterval);
+                                window.location.reload();
+                            }
+                        } catch (e) {
+                            clearInterval(pollInterval);
+                            window.location.reload();
+                        }
+                    }, 3000);
+                    return;
+                }
+                
+                if (data.results && data.results.length > 0) {
+                    showSearchResults(id, data);
+                    btn.innerHTML = `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg> Found ${data.results.length} prices!`;
+                    btn.classList.remove('bg-cyan-500', 'hover:bg-cyan-400');
+                    btn.classList.add('bg-emerald-500', 'hover:bg-emerald-400');
+                } else {
+                    if (data.errors && data.errors.length > 0) {
+                        const errorMsg = data.errors[0];
+                        showSearchError(id, errorMsg);
+                        btn.innerHTML = '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> See message below';
+                        btn.classList.remove('bg-cyan-500', 'hover:bg-cyan-400');
+                        btn.classList.add('bg-amber-600', 'hover:bg-amber-500');
+                    } else {
+                        btn.innerHTML = '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" /></svg> No prices found';
+                        btn.classList.remove('bg-cyan-500', 'hover:bg-cyan-400');
+                        btn.classList.add('bg-slate-600', 'hover:bg-slate-500');
+                    }
+                }
+                
+                setTimeout(() => {
+                    btn.innerHTML = originalContent;
+                    btn.classList.remove('bg-emerald-500', 'hover:bg-emerald-400', 'bg-slate-600', 'hover:bg-slate-500', 'bg-amber-600', 'hover:bg-amber-500');
+                    btn.classList.add('bg-cyan-500', 'hover:bg-cyan-400');
+                    btn.disabled = false;
+                }, 5000);
+            } else {
+                throw new Error('Search failed');
+            }
+        } catch (err) {
+            console.error(err);
+            btn.innerHTML = originalContent;
+            btn.disabled = false;
+            alert('Error searching prices: ' + err.message);
+        }
+    }
+    
+    // Display search results in Best Flights section
+    function showSearchResults(tripId, data) {
+        const section = document.getElementById(`best-flights-${tripId}`);
+        if (!section) return;
+
+        const grid = section.querySelector('.flights-grid');
+        const header = section.querySelector('h4');
+        
+        header.innerHTML = `
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            </svg>
+            Best Flights <span class="text-emerald-400 ml-1 text-xs">- Updated just now (${data.results.length} found)</span>
+        `;
+        
+        const formatDate = (d, includeYear=false) => {
+            if (!d) return '';
+            const date = new Date(d);
+            const opts = { day: 'numeric', month: 'short' };
+            if (includeYear) opts.year = 'numeric';
+            return date.toLocaleDateString('en-GB', opts);
+        };
+
+        const resultsHtml = data.results.map(r => {
+            return `
+            <a href="${r.booking_url}" target="_blank" 
+               class="group block p-4 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-cyan-500/50 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-all relative overflow-hidden">
+                <div class="absolute inset-0 bg-cyan-500/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none z-20">
+                    <span class="px-3 py-1.5 bg-white/90 dark:bg-slate-900/90 rounded-lg text-cyan-400 text-sm font-bold shadow-xl transform translate-y-2 group-hover:translate-y-0 transition-transform">Book Now →</span>
+                </div>
+
+                <div class="flex justify-between items-start mb-2 gap-3 relative z-10">
+                    <div class="min-w-0 flex-1">
+                        <h5 class="font-bold text-slate-900 dark:text-white text-sm leading-tight mb-1 truncate" title="${r.destination}">
+                            <span class="font-mono text-cyan-400">${r.destination}</span>
+                            ${r.destination_city ? `<span class="text-slate-600 dark:text-slate-400 font-normal ml-1">${r.destination_city}</span>` : ''}
+                        </h5>
+                        <div class="flex items-center text-xs text-slate-600 dark:text-slate-400 gap-2">
+                            ${r.airline && r.airline !== 'Unknown' ? `<span>${r.airline}</span><span class="w-1 h-1 rounded-full bg-slate-600"></span>` : ''}
+                            <span>${r.stops === 0 ? 'Direct' : r.stops === 1 ? '1 stop' : (r.stops + ' stops')}</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-col items-end flex-shrink-0">
+                        <span class="font-mono text-cyan-400 font-bold text-base">NZ$${Math.round(r.price_nzd)}</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between text-xs text-slate-500 relative z-10 pt-2 border-t border-slate-200 dark:border-slate-700/50 mt-2">
+                    <div class="flex items-center gap-3">
+                        <span class="text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                            <svg class="w-3 h-3 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                            ${formatDate(r.departure_date)} - ${formatDate(r.return_date, true)}
+                        </span>
+                    </div>
+                </div>
+            </a>
+            `;
+        }).join('');
+
+        if (data.results.length > 0) {
+            grid.innerHTML = resultsHtml;
+        } else {
+             grid.innerHTML = `
+                <div class="col-span-full text-center py-6">
+                     <p class="text-sm text-slate-500 italic mb-3">No flights found matching criteria.</p>
+                     <button onclick="searchPrices(${tripId})" class="px-4 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-white text-sm font-semibold rounded-lg transition-all inline-flex items-center gap-2">
+                        Try Again
+                    </button>
+                </div>
+             `;
+        }
+    }
+
+    function showSearchError(tripId, errorMsg) {
+        const section = document.getElementById(`best-flights-${tripId}`);
+        if (!section) return;
+
+        const grid = section.querySelector('.flights-grid');
+        const header = section.querySelector('h4');
+        
+        header.innerHTML = `
+            <svg class="w-4 h-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <span class="text-amber-400">Not Yet Searchable</span>
+        `;
+        
+        grid.innerHTML = `
+            <div class="col-span-full p-4 rounded-lg bg-amber-500/10 border border-amber-500/30">
+                <div class="flex items-start gap-3">
+                    <svg class="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div>
+                        <p class="text-sm text-amber-200 font-medium">${errorMsg}</p>
+                        <p class="text-xs text-slate-600 dark:text-slate-600 dark:text-slate-400 mt-2">The scheduled search will automatically start checking prices when your dates become available.</p>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Check Matches for a Trip Plan
+    async function checkMatches(id) {
+        const btn = document.getElementById(`check-btn-${id}`);
+        const originalContent = btn.innerHTML;
+        
+        btn.disabled = true;
+        btn.innerHTML = '<svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Searching...';
+        
+        try {
+            const response = await fetch(`/trips/api/trips/${id}/check-matches`, {
+                method: 'POST'
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                
+                if (data.match_count > 0) {
+                    // Show matches found - reload to see them
+                    btn.innerHTML = `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg> Found ${data.match_count} matches!`;
+                    btn.classList.remove('bg-violet-500', 'hover:bg-violet-400', 'shadow-violet-500/25');
+                    btn.classList.add('bg-emerald-500', 'hover:bg-emerald-400', 'shadow-emerald-500/25');
+                    
+                    // Reload after brief delay to show the new matches
+                    setTimeout(() => window.location.reload(), 1500);
+                } else {
+                    btn.innerHTML = '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" /></svg> No matches in current deals';
+                    btn.classList.remove('bg-violet-500', 'hover:bg-violet-400');
+                    btn.classList.add('bg-slate-600', 'hover:bg-slate-500');
+                    
+                    setTimeout(() => {
+                        btn.innerHTML = originalContent;
+                        btn.classList.remove('bg-slate-600', 'hover:bg-slate-500');
+                        btn.classList.add('bg-violet-500', 'hover:bg-violet-400');
+                        btn.disabled = false;
+                    }, 3000);
+                }
+            } else {
+                throw new Error('Failed to check matches');
+            }
+        } catch (err) {
+            console.error(err);
+            btn.innerHTML = originalContent;
+            btn.disabled = false;
+            alert('Error checking matches: ' + err.message);
+        }
+    }
+</script>
+{% endblock %}

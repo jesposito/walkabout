@@ -34,11 +34,15 @@ jobs:
     - name: Analyze commits for version bump
       id: bump
       run: |
+        # Get all commit messages from the PR
         COMMITS="${{ github.event.pull_request.body }}"
         PR_TITLE="${{ github.event.pull_request.title }}"
 
+        # Check for version bump indicators
+        # Priority: breaking > feat > fix
         BUMP_TYPE="none"
 
+        # Check PR title and commits for conventional commit patterns
         if echo "$PR_TITLE" | grep -qiE '^(breaking|!:)' || echo "$COMMITS" | grep -qiE 'BREAKING CHANGE'; then
           BUMP_TYPE="major"
         elif echo "$PR_TITLE" | grep -qiE '^feat(\(.+\))?:' || echo "$COMMITS" | grep -qiE '^feat(\(.+\))?:'; then
@@ -57,11 +61,13 @@ jobs:
         CURRENT="${{ steps.current.outputs.version }}"
         BUMP_TYPE="${{ steps.bump.outputs.bump_type }}"
 
+        # Parse version components
         IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
         MAJOR=${MAJOR:-0}
         MINOR=${MINOR:-0}
         PATCH=${PATCH:-0}
 
+        # Calculate new version
         case $BUMP_TYPE in
           major)
             MAJOR=$((MAJOR + 1))

@@ -1,0 +1,46 @@
+{
+  "session_id": "3b5e049c-1f83-4223-bca4-be5fb5e831bf",
+  "phase": "POSTFLIGHT",
+  "round": 1,
+  "timestamp": "2026-01-23T00:27:23.737719+00:00",
+  "vectors": {
+    "completion_summary": 0.5,
+    "lessons_learned": 0.5,
+    "knowledge_gained": 0.5
+  },
+  "overall_confidence": 0.5,
+  "meta": {
+    "reasoning": "",
+    "task_summary": "Task completed",
+    "postflight_confidence": 0.5,
+    "calibration_accuracy": "good",
+    "deltas": {},
+    "calibration_issues": [],
+    "git_commit_sha": "62d39379f8df27b7a8dea3beeab972f29ab40234",
+    "git_notes_ref": "empirica/session/3b5e049c-1f83-4223-bca4-be5fb5e831bf/POSTFLIGHT/1"
+  },
+  "epistemic_tags": {},
+  "git_state": {
+    "head_commit": "b854a666d2312e70725686b7f01da09a005d6ab4",
+    "commits_since_last_checkpoint": [],
+    "uncommitted_changes": {
+      "files_modified": [
+        ".beads/issues.jsonl",
+        ".empirica/active_session",
+        "backend/app/api/settings.py",
+        "backend/app/database.py",
+        "backend/app/models/user_settings.py",
+        "backend/app/services/feeds/generic_parser.py",
+        "backend/app/services/feeds/secret_flying.py",
+        "backend/app/services/relevance.py",
+        "backend/app/templates/deals.html",
+        "backend/app/templates/settings.html"
+      ],
+      "files_added": [],
+      "files_deleted": [],
+      "diff_stat": ".beads/issues.jsonl                          |   1 +\n .empirica/active_session                     |   2 +-\n backend/app/api/settings.py                  |  14 ++\n backend/app/database.py                      |   1 +\n backend/app/models/user_settings.py          |   8 +-\n backend/app/services/feeds/generic_parser.py |   8 +-\n backend/app/services/feeds/secret_flying.py  |  21 ++-\n backend/app/services/relevance.py            |  16 +-\n backend/app/templates/deals.html             |  17 ++-\n backend/app/templates/settings.html          | 211 +++++++++++++++++++--------\n 10 files changed, 226 insertions(+), 73 deletions(-)"
+    }
+  },
+  "learning_delta": {},
+  "token_count": 135
+}

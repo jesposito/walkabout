@@ -32,3 +32,8 @@ data/
 
 # CI/CD Details (private)
 docs/CI_DETAILS.md
+
+# Claude Code dev environment
+.claude/
+.agent-skills/
+.devenv/settings.local.json

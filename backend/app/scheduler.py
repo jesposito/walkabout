@@ -16,9 +16,12 @@ from apscheduler.jobstores.memory import MemoryJobStore
 from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
-from app.models import SearchDefinition, ScrapeHealth
+from app.models import SearchDefinition, ScrapeHealth, TripPlan
 from app.services.scraping_service import ScrapingService
+from app.services.trip_plan_search import TripPlanSearchService
+from app.services.deal_rating import rate_unrated_deals
 from app.config import get_settings
+import os
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -33,42 +36,45 @@ def get_scheduler() -> AsyncIOScheduler:
     """Get or create the global scheduler instance."""
     global scheduler
     if scheduler is None:
+        # Get timezone from TZ environment variable, default to UTC
+        tz = os.environ.get('TZ', 'UTC')
+        logger.info(f"Scheduler using timezone: {tz}")
+
         # Create scheduler with memory jobstore (simple for Phase 1a)
         scheduler = AsyncIOScheduler(
             jobstores={'default': MemoryJobStore()},
-            timezone='Pacific/Auckland'  # NZ timezone
+            timezone=tz
         )
-        
+
         # Add scheduled jobs
         _setup_scheduled_jobs()
-        
+
     return scheduler
 
 
 def _setup_scheduled_jobs():
     """Setup the scheduled scraping jobs."""
     
-    # Morning scrape (6:30 AM NZT)
+    # Morning scrape (6:30 AM local time)
     scheduler.add_job(
         scrape_all_active_definitions,
         trigger=CronTrigger(hour=6, minute=30),
         id='morning_scrape',
-        name='Morning Scrape (6:30 AM NZT)',
+        name='Morning Scrape (6:30 AM)',
         replace_existing=True,
         max_instances=1,
     )
-    
-    # Evening scrape (6:30 PM NZT)  
+
+    # Evening scrape (6:30 PM local time)
     scheduler.add_job(
         scrape_all_active_definitions,
         trigger=CronTrigger(hour=18, minute=30),
         id='evening_scrape',
-        name='Evening Scrape (6:30 PM NZT)',
+        name='Evening Scrape (6:30 PM)',
         replace_existing=True,
         max_instances=1,
     )
     
-    # Health check job - runs every hour to check for stale data
     scheduler.add_job(
         check_scrape_health,
         trigger=IntervalTrigger(hours=1),
@@ -78,10 +84,30 @@ def _setup_scheduled_jobs():
         max_instances=1,
     )
     
+    scheduler.add_job(
+        search_active_trip_plans,
+        trigger=IntervalTrigger(hours=6),
+        id='trip_plan_search',
+        name='Trip Plan Google Flights Search',
+        replace_existing=True,
+        max_instances=1,
+    )
+    
+    scheduler.add_job(
+        rate_deals_job,
+        trigger=IntervalTrigger(hours=2),
+        id='deal_rating',
+        name='Rate Unrated Deals',
+        replace_existing=True,
+        max_instances=1,
+    )
+    
     logger.info("Scheduled jobs configured:")
-    logger.info("  - Morning scrape: 6:30 AM NZT daily")
-    logger.info("  - Evening scrape: 6:30 PM NZT daily") 
+    logger.info("  - Morning scrape: 6:30 AM daily (local time)")
+    logger.info("  - Evening scrape: 6:30 PM daily (local time)")
     logger.info("  - Health check: Every hour")
+    logger.info("  - Trip Plan search: Every 6 hours")
+    logger.info("  - Deal rating: Every 2 hours")
 
 
 async def scrape_all_active_definitions():
@@ -185,31 +211,116 @@ async def check_scrape_health():
         db.close()
 
 
-async def manual_scrape_definition(search_definition_id: int) -> bool:
-    """
-    Manually trigger a scrape for a specific search definition.
-    
-    Returns: True if successful, False otherwise
-    """
-    logger.info(f"Manual scrape triggered for search definition {search_definition_id}")
+async def rate_deals_job():
+    """Rate unrated deals by fetching market prices."""
+    logger.info("Starting scheduled deal rating job")
     
     db = SessionLocal()
-    scraping_service = ScrapingService(db)
     
     try:
-        result = await scraping_service.scrape_search_definition(search_definition_id)
+        rated_count = await rate_unrated_deals(db, limit=10)
+        logger.info(f"Deal rating complete: {rated_count} deals rated")
+    except Exception as e:
+        logger.error(f"Error in deal rating job: {e}")
+    finally:
+        db.close()
+
+
+async def search_active_trip_plans():
+    """Search Google Flights for active Trip Plans that are due for a search."""
+    logger.info("Starting scheduled Trip Plan searches")
+    
+    db = SessionLocal()
+    
+    try:
+        active_plans = db.query(TripPlan).filter(
+            TripPlan.is_active == True
+        ).all()
         
+        if not active_plans:
+            logger.info("No active Trip Plans to search")
+            return
+        
+        logger.info(f"Found {len(active_plans)} active Trip Plans")
+        
+        now = datetime.utcnow()
+        searched = 0
+        skipped = 0
+        
+        for plan in active_plans:
+            hours_since_update = float('inf')
+            if plan.updated_at:
+                hours_since_update = (now - plan.updated_at).total_seconds() / 3600
+            
+            check_freq = plan.check_frequency_hours or 12
+            
+            if hours_since_update < check_freq:
+                skipped += 1
+                continue
+            
+            logger.info(f"Searching Trip Plan {plan.id}: {plan.name}")
+            
+            search_service = TripPlanSearchService(db)
+            try:
+                summary = await search_service.search_trip_plan(plan.id)
+                
+                if summary.searches_successful > 0:
+                    logger.info(f"  Found {len(summary.results)} results for {plan.name}")
+                else:
+                    logger.warning(f"  No results for {plan.name}")
+                
+                searched += 1
+                
+            except Exception as e:
+                logger.error(f"  Error searching {plan.name}: {e}")
+            finally:
+                await search_service.close()
+        
+        logger.info(f"Trip Plan search complete: {searched} searched, {skipped} skipped (not due)")
+        
+    except Exception as e:
+        logger.error(f"Error in Trip Plan search job: {e}")
+        
+    finally:
+        db.close()
+
+
+async def manual_scrape_definition(search_definition_id: int) -> dict:
+    """
+    Manually trigger a scrape for a specific search definition.
+
+    Returns: Dict with success status and error message if failed
+    """
+    logger.info(f"Manual scrape triggered for search definition {search_definition_id}")
+
+    db = SessionLocal()
+    scraping_service = ScrapingService(db)
+
+    try:
+        result = await scraping_service.scrape_search_definition(search_definition_id)
+
         if result.is_success:
             logger.info(f"✅ Manual scrape success: {len(result.prices)} prices")
-            return True
+            return {
+                "success": True,
+                "prices_found": len(result.prices)
+            }
         else:
             logger.error(f"❌ Manual scrape failed: {result.status} - {result.error_message}")
-            return False
-            
+            return {
+                "success": False,
+                "error": result.error_message or result.status,
+                "status": result.status
+            }
+
     except Exception as e:
         logger.error(f"Error in manual scrape: {e}")
-        return False
-        
+        return {
+            "success": False,
+            "error": str(e),
+            "status": "exception"
+        }
+
     finally:
         db.close()
 

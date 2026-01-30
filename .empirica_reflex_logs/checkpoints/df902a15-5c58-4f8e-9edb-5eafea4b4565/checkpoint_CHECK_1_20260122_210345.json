@@ -1,0 +1,50 @@
+{
+  "session_id": "df902a15-5c58-4f8e-9edb-5eafea4b4565",
+  "phase": "CHECK",
+  "round": 1,
+  "timestamp": "2026-01-22T21:03:45.484316+00:00",
+  "vectors": {
+    "know": 0.7,
+    "uncertainty": 0.3
+  },
+  "overall_confidence": 0.567,
+  "meta": {
+    "decision": "proceed",
+    "suggestion_strength": "strong",
+    "drift": 0.0,
+    "findings_count": 0,
+    "unknowns_count": 0,
+    "reasoning": "Confidence (0.70) \u2265 0.70 threshold, low drift (0.00), 0 unknowns",
+    "git_commit_sha": "ce3045854f96f684996e8ab04d271f16ec11ad5f",
+    "git_notes_ref": "empirica/session/df902a15-5c58-4f8e-9edb-5eafea4b4565/CHECK/1"
+  },
+  "epistemic_tags": {},
+  "git_state": {
+    "head_commit": "92a94af63c694f4701fb2795ff9bd1b159f5d38f",
+    "commits_since_last_checkpoint": [],
+    "uncommitted_changes": {
+      "files_modified": [
+        ".beads/issues.jsonl",
+        "backend/app/api/prices.py",
+        "backend/app/templates/prices.html",
+        "backend/app/utils/template_helpers.py"
+      ],
+      "files_added": [],
+      "files_deleted": [],
+      "diff_stat": ".beads/issues.jsonl                   |  6 ++--\n backend/app/api/prices.py             | 54 ++++++++++++++++++++++++++++++++++-\n backend/app/templates/prices.html     | 39 +++++++++++++++++++++++--\n backend/app/utils/template_helpers.py | 30 +++++++++++++++++++\n 4 files changed, 123 insertions(+), 6 deletions(-)"
+    }
+  },
+  "learning_delta": {
+    "know": {
+      "prev": 0.7,
+      "curr": 0.7,
+      "delta": 0.0
+    },
+    "uncertainty": {
+      "prev": 0.3,
+      "curr": 0.3,
+      "delta": 0.0
+    }
+  },
+  "token_count": 120
+}
