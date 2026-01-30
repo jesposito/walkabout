@@ -147,22 +147,25 @@ class NotificationService:
         """Send to ntfy server (self-hosted or ntfy.sh)."""
         try:
             client = await self._get_client()
-            endpoint = f"{url.rstrip('/')}/{topic}"
+            endpoint = f"{url.rstrip('/')}"
 
-            headers = {
-                "Title": title.encode('utf-8').decode('utf-8'),
-                "Priority": self.NTFY_PRIORITY_MAP.get(priority, "3"),
+            # Use JSON API to properly handle UTF-8/emoji in title and message
+            payload = {
+                "topic": topic,
+                "title": title,
+                "message": message,
+                "priority": int(self.NTFY_PRIORITY_MAP.get(priority, "3")),
             }
 
             if tags:
-                headers["Tags"] = ",".join(tags)
+                payload["tags"] = tags
             if click_url:
-                headers["Click"] = click_url
+                payload["click"] = click_url
 
             response = await client.post(
                 endpoint,
-                content=message.encode('utf-8'),
-                headers=headers
+                json=payload,
+                headers={"Content-Type": "application/json"}
             )
 
             if response.status_code == 200:
