@@ -1,0 +1,121 @@
+name: Auto Tag on Release
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  auto-tag:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Get current version
+      id: current
+      run: |
+        if [ -f LATEST_VERSION ]; then
+          VERSION=$(cat LATEST_VERSION | tr -d '\n' | sed 's/^v//')
+        else
+          VERSION="0.0.0"
+        fi
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Current version: $VERSION"
+
+    - name: Analyze commits for version bump
+      id: bump
+      run: |
+        COMMITS="${{ github.event.pull_request.body }}"
+        PR_TITLE="${{ github.event.pull_request.title }}"
+
+        BUMP_TYPE="none"
+
+        if echo "$PR_TITLE" | grep -qiE '^(breaking|!:)' || echo "$COMMITS" | grep -qiE 'BREAKING CHANGE'; then
+          BUMP_TYPE="major"
+        elif echo "$PR_TITLE" | grep -qiE '^feat(\(.+\))?:' || echo "$COMMITS" | grep -qiE '^feat(\(.+\))?:'; then
+          BUMP_TYPE="minor"
+        elif echo "$PR_TITLE" | grep -qiE '^fix(\(.+\))?:' || echo "$COMMITS" | grep -qiE '^fix(\(.+\))?:'; then
+          BUMP_TYPE="patch"
+        fi
+
+        echo "bump_type=$BUMP_TYPE" >> $GITHUB_OUTPUT
+        echo "Bump type: $BUMP_TYPE"
+
+    - name: Calculate new version
+      id: version
+      if: steps.bump.outputs.bump_type != 'none'
+      run: |
+        CURRENT="${{ steps.current.outputs.version }}"
+        BUMP_TYPE="${{ steps.bump.outputs.bump_type }}"
+
+        IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+        MAJOR=${MAJOR:-0}
+        MINOR=${MINOR:-0}
+        PATCH=${PATCH:-0}
+
+        case $BUMP_TYPE in
+          major)
+            MAJOR=$((MAJOR + 1))
+            MINOR=0
+            PATCH=0
+            ;;
+          minor)
+            MINOR=$((MINOR + 1))
+            PATCH=0
+            ;;
+          patch)
+            PATCH=$((PATCH + 1))
+            ;;
+        esac
+
+        NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+        echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+        echo "New version: $NEW_VERSION"
+
+    - name: Update LATEST_VERSION file
+      if: steps.bump.outputs.bump_type != 'none'
+      run: |
+        echo "v${{ steps.version.outputs.new_version }}" > LATEST_VERSION
+
+    - name: Commit version update
+      if: steps.bump.outputs.bump_type != 'none'
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add LATEST_VERSION
+        git commit -m "chore: bump version to v${{ steps.version.outputs.new_version }}" || echo "No changes to commit"
+        git push
+
+    - name: Create and push tag
+      if: steps.bump.outputs.bump_type != 'none'
+      run: |
+        TAG="v${{ steps.version.outputs.new_version }}"
+        git tag -a "$TAG" -m "Release $TAG"
+        git push origin "$TAG"
+
+    - name: Summary
+      if: steps.bump.outputs.bump_type != 'none'
+      run: |
+        echo "## Version Bump Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "- **Previous version:** v${{ steps.current.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **New version:** v${{ steps.version.outputs.new_version }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Bump type:** ${{ steps.bump.outputs.bump_type }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Triggered by:** PR #${{ github.event.pull_request.number }}" >> $GITHUB_STEP_SUMMARY
+
+    - name: No version bump needed
+      if: steps.bump.outputs.bump_type == 'none'
+      run: |
+        echo "## No Version Bump" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "No conventional commit patterns (feat:, fix:, BREAKING CHANGE) detected in PR title." >> $GITHUB_STEP_SUMMARY
+        echo "Skipping version bump." >> $GITHUB_STEP_SUMMARY
