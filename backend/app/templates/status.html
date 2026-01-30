@@ -1,355 +1,279 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Walkabout - Flight Monitor Status</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background: #f5f5f7;
-            color: #1d1d1f;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        h1 {
-            color: #1d1d1f;
-            margin-bottom: 8px;
-        }
-        .subtitle {
-            color: #86868b;
-            margin-bottom: 30px;
-            font-size: 18px;
-        }
-        .status-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        .card {
-            background: white;
-            border-radius: 12px;
-            padding: 24px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
-        }
-        .card h3 {
-            margin: 0 0 16px 0;
-            font-size: 20px;
-            font-weight: 600;
-        }
-        .status-healthy {
-            color: #30d158;
-        }
-        .status-warning {
-            color: #ff9f0a;
-        }
-        .status-error {
-            color: #ff453a;
-        }
-        .status-neutral {
-            color: #8e8e93;
-        }
-        .metric {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-            padding: 8px 0;
-        }
-        .metric:last-child {
-            margin-bottom: 0;
-        }
-        .metric-label {
-            font-weight: 500;
-        }
-        .metric-value {
-            font-family: 'SF Mono', Monaco, monospace;
-            font-weight: 600;
-        }
-        .button {
-            background: #007aff;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
-            margin-right: 12px;
-            margin-bottom: 12px;
-        }
-        .button:hover {
-            background: #0056b3;
-        }
-        .button-secondary {
-            background: #8e8e93;
-        }
-        .button-secondary:hover {
-            background: #6d6d70;
-        }
-        .actions {
-            margin-top: 20px;
-        }
-        .timestamp {
-            color: #8e8e93;
-            font-size: 14px;
-            margin-top: 8px;
-        }
-        .badge {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-        .badge-healthy {
-            background: #e5f5e5;
-            color: #30d158;
-        }
-        .badge-warning {
-            background: #fff3e0;
-            color: #ff9f0a;
-        }
-        .badge-error {
-            background: #ffe5e5;
-            color: #ff453a;
-        }
-        .badge-neutral {
-            background: #f0f0f0;
-            color: #8e8e93;
-        }
-        @media (max-width: 768px) {
-            .status-grid {
-                grid-template-columns: 1fr;
-            }
-            body {
-                padding: 16px;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>🛫 Walkabout Flight Monitor</h1>
-        <p class="subtitle">Phase 1a - Proving Scraping Stability</p>
+{% extends "base.html" %}
 
-        <div class="status-grid">
-            <!-- System Status Card -->
-            <div class="card">
-                <h3>📊 System Status</h3>
-                <div class="metric">
-                    <span class="metric-label">Scheduler</span>
-                    <span class="metric-value {% if scheduler.running %}status-healthy{% else %}status-error{% endif %}">
-                        {% if scheduler.running %}
-                            ✅ Running
-                        {% else %}
-                            ❌ Stopped
-                        {% endif %}
-                    </span>
+{% block content %}
+<div class="bg-slate-100 dark:bg-slate-900 min-h-full pb-12">
+    <!-- Title Bar -->
+    <div class="bg-white/50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 class="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">System Status</h1>
+                    <p class="text-slate-600 dark:text-slate-400 mt-1">Phase 1a - Proving Scraping Stability</p>
                 </div>
-                <div class="metric">
-                    <span class="metric-label">Next Scrape</span>
-                    <span class="metric-value status-neutral">{{ scheduler.next_run or "Not scheduled" }}</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">Active Monitors</span>
-                    <span class="metric-value status-neutral">{{ search_definitions|length }}</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">Total Prices</span>
-                    <span class="metric-value status-neutral">{{ total_prices }}</span>
-                </div>
-                <div class="timestamp">Last updated: {{ current_time }}</div>
-            </div>
-
-            <!-- ntfy Status Card -->
-            <div class="card">
-                <h3>🔔 Notifications</h3>
-                <div class="metric">
-                    <span class="metric-label">ntfy Server</span>
-                    <span class="metric-value {% if ntfy_working %}status-healthy{% else %}status-error{% endif %}">
-                        {% if ntfy_working %}
-                            ✅ Working
-                        {% else %}
-                            ❌ Failed
-                        {% endif %}
-                    </span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">Topic</span>
-                    <span class="metric-value status-neutral">{{ ntfy_topic }}</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">Subscribe URL</span>
-                    <span class="metric-value">
-                        <a href="{{ ntfy_url }}/{{ ntfy_topic }}" target="_blank" style="color: #007aff;">{{ ntfy_url }}/{{ ntfy_topic }}</a>
-                    </span>
+                
+                <!-- Quick Actions -->
+                <div class="flex flex-wrap items-center gap-3">
+                    <button onclick="manualScrapeAll()" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-medium transition-colors flex items-center gap-2 shadow-lg shadow-cyan-500/20">
+                        <span>🚀</span> Scrape All Now
+                    </button>
+                    <button onclick="testNotifications()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-medium transition-colors border border-slate-600 flex items-center gap-2">
+                        <span>🔔</span> Test Notify
+                    </button>
+                    <button onclick="location.reload()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-lg font-medium transition-colors border border-slate-700">
+                        🔄 Refresh
+                    </button>
                 </div>
             </div>
-        </div>
-
-        <!-- Search Definitions -->
-        <div class="card">
-            <h3>🔍 Flight Monitors</h3>
-            {% if search_definitions %}
-                {% for search_def in search_definitions %}
-                <div style="border-bottom: 1px solid #f0f0f0; padding: 16px 0; margin-bottom: 16px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                        <h4 style="margin: 0; color: #1d1d1f;">{{ search_def.display_name }}</h4>
-                        <span class="badge {% if search_def.health.healthy %}badge-healthy{% elif search_def.health.consecutive_failures >= 3 %}badge-error{% elif search_def.health.consecutive_failures > 0 %}badge-warning{% else %}badge-neutral{% endif %}">
-                            {% if search_def.health.healthy %}
-                                Healthy
-                            {% elif search_def.health.consecutive_failures >= 3 %}
-                                Failing
-                            {% elif search_def.health.consecutive_failures > 0 %}
-                                Warning
-                            {% else %}
-                                Unknown
-                            {% endif %}
-                        </span>
-                    </div>
-                    
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
-                        <div class="metric">
-                            <span class="metric-label">Success Rate</span>
-                            <span class="metric-value {% if search_def.health.success_rate >= 90 %}status-healthy{% elif search_def.health.success_rate >= 70 %}status-warning{% else %}status-error{% endif %}">
-                                {{ "%.1f"|format(search_def.health.success_rate) }}%
-                            </span>
-                        </div>
-                        <div class="metric">
-                            <span class="metric-label">Attempts</span>
-                            <span class="metric-value status-neutral">{{ search_def.health.total_attempts }}</span>
-                        </div>
-                        <div class="metric">
-                            <span class="metric-label">Consecutive Failures</span>
-                            <span class="metric-value {% if search_def.health.consecutive_failures == 0 %}status-healthy{% elif search_def.health.consecutive_failures < 3 %}status-warning{% else %}status-error{% endif %}">
-                                {{ search_def.health.consecutive_failures }}
-                            </span>
-                        </div>
-                        <div class="metric">
-                            <span class="metric-label">Recent Prices</span>
-                            <span class="metric-value status-neutral">{{ search_def.health.recent_prices_count }}</span>
-                        </div>
-                    </div>
-                    
-                    {% if search_def.health.last_success_at %}
-                    <div class="timestamp">Last success: {{ search_def.health.last_success_at }}</div>
-                    {% endif %}
-                    
-                    {% if search_def.health.last_failure_reason %}
-                    <div class="timestamp" style="color: #ff453a;">Last failure: {{ search_def.health.last_failure_reason }}</div>
-                    {% endif %}
-                    
-                    <div style="margin-top: 12px;">
-                        <button class="button" onclick="manualScrape({{ search_def.id }})">🚀 Scrape Now</button>
-                        <a href="/search/{{ search_def.id }}/prices" class="button button-secondary">📊 View Prices</a>
-                    </div>
-                </div>
-                {% endfor %}
-            {% else %}
-                <p style="text-align: center; color: #8e8e93; margin: 40px 0;">
-                    No search definitions configured yet.
-                </p>
-            {% endif %}
-        </div>
-
-        <!-- Quick Actions -->
-        <div class="actions">
-            <button class="button" onclick="manualScrapeAll()">🚀 Scrape All Now</button>
-            <button class="button button-secondary" onclick="testNotifications()">🔔 Test Notifications</button>
-            <a href="/api/docs" class="button button-secondary">📖 API Docs</a>
-            <button class="button button-secondary" onclick="location.reload()">🔄 Refresh</button>
         </div>
     </div>
 
-    <script>
-        async function manualScrape(searchDefId) {
-            const button = event.target;
-            button.disabled = true;
-            button.textContent = '⏳ Scraping...';
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+        
+        <!-- System Status Card -->
+        <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+            <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
+                <span>📊</span> Core Services
+            </h3>
             
-            try {
-                const response = await fetch(`/api/scrape/manual/${searchDefId}`, { method: 'POST' });
-                const result = await response.json();
-                
-                if (response.ok && result.success) {
-                    button.textContent = '✅ Success';
-                    setTimeout(() => location.reload(), 2000);
-                } else {
-                    button.textContent = '❌ Failed';
-                    alert(`Scrape failed: ${result.error || 'Unknown error'}`);
-                }
-            } catch (error) {
-                button.textContent = '❌ Failed';
-                alert(`Scrape failed: ${error.message}`);
+            <div class="space-y-4">
+                <div class="flex justify-between items-center py-2 border-b border-slate-200 dark:border-slate-700/50">
+                    <span class="text-slate-600 dark:text-slate-400">Scheduler</span>
+                    <span class="font-mono font-bold {% if scheduler.running %}text-emerald-400{% else %}text-rose-500{% endif %}">
+                        {% if scheduler.running %}✅ Running{% else %}❌ Stopped{% endif %}
+                    </span>
+                </div>
+                <div class="flex justify-between items-center py-2 border-b border-slate-200 dark:border-slate-700/50">
+                    <span class="text-slate-600 dark:text-slate-400">Next Scrape</span>
+                    <span class="font-mono text-slate-700 dark:text-slate-200">{{ scheduler.next_run or "Not scheduled" }}</span>
+                </div>
+                <div class="flex justify-between items-center py-2 border-b border-slate-200 dark:border-slate-700/50">
+                    <span class="text-slate-600 dark:text-slate-400">Active Monitors</span>
+                    <span class="font-mono text-slate-700 dark:text-slate-200">{{ search_definitions|length }}</span>
+                </div>
+                <div class="flex justify-between items-center py-2">
+                    <span class="text-slate-600 dark:text-slate-400">Total Prices</span>
+                    <span class="font-mono text-slate-700 dark:text-slate-200">{{ total_prices }}</span>
+                </div>
+            </div>
+            <div class="mt-4 text-xs text-slate-500 font-mono text-right">Last updated: {{ current_time }}</div>
+        </div>
+
+        <!-- Notifications Card -->
+        <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+            <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
+                <span>🔔</span> Notifications
+            </h3>
+            
+            <div class="space-y-4">
+                <div class="flex justify-between items-center py-2 border-b border-slate-200 dark:border-slate-700/50">
+                    <span class="text-slate-600 dark:text-slate-400">ntfy Server</span>
+                    <span class="font-mono font-bold {% if ntfy_working %}text-emerald-400{% else %}text-rose-500{% endif %}">
+                        {% if ntfy_working %}✅ Working{% else %}❌ Failed{% endif %}
+                    </span>
+                </div>
+                <div class="flex justify-between items-center py-2 border-b border-slate-200 dark:border-slate-700/50">
+                    <span class="text-slate-600 dark:text-slate-400">Topic</span>
+                    <span class="font-mono text-cyan-400">{{ ntfy_topic }}</span>
+                </div>
+                <div class="flex justify-between items-center py-2">
+                    <span class="text-slate-600 dark:text-slate-400">Subscribe URL</span>
+                    <a href="{{ ntfy_url }}/{{ ntfy_topic }}" target="_blank" class="font-mono text-xs text-blue-400 hover:text-blue-300 hover:underline truncate max-w-[200px]">
+                        {{ ntfy_url }}/{{ ntfy_topic }}
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Flight Monitors -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+        <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+            <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
+                <span>🔍</span> Active Monitors
+            </h3>
+
+            {% if search_definitions %}
+                <div class="space-y-6">
+                {% for search_def in search_definitions %}
+                    {% set health = health_data[search_def.id] %}
+                    <div class="bg-slate-100 dark:bg-slate-900/50 rounded-lg p-5 border border-slate-200 dark:border-slate-700">
+                        <div class="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-3">
+                            <h4 class="text-lg font-bold text-slate-900 dark:text-white">{{ search_def.display_name }}</h4>
+                            <span class="px-2.5 py-1 rounded text-xs font-bold uppercase tracking-wide
+                                {% if health.healthy %}bg-emerald-500/10 text-emerald-400 border border-emerald-500/20
+                                {% elif health.consecutive_failures >= 3 %}bg-rose-500/10 text-rose-400 border border-rose-500/20
+                                {% elif health.consecutive_failures > 0 %}bg-amber-500/10 text-amber-400 border border-amber-500/20
+                                {% else %}bg-slate-700 text-slate-400{% endif %}">
+                                {% if health.healthy %}Healthy
+                                {% elif health.consecutive_failures >= 3 %}Failing
+                                {% elif health.consecutive_failures > 0 %}Warning
+                                {% else %}Unknown{% endif %}
+                            </span>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                            <div>
+                                <span class="block text-xs text-slate-500 uppercase tracking-wider mb-1">Success Rate</span>
+                                <span class="font-mono font-bold {% if health.success_rate >= 90 %}text-emerald-400{% elif health.success_rate >= 70 %}text-amber-400{% else %}text-rose-400{% endif %}">
+                                    {{ "%.1f"|format(health.success_rate) }}%
+                                </span>
+                            </div>
+                            <div>
+                                <span class="block text-xs text-slate-500 uppercase tracking-wider mb-1">Attempts</span>
+                                <span class="font-mono text-slate-300">{{ health.total_attempts }}</span>
+                            </div>
+                            <div>
+                                <span class="block text-xs text-slate-500 uppercase tracking-wider mb-1">Cons. Failures</span>
+                                <span class="font-mono font-bold {% if health.consecutive_failures == 0 %}text-emerald-400{% elif health.consecutive_failures < 3 %}text-amber-400{% else %}text-rose-400{% endif %}">
+                                    {{ health.consecutive_failures }}
+                                </span>
+                            </div>
+                            <div>
+                                <span class="block text-xs text-slate-500 uppercase tracking-wider mb-1">Recent Prices</span>
+                                <span class="font-mono text-slate-300">{{ health.recent_prices_count }}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-t border-slate-200 dark:border-slate-700/50 pt-4 mt-2">
+                            <div class="text-xs text-slate-500 font-mono">
+                                {% if health.last_success_at %}
+                                    <span class="mr-3">Last success: {{ health.last_success_at }}</span>
+                                {% endif %}
+                                {% if health.last_failure_reason %}
+                                    <span class="text-rose-400 block sm:inline mt-1 sm:mt-0">Error: {{ health.last_failure_reason }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="flex gap-2 w-full sm:w-auto">
+                                <button onclick="manualScrape({{ search_def.id }})" class="flex-1 sm:flex-none px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-bold rounded transition-colors border border-slate-600">
+                                    🚀 Scrape
+                                </button>
+                                <a href="/search/{{ search_def.id }}/prices" class="flex-1 sm:flex-none px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 text-xs font-bold rounded transition-colors border border-slate-700 text-center">
+                                    📊 Prices
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-12 text-slate-500">
+                    No search definitions configured yet.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    async function manualScrape(searchDefId) {
+        const button = event.target;
+        const originalText = button.textContent;
+        button.disabled = true;
+        button.textContent = '⏳';
+        
+        try {
+            const response = await fetch(`/api/scrape/manual/${searchDefId}`, { method: 'POST' });
+            const result = await response.json();
+            
+            if (response.ok && result.success) {
+                button.textContent = '✅';
+                button.classList.add('bg-emerald-600', 'text-white', 'border-emerald-500');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                button.textContent = '❌';
+                button.classList.add('bg-rose-600', 'text-white');
+                alert(`Scrape failed: ${result.error || 'Unknown error'}`);
             }
-            
-            setTimeout(() => {
-                button.disabled = false;
-                button.textContent = '🚀 Scrape Now';
-            }, 3000);
+        } catch (error) {
+            button.textContent = '❌';
+            alert(`Scrape failed: ${error.message}`);
         }
         
-        async function manualScrapeAll() {
-            const button = event.target;
-            button.disabled = true;
-            button.textContent = '⏳ Scraping All...';
-            
-            try {
-                const response = await fetch('/api/scrape/manual/all', { method: 'POST' });
-                const result = await response.json();
-                
-                if (response.ok && result.success) {
-                    button.textContent = '✅ Success';
-                    setTimeout(() => location.reload(), 3000);
-                } else {
-                    button.textContent = '❌ Some Failed';
-                    alert(`Results: ${result.successes} successes, ${result.failures} failures`);
-                }
-            } catch (error) {
-                button.textContent = '❌ Failed';
-                alert(`Scrape failed: ${error.message}`);
-            }
-            
+        if (!button.textContent.includes('✅')) {
             setTimeout(() => {
                 button.disabled = false;
-                button.textContent = '🚀 Scrape All Now';
-            }, 5000);
-        }
-        
-        async function testNotifications() {
-            const button = event.target;
-            button.disabled = true;
-            button.textContent = '⏳ Testing...';
-            
-            try {
-                const response = await fetch('/api/notifications/test', { method: 'POST' });
-                const result = await response.json();
-                
-                if (response.ok && result.success) {
-                    button.textContent = '✅ Sent';
-                    alert('Test notification sent! Check your ntfy client.');
-                } else {
-                    button.textContent = '❌ Failed';
-                    alert(`Test failed: ${result.error || 'Unknown error'}`);
-                }
-            } catch (error) {
-                button.textContent = '❌ Failed';
-                alert(`Test failed: ${error.message}`);
-            }
-            
-            setTimeout(() => {
-                button.disabled = false;
-                button.textContent = '🔔 Test Notifications';
+                button.textContent = originalText;
+                button.classList.remove('bg-rose-600', 'text-white');
             }, 3000);
         }
-    </script>
-</body>
-</html>
+    }
+    
+    async function manualScrapeAll() {
+        const button = event.target;
+        const originalText = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<span>⏳</span> Scraping...';
+
+        try {
+            const response = await fetch('/api/scrape/manual/all', { method: 'POST' });
+            const result = await response.json();
+
+            if (response.ok && result.success && result.failures === 0) {
+                button.innerHTML = '<span>✅</span> Done';
+                button.classList.remove('bg-cyan-600');
+                button.classList.add('bg-emerald-600');
+                setTimeout(() => location.reload(), 2000);
+            } else if (result.failures > 0) {
+                button.innerHTML = '<span>⚠️</span> Partial';
+                button.classList.remove('bg-cyan-600');
+                button.classList.add('bg-amber-600');
+
+                // Build detailed error message
+                let msg = `${result.successes} succeeded, ${result.failures} failed\n`;
+                if (result.errors && result.errors.length > 0) {
+                    msg += '\nErrors:\n';
+                    result.errors.forEach(e => {
+                        msg += `• ${e.route}: ${e.error}\n`;
+                    });
+                }
+                alert(msg);
+            } else {
+                button.innerHTML = '<span>✅</span> Done';
+                button.classList.remove('bg-cyan-600');
+                button.classList.add('bg-emerald-600');
+                setTimeout(() => location.reload(), 2000);
+            }
+        } catch (error) {
+            button.innerHTML = '<span>❌</span> Failed';
+            button.classList.remove('bg-cyan-600');
+            button.classList.add('bg-rose-600');
+            alert(`Scrape failed: ${error.message}`);
+        }
+
+        setTimeout(() => {
+            button.disabled = false;
+            button.innerHTML = originalText;
+            button.classList.add('bg-cyan-600');
+            button.classList.remove('bg-emerald-600', 'bg-amber-600', 'bg-rose-600');
+        }, 5000);
+    }
+    
+    async function testNotifications() {
+        const button = event.target;
+        const originalText = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<span>⏳</span> Sending...';
+        
+        try {
+            const response = await fetch('/api/notifications/test', { method: 'POST' });
+            const result = await response.json();
+            
+            if (response.ok && result.success) {
+                button.innerHTML = '<span>✅</span> Sent';
+                alert('Test notification sent! Check your ntfy client.');
+            } else {
+                button.innerHTML = '<span>❌</span> Failed';
+                alert(`Test failed: ${result.error || 'Unknown error'}`);
+            }
+        } catch (error) {
+            button.innerHTML = '<span>❌</span> Failed';
+            alert(`Test failed: ${error.message}`);
+        }
+        
+        setTimeout(() => {
+            button.disabled = false;
+            button.innerHTML = originalText;
+        }, 3000);
+    }
+</script>
+{% endblock %}
