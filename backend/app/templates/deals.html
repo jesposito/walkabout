@@ -1,0 +1,387 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="bg-slate-100 dark:bg-slate-900 min-h-full pb-12">
+    
+    {% if not ai_enabled %}
+    <div class="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-b border-amber-200 dark:border-amber-800/50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+            <div class="flex items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <span class="text-amber-600 dark:text-amber-400">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                    </span>
+                    <div>
+                        <p class="text-sm font-medium text-amber-800 dark:text-amber-200">Basic Mode</p>
+                        <p class="text-xs text-amber-600 dark:text-amber-400">Deal titles shown as-is. Configure AI in Settings for smart route parsing and deal ratings.</p>
+                    </div>
+                </div>
+                <a href="/settings/" class="flex-shrink-0 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium rounded-lg transition-colors shadow-sm">
+                    Configure AI
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <div class="bg-white/50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                    <h1 class="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Flight Deals</h1>
+                    <p class="text-slate-600 dark:text-slate-400 mt-1">
+                        Deals from {{ local_count + regional_count + hub_count }} sources
+                    </p>
+                </div>
+                
+                <div class="flex flex-wrap items-center gap-2">
+                    <a href="?tab=local&sort=rating" 
+                       class="px-4 py-2 rounded-lg text-sm font-medium transition-all
+                              {% if current_tab == 'local' %}bg-cyan-500 text-white shadow-lg shadow-cyan-500/25
+                              {% else %}bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600{% endif %}">
+                        Local <span class="ml-1 opacity-75">({{ local_count }})</span>
+                    </a>
+                    <a href="?tab=regional&sort=rating" 
+                       class="px-4 py-2 rounded-lg text-sm font-medium transition-all
+                              {% if current_tab == 'regional' %}bg-emerald-500 text-white shadow-lg shadow-emerald-500/25
+                              {% else %}bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600{% endif %}">
+                        Regional <span class="ml-1 opacity-75">({{ regional_count }})</span>
+                    </a>
+                    <a href="?tab=hubs&sort=rating" 
+                       class="px-4 py-2 rounded-lg text-sm font-medium transition-all
+                              {% if current_tab == 'hubs' %}bg-violet-500 text-white shadow-lg shadow-violet-500/25
+                              {% else %}bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600{% endif %}">
+                        Hubs <span class="ml-1 opacity-75">({{ hub_count }})</span>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="mt-4 flex flex-wrap items-center justify-between gap-4">
+                <span class="text-sm text-slate-500 dark:text-slate-400">
+                    {% if current_tab == 'local' %}
+                        Deals departing from your home airport(s)
+                    {% elif current_tab == 'regional' %}
+                        Deals from NZ, Australia & Pacific
+                    {% else %}
+                        Deals from major international hubs (great for positioning flights)
+                    {% endif %}
+                    {% if not ai_enabled %}
+                    <span class="ml-2 px-2 py-0.5 bg-amber-100 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20 rounded text-xs font-medium">
+                        Basic Mode
+                    </span>
+                    {% endif %}
+                </span>
+                
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Sort:</span>
+                    <div class="flex rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
+                        {% if ai_enabled %}
+                        <a href="?tab={{ current_tab }}&sort=rating" 
+                           class="px-3 py-1.5 text-xs font-medium transition-colors
+                                  {% if current_sort == 'rating' or current_sort == 'score' %}bg-slate-700 dark:bg-slate-600 text-white{% else %}bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700{% endif %}">
+                            Best Deals
+                        </a>
+                        {% endif %}
+                        <a href="?tab={{ current_tab }}&sort=date" 
+                           class="px-3 py-1.5 text-xs font-medium transition-colors {% if ai_enabled %}border-l border-slate-200 dark:border-slate-700{% endif %}
+                                  {% if current_sort == 'date' or (not ai_enabled and current_sort in ['rating', 'score']) %}bg-slate-700 dark:bg-slate-600 text-white{% else %}bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700{% endif %}">
+                            Newest
+                        </a>
+                        <a href="?tab={{ current_tab }}&sort=price" 
+                           class="px-3 py-1.5 text-xs font-medium transition-colors border-l border-slate-200 dark:border-slate-700
+                                  {% if current_sort == 'price' %}bg-slate-700 dark:bg-slate-600 text-white{% else %}bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700{% endif %}">
+                            Price
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if current_tab == 'hubs' and hub_counts %}
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+        <div class="flex flex-wrap gap-2">
+            {% for code, city in major_hubs.items() %}
+            {% if hub_counts.get(code, 0) > 0 %}
+            <span class="px-3 py-1 bg-violet-100 dark:bg-violet-500/10 text-violet-600 dark:text-violet-300 border border-violet-200 dark:border-violet-500/20 rounded-full text-xs font-medium">
+                {{ code }} · {{ city }} <span class="text-violet-500 dark:text-violet-400/70">({{ hub_counts.get(code, 0) }})</span>
+            </span>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% set deals = local_deals if current_tab == 'local' else (regional_deals if current_tab == 'regional' else hub_deals) %}
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+        {% if deals %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for deal in deals %}
+            <article class="deal-card relative bg-white dark:bg-slate-800 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 group flex flex-col h-full shadow-sm">
+                <div class="h-2 {% if current_tab == 'local' %}bg-gradient-to-r from-cyan-500 to-cyan-600{% elif current_tab == 'regional' %}bg-gradient-to-r from-emerald-500 to-emerald-600{% else %}bg-gradient-to-r from-violet-500 to-violet-600{% endif %}"></div>
+                
+                <div class="p-6 flex-grow flex flex-col">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="px-2 py-1 rounded text-[10px] font-mono font-bold tracking-wider uppercase 
+                                {% if deal.parsed_cabin_class == 'BUSINESS' %}bg-amber-100 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20
+                                {% elif deal.parsed_cabin_class == 'FIRST' %}bg-purple-100 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-500/20
+                                {% else %}bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600{% endif %}">
+                                {{ deal.parsed_cabin_class or 'ECONOMY' }}
+                            </span>
+                            {% if ai_enabled and deal.rating_label %}
+                            <span class="px-2 py-1 rounded text-[10px] font-bold
+                                {% if deal.deal_rating and deal.deal_rating >= 30 %}bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-500/30
+                                {% elif deal.deal_rating and deal.deal_rating >= 15 %}bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-500/30
+                                {% elif deal.deal_rating and deal.deal_rating >= 5 %}bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-500/30
+                                {% elif deal.deal_rating and deal.deal_rating < 0 %}bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-600
+                                {% else %}bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600{% endif %}"
+                                title="{% if deal.market_price %}Market: ${{ deal.market_price|int }} {{ deal.market_currency }}{% endif %}">
+                                {{ deal.rating_label }}
+                            </span>
+                            {% endif %}
+                            {% if deal.relevance_reason %}
+                            <span class="px-2 py-1 rounded text-[10px] font-medium 
+                                {% if current_tab == 'local' %}bg-cyan-100 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-200 dark:border-cyan-500/20
+                                {% elif current_tab == 'regional' %}bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20
+                                {% else %}bg-violet-100 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-500/20{% endif %}">
+                                {{ deal.relevance_reason }}
+                            </span>
+                            {% endif %}
+                        </div>
+                        <span class="text-xs text-slate-500 font-mono">{{ deal.published_at.strftime('%d %b') if deal.published_at else 'Now' }}</span>
+                    </div>
+
+                    <div class="mb-4">
+                        {% set origin_valid = deal.parsed_origin and deal.parsed_origin|length == 3 and deal.parsed_origin not in ['STO', 'NON'] %}
+                        {% set dest_valid = deal.parsed_destination and deal.parsed_destination|length == 3 %}
+                        {% set has_route = origin_valid or dest_valid %}
+                        
+                        {% if ai_enabled and has_route %}
+                        {# Enhanced mode: Show parsed route prominently #}
+                        <div class="flex items-baseline gap-2 text-2xl font-bold text-slate-900 dark:text-white">
+                            {% if origin_valid %}
+                            <span title="{{ airports[deal.parsed_origin].city if airports.get(deal.parsed_origin) else deal.parsed_origin }}">{{ deal.parsed_origin }}</span>
+                            <span class="text-slate-400 dark:text-slate-600 text-lg">→</span>
+                            {% endif %}
+                            <span class="{% if current_tab == 'local' %}text-cyan-600 dark:text-cyan-400{% elif current_tab == 'regional' %}text-emerald-600 dark:text-emerald-400{% else %}text-violet-600 dark:text-violet-400{% endif %}" title="{{ airports[deal.parsed_destination].city if airports.get(deal.parsed_destination) else deal.parsed_destination }}">{{ deal.parsed_destination if dest_valid else '???' }}</span>
+                        </div>
+                        <div class="text-xs text-slate-500 mt-1">
+                            {% if origin_valid and airports.get(deal.parsed_origin) %}{{ airports[deal.parsed_origin].city }} to {% endif %}
+                            {% if dest_valid and airports.get(deal.parsed_destination) %}{{ airports[deal.parsed_destination].city }}{% elif dest_valid %}{{ deal.parsed_destination }}{% else %}Various{% endif %}
+                        </div>
+                        {% else %}
+                        {# Basic mode: Show raw title prominently #}
+                        <div class="text-lg font-semibold text-slate-900 dark:text-white line-clamp-2" title="{{ deal.raw_title }}">
+                            {{ deal.raw_title[:80] }}{% if deal.raw_title|length > 80 %}...{% endif %}
+                        </div>
+                        {% if has_route %}
+                        <div class="text-xs text-slate-500 dark:text-slate-400 mt-1 font-mono">
+                            {% if origin_valid %}{{ deal.parsed_origin }} → {% endif %}{{ deal.parsed_destination if dest_valid else '' }}
+                            <span class="text-slate-400 dark:text-slate-500">(auto-detected)</span>
+                        </div>
+                        {% endif %}
+                        {% endif %}
+                        
+                        {% if deal.parsed_airline %}
+                        <div class="text-sm text-slate-500 dark:text-slate-400 mt-1 truncate" title="{{ deal.raw_title }}">
+                            {{ deal.parsed_airline }}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mt-auto pt-4 border-t border-slate-100 dark:border-slate-700/50 flex items-end justify-between">
+                        <div>
+                            <span class="block text-xs text-slate-500 font-mono mb-0.5">EST. PRICE</span>
+                            <span class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+                                {% if deal.price_info %}
+                                    {% if deal.price_info.converted %}
+                                        {{ deal.price_info.converted }}
+                                    {% else %}
+                                        {{ deal.price_info.original }}
+                                    {% endif %}
+                                {% elif deal.parsed_price %}
+                                    {{ deal.parsed_currency or 'USD' }} {{ deal.parsed_price }}
+                                {% else %}
+                                    See Deal
+                                {% endif %}
+                            </span>
+                            {% if deal.price_info and deal.price_info.converted %}
+                            <span class="block text-xs text-slate-500 dark:text-slate-400">
+                                {{ deal.price_info.original }}
+                            </span>
+                            {% endif %}
+                            {% if ai_enabled and deal.market_price and deal.deal_rating %}
+                            <span class="block text-xs mt-1
+                                {% if deal.deal_rating >= 15 %}text-green-600 dark:text-green-400
+                                {% elif deal.deal_rating >= 0 %}text-slate-500 dark:text-slate-400
+                                {% else %}text-red-500 dark:text-red-400{% endif %}">
+                                {% if deal.deal_rating >= 0 %}{{ deal.deal_rating|int }}% below{% else %}{{ (-deal.deal_rating)|int }}% above{% endif %} market ({{ preferred_currency }} {{ deal.market_price|int }})
+                            </span>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="text-right">
+                            <span class="text-[10px] uppercase tracking-wider text-slate-500 font-mono block mb-1">Source</span>
+                            <span class="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-300">
+                                {% if deal.source.value == 'secret_flying' %}
+                                    <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> Secret Flying
+                                {% elif deal.source.value == 'omaat' %}
+                                    <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span> OMAAT
+                                {% elif deal.source.value == 'the_points_guy' %}
+                                    <span class="w-1.5 h-1.5 rounded-full bg-orange-500"></span> TPG
+                                {% elif deal.source.value == 'the_flight_deal' %}
+                                    <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> Flight Deal
+                                {% elif deal.source.value == 'fly4free' %}
+                                    <span class="w-1.5 h-1.5 rounded-full bg-yellow-500"></span> Fly4Free
+                                {% elif deal.source.value == 'australian_frequent_flyer' %}
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> AFF
+                                {% elif deal.source.value == 'point_hacks' %}
+                                    <span class="w-1.5 h-1.5 rounded-full bg-purple-500"></span> Point Hacks
+                                {% elif deal.source.value == 'holiday_pirates' %}
+                                    <span class="w-1.5 h-1.5 rounded-full bg-pink-500"></span> Pirates
+                                {% elif deal.source.value == 'ozbargain' %}
+                                    <span class="w-1.5 h-1.5 rounded-full bg-orange-600"></span> OzBargain
+                                {% elif deal.source.value == 'cheapies_nz' %}
+                                    <span class="w-1.5 h-1.5 rounded-full bg-teal-500"></span> Cheapies NZ
+                                {% elif deal.source.value == 'beat_that_flight' %}
+                                    <span class="w-1.5 h-1.5 rounded-full bg-sky-500"></span> Beat That Flight
+                                {% else %}
+                                    <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span> {{ deal.source.value|replace('_', ' ')|title }}
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mobile: Always visible action bar -->
+                <div class="md:hidden border-t border-slate-200 dark:border-slate-700/50 px-6 py-3 flex gap-2">
+                    <a href="{{ deal.link }}" target="_blank" rel="noopener noreferrer"
+                       class="flex-1 px-4 py-2.5 {% if current_tab == 'local' %}bg-cyan-500 active:bg-cyan-600{% elif current_tab == 'regional' %}bg-emerald-500 active:bg-emerald-600{% else %}bg-violet-500 active:bg-violet-600{% endif %} text-white font-semibold rounded-lg text-center text-sm flex items-center justify-center gap-2">
+                        View Deal
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                    </a>
+                    {% if deal.parsed_origin and deal.parsed_destination %}
+                    <button onclick="trackRoute('{{ deal.parsed_origin }}', '{{ deal.parsed_destination }}', '{{ deal.parsed_cabin_class or "economy" }}')"
+                            class="px-4 py-2.5 bg-slate-200 dark:bg-slate-700 active:bg-slate-300 dark:active:bg-slate-600 text-slate-700 dark:text-white font-semibold rounded-lg text-sm flex items-center justify-center gap-1">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Track
+                    </button>
+                    {% endif %}
+                </div>
+
+                <!-- Desktop: Hover overlay -->
+                <div class="hidden md:flex absolute inset-0 z-10 items-center justify-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white/60 dark:bg-slate-900/60 backdrop-blur-[2px]">
+                    <a href="{{ deal.link }}" target="_blank" rel="noopener noreferrer"
+                       class="px-5 py-2 {% if current_tab == 'local' %}bg-cyan-500 hover:bg-cyan-400{% elif current_tab == 'regional' %}bg-emerald-500 hover:bg-emerald-400{% else %}bg-violet-500 hover:bg-violet-400{% endif %} text-white font-semibold rounded-full shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-all duration-200 flex items-center gap-2">
+                        View Deal
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                    </a>
+                    {% if deal.parsed_origin and deal.parsed_destination %}
+                    <button onclick="event.stopPropagation(); trackRoute('{{ deal.parsed_origin }}', '{{ deal.parsed_destination }}', '{{ deal.parsed_cabin_class or "economy" }}')"
+                            class="px-5 py-2 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-full shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-all duration-200 delay-75 flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Track Route
+                    </button>
+                    {% endif %}
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+
+        {% else %}
+        <div class="flex flex-col items-center justify-center py-20 text-center">
+            <div class="w-20 h-20 bg-slate-200 dark:bg-slate-800 rounded-full flex items-center justify-center mb-6">
+                <svg class="w-10 h-10 text-slate-400 dark:text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                </svg>
+            </div>
+            <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">No {{ current_tab }} deals yet</h3>
+            <p class="text-slate-600 dark:text-slate-400 max-w-md mx-auto">
+                {% if current_tab == 'local' %}
+                    No deals from your home airport yet. Check 
+                    {% if regional_count > 0 %}<a href="?tab=regional" class="text-emerald-500 hover:underline">Regional deals</a>{% endif %}
+                    {% if regional_count > 0 and hub_count > 0 %} or {% endif %}
+                    {% if hub_count > 0 %}<a href="?tab=hubs" class="text-violet-500 hover:underline">Hub deals</a>{% endif %}
+                    for more options.
+                {% elif current_tab == 'regional' %}
+                    No deals from the Oceania region yet. Try <a href="?tab=hubs" class="text-violet-500 hover:underline">Hub deals</a> for international options.
+                {% else %}
+                    No hub deals found. Deals will appear here when feeds are ingested.
+                {% endif %}
+            </p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div id="track-toast" class="hidden fixed bottom-4 left-4 right-4 md:left-auto md:right-6 md:w-auto z-50 px-6 py-4 rounded-xl shadow-2xl transition-all transform translate-y-4 opacity-0">
+</div>
+
+<script>
+async function trackRoute(origin, destination, cabinClass) {
+    const toast = document.getElementById('track-toast');
+    
+    try {
+        const response = await fetch('/prices/searches', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                origin: origin.toUpperCase(),
+                destination: destination.toUpperCase(),
+                cabin_class: cabinClass.toLowerCase(),
+                trip_type: 'round_trip',
+                adults: 2,
+                children: 0,
+            })
+        });
+        
+        if (response.ok) {
+            toast.className = 'fixed bottom-6 right-6 z-50 px-6 py-4 rounded-xl shadow-2xl bg-emerald-500/90 text-white backdrop-blur-sm';
+            toast.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    <div>
+                        <p class="font-semibold">Route Added!</p>
+                        <p class="text-sm opacity-90">${origin} → ${destination} is now being tracked</p>
+                    </div>
+                    <a href="/prices/" class="ml-4 px-3 py-1 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium">View</a>
+                </div>
+            `;
+        } else {
+            const err = await response.json();
+            throw new Error(err.detail || 'Failed to save');
+        }
+    } catch (e) {
+        toast.className = 'fixed bottom-6 right-6 z-50 px-6 py-4 rounded-xl shadow-2xl bg-red-500/90 text-white backdrop-blur-sm';
+        toast.innerHTML = `
+            <div class="flex items-center gap-3">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                <p class="font-semibold">Failed to track route</p>
+            </div>
+        `;
+    }
+    
+    toast.classList.remove('hidden', 'translate-y-4', 'opacity-0');
+    setTimeout(() => {
+        toast.classList.add('translate-y-4', 'opacity-0');
+        setTimeout(() => toast.classList.add('hidden'), 300);
+    }, 4000);
+}
+</script>
+{% endblock %}
