@@ -29,24 +29,24 @@ Google is great for what it does. Walkabout fills the gaps:
 - **Your historical context** - "Is this actually a good price for MY route?"
 - **Self-hosted** - Your data stays on your server
 
-## Current State (Phase 1a - "Prove Ingestion")
+## Current State (Phase 1a)
 
-The app is a **single-container FastAPI monolith** focused on reliable data acquisition:
+The app is a **single-container FastAPI monolith** with SQLite:
 
 | Component | Status |
 |-----------|--------|
-| Deal RSS Aggregation | ✅ 12+ sources (Secret Flying, OMAAT, TPG, regional) |
-| AI Deal Parsing | ✅ Optional Claude API enhancement |
-| Google Flights Scraper | ✅ Playwright with stealth mode |
-| Robust Price Analysis | ✅ Median/MAD z-scores + new low detection |
-| Scrape Health & Circuit Breaker | ✅ Failure classification, auto-recovery |
-| Trip Plans (Flexible Search) | ✅ Multi-origin/dest, budget constraints |
-| ntfy Notifications | ✅ Deal alerts, system alerts |
-| Server-rendered UI | ✅ Jinja2 templates with light/dark mode |
-| Deal Scoring/Rating | ✅ Market price comparison |
-| Discord Hall of Fame | ✅ Automated deal sharing |
+| Deal RSS Aggregation | RSS sources (Secret Flying, OMAAT, TPG, regional) |
+| AI Deal Parsing | Optional Claude/Ollama API enhancement |
+| Google Flights Scraper | Playwright with stealth mode |
+| Robust Price Analysis | Median/MAD z-scores + new low detection |
+| Scrape Health & Circuit Breaker | Failure classification, auto-recovery |
+| Trip Plans (Flexible Search) | Multi-origin/dest, budget constraints |
+| Notifications | ntfy and Discord webhook support |
+| Server-rendered UI | Jinja2 templates with light/dark mode |
+| Deal Scoring/Rating | Market price comparison |
+| Settings UI | Full configuration via web interface |
 
-**Tech Stack:** FastAPI + PostgreSQL + Playwright + APScheduler + ntfy
+**Tech Stack:** FastAPI + SQLite + Playwright + APScheduler
 
 ### What's Deferred (Phase 1b+)
 
@@ -57,50 +57,57 @@ The app is a **single-container FastAPI monolith** focused on reliable data acqu
 - Calendar heatmaps
 - Multi-user support
 
-### Architecture Philosophy
+## Quick Start (Docker)
 
-From Oracle Review feedback, deliberate choices were made:
-
-- **Tighten MVP** around "reliable ingestion + alerts + minimal UI" before adding complexity
-- **Rules detect, AI explains** - cheap math first, AI only when thresholds crossed
-- **Single container** until complexity is needed
-- **ScrapeHealth as first-class entity** - scraping is fragile, so track it properly
-
-## Quick Start (Unraid)
-
-1. **Install from Community Apps** (coming soon) or use docker-compose:
+### Single Container Deployment
 
 ```bash
-# Clone
-git clone https://github.com/OWNER/walkabout.git
-cd walkabout
+# Create data directory
+mkdir -p /path/to/walkabout/data
 
-# Configure
-cp .env.example .env
-# Edit .env with your settings
-
-# Start
-docker-compose -f docker-compose.phase1a.yml up -d
+# Run the container
+docker run -d \
+  --name walkabout \
+  -p 8000:8000 \
+  -v /path/to/walkabout/data:/app/data \
+  -e TZ=Pacific/Auckland \
+  --restart unless-stopped \
+  ghcr.io/jesposito/walkabout:latest
 ```
 
-2. **Open the dashboard**: `http://your-server:8080`
+### Open the Dashboard
 
-3. **Set your profile**:
-   - Home airport (e.g., AKL)
-   - Destinations you care about
+1. Visit `http://your-server:8000`
+2. Go to **Settings** to configure:
+   - Home airports (e.g., AKL, WLG, CHC)
+   - AI provider (optional - Claude or Ollama)
+   - Notification provider (ntfy or Discord)
    - Notification preferences
+
+### Unraid
+
+See [UNRAID_DEPLOYMENT.md](UNRAID_DEPLOYMENT.md) for detailed Unraid setup instructions.
 
 ## Configuration
 
+All configuration is done via the **Settings** page in the web UI:
+
+| Setting | Description |
+|---------|-------------|
+| Home Airports | Your departure airports for deal filtering |
+| AI Provider | Optional - Claude API or local Ollama for deal parsing |
+| Notification Provider | ntfy server or Discord webhook |
+| Notification Preferences | Quiet hours, cooldowns, minimum deal rating |
+| Timezone | For scheduling and quiet hours |
+
+### Environment Variables
+
+Only a few environment variables are needed:
+
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `DATABASE_URL` | PostgreSQL connection string | - |
 | `TZ` | Your timezone | `Pacific/Auckland` |
-| `NTFY_URL` | ntfy server URL for alerts | `http://localhost:8080` |
-| `NTFY_TOPIC` | ntfy topic name | `walkabout-deals` |
-| `ANTHROPIC_API_KEY` | For AI deal parsing (optional) | - |
-| `DEAL_THRESHOLD_Z_SCORE` | Alert threshold (robust z-score) | `-1.5` |
-| `SEATS_AERO_API_KEY` | For award monitoring (Phase 2) | - |
+| `DATABASE_URL` | SQLite path (optional override) | `sqlite:///./data/walkabout.db` |
 
 ## Architecture
 
@@ -112,14 +119,14 @@ Single container, simple stack:
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
 │  FastAPI Backend (Python)                                   │
-│  ├─ Route Handlers (deals, status, health, notifications)  │
+│  ├─ Route Handlers (deals, trips, settings, health)        │
 │  ├─ Scraping Service (Google Flights via Playwright)       │
 │  ├─ Price Analyzer (robust z-score + new lows)             │
 │  ├─ Deal Feed Aggregator (RSS parsing)                     │
 │  ├─ APScheduler (background jobs)                          │
-│  └─ Notification Service (ntfy integration)                │
+│  └─ Notification Service (ntfy/Discord integration)        │
 │                                                             │
-│  Database: PostgreSQL + SQLAlchemy ORM                      │
+│  Database: SQLite + SQLAlchemy ORM                          │
 │  Files: Screenshots & HTML snapshots for debugging          │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
@@ -132,12 +139,10 @@ Single container, simple stack:
 - One Mile at a Time - deals RSS
 - The Points Guy - deals section
 - Australian Frequent Flyer - covers NZ routes
-- Holiday Pirates, Ozbargain, Cheapies NZ (regional)
+- Fly4Free, regional sources
 
 ### Price Data
 - Google Flights (via Playwright scraper)
-- Amadeus API (free tier)
-- SerpAPI fallback
 
 ### Award Availability (Phase 2)
 - **Seats.aero** ($10/mo Pro subscription)
@@ -145,28 +150,32 @@ Single container, simple stack:
 
 ## Documentation
 
-- [Vision & Product](docs/VISION.md) - Product vision and positioning
-- [Architecture](docs/ARCHITECTURE.md) - Data model and technical design
-- [UX Design](docs/UX_DESIGN.md) - User flows and interface design
-- [Implementation Plan](docs/IMPLEMENTATION_PLAN.md) - Phased build approach
-- [Oracle Review](docs/ORACLE_REVIEW.md) - Critical feedback and responses
+- [Unraid Deployment](UNRAID_DEPLOYMENT.md) - Unraid-specific setup instructions
+- [Phase 1a Details](PHASE1A_README.md) - Phase 1a implementation details
+- [Changelog](CHANGELOG.md) - Version history
 
 ## Development
 
 ```bash
-# Run with docker-compose
-docker-compose -f docker-compose.phase1a.yml up -d
+# Clone the repo
+git clone https://github.com/jesposito/walkabout.git
+cd walkabout
 
-# Run tests
-docker-compose exec backend pytest
+# Run locally with Docker
+docker build -t walkabout .
+docker run -p 8000:8000 -v ./data:/app/data walkabout
 
-# View logs
-docker-compose logs -f backend
+# Or run directly (requires Python 3.11+)
+cd backend
+pip install -r requirements.txt
+uvicorn app.main:app --reload
 ```
 
-## Unraid Installation
+## Community
 
-See [UNRAID_DEPLOYMENT.md](UNRAID_DEPLOYMENT.md) for detailed Unraid setup instructions.
+- **Discord**: [Join the community](https://discord.gg/eKg4MhMkVJ)
+- **Support**: [Buy Me a Coffee](https://buymeacoffee.com/jesposito)
+- **Issues**: [GitHub Issues](https://github.com/jesposito/walkabout/issues)
 
 ## License
 

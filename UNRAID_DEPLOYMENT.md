@@ -1,369 +1,237 @@
 # Walkabout Unraid Deployment Guide
 
-Deploy Walkabout Phase 1a on your Unraid server with custom network support.
+Deploy Walkabout on your Unraid server as a single Docker container with SQLite.
 
-## Quick Start (ansiblenet)
+## Quick Start
 
 ```bash
 # 1. SSH to your Unraid server
 ssh root@your-unraid-ip
 
-# 2. Create deployment directory
-mkdir -p /mnt/user/appdata/walkabout
-cd /mnt/user/appdata/walkabout
+# 2. Create data directory
+mkdir -p /mnt/user/appdata/walkabout/data
 
-# 3. Download deployment files
-curl -o docker-compose.yml https://raw.githubusercontent.com/jesposito/walkabout/main/docker-compose.prod.yml
-curl -o .env.example https://raw.githubusercontent.com/jesposito/walkabout/main/.env.example
+# 3. Pull and run the container
+docker run -d \
+  --name walkabout \
+  -p 8000:8000 \
+  -v /mnt/user/appdata/walkabout/data:/app/data \
+  -e TZ=Pacific/Auckland \
+  --restart unless-stopped \
+  ghcr.io/jesposito/walkabout:latest
 
-# 4. Create environment file
-cp .env.example .env
-nano .env  # Edit with your settings (see Configuration section)
-
-# 5. Create data directories
-mkdir -p ./data/{screenshots,html_snapshots,backups}
-
-# 6. Deploy with ansiblenet
-docker network create ansiblenet --driver bridge || true  # Create if doesn't exist
-USE_EXTERNAL_NETWORK=true EXTERNAL_NETWORK_NAME=ansiblenet docker-compose up -d
-
-# 7. Wait for startup and check status
-sleep 30
-docker-compose ps
-curl -f http://localhost:8000/ping
-```
-
-## Network Configurations
-
-### Option 1: ansiblenet (Custom Bridge Network)
-```bash
-# Create the network if it doesn't exist
-docker network create ansiblenet --driver bridge
-
-# Deploy with ansiblenet
-USE_EXTERNAL_NETWORK=true EXTERNAL_NETWORK_NAME=ansiblenet docker-compose up -d
-```
-
-### Option 2: Default Bridge Network
-```bash
-# Use default Docker networking
-docker-compose up -d
-```
-
-### Option 3: Host Network (Maximum Performance)
-```bash
-# Add to docker-compose override
-echo "
-version: '3.8'
-services:
-  backend:
-    network_mode: host
-  ntfy:
-    network_mode: host
-" > docker-compose.override.yml
-
-docker-compose up -d
-```
-
-## Configuration
-
-### Required Environment Variables
-
-Create `.env` file with:
-
-```bash
-# Database password (REQUIRED)
-DB_PASSWORD=your_secure_password_here
-
-# Notification settings
-NTFY_TOPIC=walkabout-deals
-
-# Network ports (if using custom networks)
-BACKEND_PORT=8000
-NTFY_PORT=8080
-
-# Base URL for notification links
-BASE_URL=http://your-unraid-ip:8000
-```
-
-### Optional Settings
-
-```bash
-# External network (for ansiblenet)
-USE_EXTERNAL_NETWORK=true
-EXTERNAL_NETWORK_NAME=ansiblenet
-
-# API keys (for Phase 2 features)
-ANTHROPIC_API_KEY=your_claude_key
-SEATS_AERO_API_KEY=your_seats_key
+# 4. Wait for startup and check status
+sleep 10
+curl -f http://localhost:8000/health
 ```
 
 ## Service Access
 
-Once deployed, access services at:
+Once deployed, access at:
 
 | Service | URL | Purpose |
 |---------|-----|---------|
-| **Main Dashboard** | `http://your-unraid-ip:8000/` | Status page with manual controls |
-| **API Documentation** | `http://your-unraid-ip:8000/docs` | Interactive API explorer |
-| **Health Check** | `http://your-unraid-ip:8000/ping` | Simple health endpoint |
-| **Notifications** | `http://your-unraid-ip:8080/walkabout-deals` | Subscribe to ntfy alerts |
+| **Dashboard** | `http://your-unraid-ip:8000/` | Main deals and trips view |
+| **Settings** | `http://your-unraid-ip:8000/settings` | Configure airports, notifications, AI |
+| **Health Check** | `http://your-unraid-ip:8000/health` | Health status endpoint |
+| **About** | `http://your-unraid-ip:8000/about` | Version info and links |
 
 ## Initial Setup
 
-### 1. Create Your First Flight Monitor
+### 1. Configure Your Settings
+
+1. Open `http://your-unraid-ip:8000/settings`
+2. Set your **Home Airports** (e.g., AKL, WLG, CHC)
+3. Configure **Notifications** (optional):
+   - ntfy: Set your ntfy server URL and topic
+   - Discord: Paste your Discord webhook URL
+4. Configure **AI Provider** (optional):
+   - Claude: Add your Anthropic API key
+   - Ollama: Set your Ollama server URL
+
+### 2. Add Trip Plans
+
+1. Go to the **Trips** page
+2. Click "New Trip Plan"
+3. Set your origins, destinations, dates, and budget
+4. Walkabout will monitor for matching deals
+
+## Container Management
+
+### Basic Commands
 
 ```bash
-# SSH to Unraid and run:
-docker-compose exec backend python -c "
-import sys
-sys.path.append('/app')
+# View logs
+docker logs -f walkabout
 
-from app.database import SessionLocal
-from app.models import SearchDefinition, TripType, CabinClass, StopsFilter
+# Restart
+docker restart walkabout
 
-db = SessionLocal()
+# Stop
+docker stop walkabout
 
-# Create AKL → HNL monitor for your family
-search_def = SearchDefinition(
-    origin='AKL',
-    destination='HNL', 
-    name='Auckland to Honolulu (Family of 4)',
-    trip_type=TripType.ROUND_TRIP,
-    adults=2,
-    children=2,
-    cabin_class=CabinClass.ECONOMY,
-    departure_days_min=60,    # 60-90 days from now
-    departure_days_max=90,
-    trip_duration_days_min=7, # 7-14 day trips
-    trip_duration_days_max=14,
-    is_active=True
-)
+# Remove
+docker rm walkabout
 
-db.add(search_def)
-db.commit()
-print(f'✅ Created: {search_def.display_name}')
-db.close()
-"
+# Update to latest
+docker pull ghcr.io/jesposito/walkabout:latest
+docker stop walkabout
+docker rm walkabout
+docker run -d \
+  --name walkabout \
+  -p 8000:8000 \
+  -v /mnt/user/appdata/walkabout/data:/app/data \
+  -e TZ=Pacific/Auckland \
+  --restart unless-stopped \
+  ghcr.io/jesposito/walkabout:latest
 ```
 
-### 2. Test the System
+### Port Conflicts
+
+If port 8000 is in use, map to a different port:
 
 ```bash
-# Trigger a manual scrape
-curl -X POST http://your-unraid-ip:8000/api/scrape/manual/1
-
-# Test notifications
-curl -X POST http://your-unraid-ip:8000/api/notifications/test
-
-# Check logs
-docker-compose logs -f backend
+docker run -d \
+  --name walkabout \
+  -p 8002:8000 \  # External port 8002 -> internal 8000
+  -v /mnt/user/appdata/walkabout/data:/app/data \
+  -e TZ=Pacific/Auckland \
+  --restart unless-stopped \
+  ghcr.io/jesposito/walkabout:latest
 ```
 
-### 3. Subscribe to Notifications
+Then access at `http://your-unraid-ip:8002`
 
-1. Visit: `http://your-unraid-ip:8080/walkabout-deals`
-2. Click "Subscribe" and allow notifications
-3. Or install the ntfy mobile app and subscribe to the topic
+### Custom Network
 
-## Management Commands
-
-### Container Management
-```bash
-# View status
-docker-compose ps
-
-# View logs (all services)
-docker-compose logs -f
-
-# View backend logs only
-docker-compose logs -f backend
-
-# Restart services
-docker-compose restart
-
-# Update to latest images
-docker-compose pull
-docker-compose up -d
-
-# Stop everything
-docker-compose down
-```
-
-### Database Management
-```bash
-# Run migrations
-docker-compose exec backend alembic upgrade head
-
-# Database backup
-docker-compose exec db pg_dump -U walkabout walkabout > ./data/backups/walkabout-$(date +%Y%m%d).sql
-
-# Database restore
-docker-compose exec -T db psql -U walkabout walkabout < ./data/backups/walkabout-20241221.sql
-```
-
-### Manual Operations
-```bash
-# Trigger scrape for all monitors
-curl -X POST http://your-unraid-ip:8000/api/scrape/manual/all
-
-# View recent prices for monitor ID 1
-curl http://your-unraid-ip:8000/search/1/prices
-
-# Check system health
-curl http://your-unraid-ip:8000/api/status/health
-```
-
-## Monitoring & Maintenance
-
-### Health Monitoring
-
-Add to your Unraid monitoring tools:
+To use a custom Docker network (e.g., for Tailscale or reverse proxy):
 
 ```bash
-# Health check endpoint
-curl -f http://your-unraid-ip:8000/ping
-
-# Detailed health status
-curl http://your-unraid-ip:8000/api/status/health
+docker run -d \
+  --name walkabout \
+  --network your-network \
+  -p 8000:8000 \
+  -v /mnt/user/appdata/walkabout/data:/app/data \
+  -e TZ=Pacific/Auckland \
+  --restart unless-stopped \
+  ghcr.io/jesposito/walkabout:latest
 ```
 
-### Log Monitoring
+## Data & Backups
+
+### Data Location
+
+All data is stored in a single SQLite database:
+
+```
+/mnt/user/appdata/walkabout/data/
+├── walkabout.db          # SQLite database (deals, trips, settings)
+├── screenshots/          # Scrape debug screenshots
+└── html_snapshots/       # Scrape debug HTML
+```
+
+### Backup
 
 ```bash
-# Monitor for errors
-docker-compose logs --tail=100 -f backend | grep ERROR
+# Simple backup
+cp /mnt/user/appdata/walkabout/data/walkabout.db /mnt/user/appdata/walkabout/data/backups/walkabout-$(date +%Y%m%d).db
 
-# Monitor scraping activity
-docker-compose logs --tail=100 -f backend | grep "Scraping\|Success\|Failed"
-
-# Monitor deal alerts
-docker-compose logs --tail=100 -f backend | grep "Deal detected"
+# Or use Unraid's built-in backup tools
 ```
 
-### Backup Strategy
+### Restore
 
 ```bash
-# Create backup script at /mnt/user/scripts/walkabout-backup.sh
-#!/bin/bash
-cd /mnt/user/appdata/walkabout
+# Stop container
+docker stop walkabout
 
-# Database backup
-docker-compose exec -T db pg_dump -U walkabout walkabout > ./data/backups/walkabout-$(date +%Y%m%d_%H%M%S).sql
+# Restore database
+cp /mnt/user/appdata/walkabout/data/backups/walkabout-20260130.db /mnt/user/appdata/walkabout/data/walkabout.db
 
-# Keep only last 7 days of backups
-find ./data/backups/ -name "walkabout-*.sql" -mtime +7 -delete
-
-echo "Backup completed: $(date)"
+# Start container
+docker start walkabout
 ```
-
-Add to cron: `0 3 * * * /mnt/user/scripts/walkabout-backup.sh`
 
 ## Troubleshooting
 
-### Common Issues
+### Container Won't Start
 
-**Issue: Containers won't start**
 ```bash
 # Check logs
-docker-compose logs
+docker logs walkabout
 
-# Verify network exists
-docker network ls | grep ansiblenet
-
-# Verify .env file
-cat .env
+# Verify data directory exists and has correct permissions
+ls -la /mnt/user/appdata/walkabout/data/
 ```
 
-**Issue: Can't access web interface**
+### Can't Access Web Interface
+
 ```bash
-# Check if backend is running
-docker-compose ps backend
+# Check if container is running
+docker ps | grep walkabout
 
 # Check port binding
 netstat -tlnp | grep 8000
 
-# Check firewall
-iptables -L | grep 8000
+# Test from server
+curl http://localhost:8000/health
 ```
 
-**Issue: No notifications received**
+### Database Missing Data After Update
+
+If you see missing data after a container update, check your volume mount. The correct mount is:
+
 ```bash
-# Test ntfy server
-curl http://your-unraid-ip:8080/v1/health
-
-# Test notification sending
-curl -X POST http://your-unraid-ip:8000/api/notifications/test
-
-# Check subscription URL
-echo "Visit: http://your-unraid-ip:8080/walkabout-deals"
+-v /mnt/user/appdata/walkabout/data:/app/data
 ```
 
-**Issue: Scraping failures**
+**Not** `/mnt/user/appdata/walkabout:/app/data` (missing `/data` subdirectory).
+
+### Notifications Not Working
+
+1. Check Settings page - verify provider is configured
+2. Test notification from Settings page
+3. For ntfy: verify your ntfy server is accessible
+4. For Discord: verify webhook URL is correct
+
+Check logs for notification errors:
 ```bash
-# Check scraper logs
-docker-compose logs playwright
-
-# View failure screenshots
-ls -la ./data/screenshots/
-
-# Check for captchas
-docker-compose exec backend python -c "
-from app.database import SessionLocal
-from app.models import ScrapeHealth
-db = SessionLocal()
-healths = db.query(ScrapeHealth).all()
-for h in healths:
-    print(f'Monitor {h.search_definition_id}: {h.consecutive_failures} failures, last reason: {h.last_failure_reason}')
-"
+docker logs walkabout 2>&1 | grep -i notification
 ```
-
-### Support
-
-- **GitHub Issues**: [jesposito/walkabout/issues](https://github.com/jesposito/walkabout/issues)
-- **Documentation**: See `PHASE1A_README.md` for Phase 1a details
-- **Logs**: Always include `docker-compose logs` output when reporting issues
 
 ## Upgrading
 
-### To Latest Version
-```bash
-cd /mnt/user/appdata/walkabout
-
-# Pull latest images
-docker-compose pull
-
-# Restart with new images
-docker-compose up -d
-
-# Verify upgrade
-curl http://your-unraid-ip:8000/ping
-```
-
-### From Phase 1a to 1b (Future)
-When Phase 1b is released, you'll be able to migrate your data:
+### Standard Upgrade
 
 ```bash
-# Backup current data
-./scripts/backup.sh
+# Pull latest image
+docker pull ghcr.io/jesposito/walkabout:latest
 
-# Update docker-compose to Phase 1b
-curl -o docker-compose.yml https://raw.githubusercontent.com/jesposito/walkabout/main/docker-compose.yml
-
-# Run migration
-docker-compose exec backend alembic upgrade head
-
-# Restart with new features
-docker-compose up -d
+# Recreate container
+docker stop walkabout
+docker rm walkabout
+docker run -d \
+  --name walkabout \
+  -p 8000:8000 \
+  -v /mnt/user/appdata/walkabout/data:/app/data \
+  -e TZ=Pacific/Auckland \
+  --restart unless-stopped \
+  ghcr.io/jesposito/walkabout:latest
 ```
+
+### Database Migrations
+
+The app automatically applies any needed database migrations on startup. SQLite columns are auto-added if missing.
 
 ---
 
 ## Quick Reference
 
-**Start**: `USE_EXTERNAL_NETWORK=true EXTERNAL_NETWORK_NAME=ansiblenet docker-compose up -d`  
-**Stop**: `docker-compose down`  
-**Logs**: `docker-compose logs -f backend`  
-**Status**: Visit `http://your-unraid-ip:8000/`  
-**Health**: `curl http://your-unraid-ip:8000/ping`  
-**Backup**: `docker-compose exec -T db pg_dump -U walkabout walkabout > backup.sql`
+| Action | Command |
+|--------|---------|
+| **Start** | `docker start walkabout` |
+| **Stop** | `docker stop walkabout` |
+| **Logs** | `docker logs -f walkabout` |
+| **Status** | `http://your-unraid-ip:8000/` |
+| **Health** | `curl http://your-unraid-ip:8000/health` |
+| **Settings** | `http://your-unraid-ip:8000/settings` |

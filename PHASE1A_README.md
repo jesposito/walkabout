@@ -1,182 +1,121 @@
 # Walkabout Phase 1a - Prove Ingestion
 
-This directory contains Phase 1a implementation - the minimal viable system to prove scraping works reliably before adding infrastructure complexity.
+This is Phase 1a - the minimal viable system proving that scraping works reliably and deal aggregation provides value.
 
-## Oracle Review Implementation
+## Current Features
 
-This phase implements all the critical feedback from the Oracle review:
+| Feature | Status |
+|---------|--------|
+| Deal RSS Aggregation | Multi-source (Secret Flying, OMAAT, TPG, regional) |
+| AI Deal Parsing | Optional - Claude API or local Ollama |
+| Google Flights Scraper | Playwright with stealth mode |
+| Price Analysis | Robust z-score (median/MAD) + new low detection |
+| Scrape Health | Circuit breaker, failure classification, auto-recovery |
+| Trip Plans | Multi-origin/dest, flexible dates, budget constraints |
+| Notifications | ntfy and Discord webhook support |
+| Settings UI | Full web-based configuration |
+| Deal Rating | Market price comparison with rating labels |
 
-✅ **SearchDefinition model** - Fully specifies comparable price series  
-✅ **ScrapeHealth model** - Tracks success/failure with circuit breaker  
-✅ **ScrapeResult** - Failure classification (captcha/timeout/blocked/etc)  
-✅ **Enhanced scraper** - Screenshot capture, proper error handling  
-✅ **Robust z-score** - Uses median/MAD instead of mean/stddev  
-✅ **Security posture** - Localhost-only binding  
-✅ **Simplified stack** - PostgreSQL + APScheduler (no Celery/Redis yet)  
+## What's NOT Yet Implemented
 
-## Quick Start
-
-```bash
-# 1. Setup and start Phase 1a
-./scripts/phase1a.sh
-
-# 2. Access the status page
-open http://localhost:8000/
-
-# 3. Monitor logs
-docker-compose -f docker-compose.phase1a.yml logs -f backend
-```
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Award Monitoring | Considering | Seats.aero integration for points availability |
+| TimescaleDB | Deferred | Time-series optimization |
+| Celery + Redis | Deferred | Distributed job processing |
+| React Frontend | Deferred | Currently using server-rendered Jinja2 |
+| Calendar Heatmaps | Deferred | Visual price trends |
+| Multi-user | Deferred | Currently single-user |
 
 ## Architecture
 
 ```
-Phase 1a Stack (Minimal):
-┌─────────────┬─────────────┬─────────────┬─────────────┐
-│  FastAPI    │ Playwright  │ PostgreSQL  │    ntfy     │
-│ +APScheduler│  (scraper)  │ (plain)     │(notifications)│
-└─────────────┴─────────────┴─────────────┴─────────────┘
-
-Missing from original plan (deferred to Phase 1b):
-❌ TimescaleDB
-❌ Celery + Redis  
-❌ React frontend
+Phase 1a Stack (Single Container):
+┌─────────────────────────────────────────────────────────────┐
+│  FastAPI + Playwright + SQLite + APScheduler                │
+│                                                             │
+│  ├─ Deal Feeds (RSS parsing)                                │
+│  ├─ Price Scraping (Google Flights via Playwright)          │
+│  ├─ Price Analysis (robust z-score)                         │
+│  ├─ Trip Matching (flexible date search)                    │
+│  ├─ Notifications (ntfy/Discord)                            │
+│  └─ Server-rendered UI (Jinja2 + HTMX)                      │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-## Success Criteria
+## Quick Start
 
-Phase 1a must achieve these metrics before moving to Phase 1b:
-
-- [ ] **7 days continuous operation** without manual intervention
-- [ ] **<10% scrape failure rate** across all search definitions  
-- [ ] **50+ price points collected** to validate deal detection
-- [ ] **Deal notifications delivered** within 5 minutes of scrape
-- [ ] **System failure alerts** working (stale data, consecutive failures)
-
-## Key Files Added/Modified
-
-### New Models (Oracle Review)
-- `backend/app/models/search_definition.py` - Comparable price series specification
-- `backend/app/models/scrape_health.py` - Health tracking with circuit breaker
-
-### Enhanced Services  
-- `backend/app/services/scraping_service.py` - Orchestrates entire pipeline
-- `backend/app/services/price_analyzer.py` - Robust z-score + absolute new lows
-- `backend/app/services/notification.py` - Deals + system alerts
-
-### Phase 1a Infrastructure
-- `backend/app/scheduler.py` - APScheduler (replaces Celery)
-- `backend/app/api/status.py` - Status page API + manual controls
-- `backend/app/templates/status.html` - Server-rendered dashboard
-- `docker-compose.phase1a.yml` - Simplified Docker stack
-- `scripts/phase1a.sh` - Setup automation
-
-## Using the System
-
-### Status Page
-Visit `http://localhost:8000/` to see:
-- System health (scheduler, ntfy, database)
-- Search definition health with metrics
-- Manual scrape triggers
-- Recent price counts
-
-### Manual Operations
 ```bash
-# Trigger manual scrape for specific search definition
-curl -X POST http://localhost:8000/api/scrape/manual/1
+# Run the container
+docker run -d \
+  --name walkabout \
+  -p 8000:8000 \
+  -v /path/to/data:/app/data \
+  -e TZ=Pacific/Auckland \
+  ghcr.io/jesposito/walkabout:latest
 
-# Trigger scrape for all active definitions  
-curl -X POST http://localhost:8000/api/scrape/manual/all
-
-# Test notifications
-curl -X POST http://localhost:8000/api/notifications/test
-
-# View recent prices for a search definition
-curl http://localhost:8000/search/1/prices
+# Access the dashboard
+open http://localhost:8000/
 ```
-
-### Notifications
-Subscribe to notifications by visiting: `http://localhost:8080/walkabout-deals`
-
-You'll receive:
-- **Deal alerts** when prices drop below z-score threshold or hit new lows
-- **System alerts** for consecutive failures or stale data
 
 ## Configuration
 
-Edit `.env` to configure:
+All settings are configured via the **Settings** page (`/settings`):
 
-```env
-# Database (required)
-DB_PASSWORD=your_secure_password
+- **Home Airports**: Your departure airports for deal filtering
+- **AI Provider**: Optional Claude or Ollama for enhanced deal parsing
+- **Notifications**: ntfy server or Discord webhook
+- **Notification Preferences**: Quiet hours, cooldowns, filters
 
-# Notifications (required)  
-NTFY_TOPIC=walkabout-deals
+## Key Technical Decisions
 
-# Optional for Phase 1a
-SEATS_AERO_API_KEY=your_key  # For Phase 2
-ANTHROPIC_API_KEY=your_key   # For Phase 2  
-```
+From Oracle Review feedback:
 
-## Monitoring
+| Decision | Rationale |
+|----------|-----------|
+| SQLite over PostgreSQL | Simpler deployment, good enough for single-user |
+| APScheduler over Celery | No Redis dependency, sufficient for single container |
+| Server HTML over React | Faster iteration, works without JS |
+| Robust z-score | Uses median/MAD instead of mean/stddev for outlier resistance |
+| Circuit breaker | Protects against scraping failures cascading |
 
-### Logs
+## Success Metrics
+
+Phase 1a is considered successful when:
+
+- 7+ days continuous operation without intervention
+- <10% scrape failure rate
+- Deal notifications delivered within 5 minutes
+- System alerts working (stale data, failures)
+
+## Phase 1b Planning
+
+When ready to expand:
+
+- **Award Monitoring**: Integrate Seats.aero API for points availability
+- **Better Analytics**: TimescaleDB for time-series queries
+- **Distributed Jobs**: Celery + Redis for scaling
+- **Modern Frontend**: React SPA with better interactivity
+
+## Useful Endpoints
+
+| Endpoint | Purpose |
+|----------|---------|
+| `/` | Dashboard with deals |
+| `/trips` | Trip plan management |
+| `/settings` | Configuration |
+| `/about` | Version and links |
+| `/health` | Health check endpoint |
+
+## Logs & Debugging
+
 ```bash
-# All services
-docker-compose -f docker-compose.phase1a.yml logs -f
+# View container logs
+docker logs -f walkabout
 
-# Just backend (most important)
-docker-compose -f docker-compose.phase1a.yml logs -f backend
+# Check for scrape failures
+docker logs walkabout 2>&1 | grep -i "scrape\|failure"
 
-# APScheduler jobs
-docker-compose -f docker-compose.phase1a.yml logs -f backend | grep "scrape"
+# Check notification activity
+docker logs walkabout 2>&1 | grep -i "notification"
 ```
-
-### Health Endpoints
-```bash
-# Overall health
-curl http://localhost:8000/api/status/health
-
-# Detailed scheduler status  
-curl http://localhost:8000/api/status/scheduler
-
-# Database connectivity
-curl http://localhost:8000/ping
-```
-
-## Common Issues
-
-### Scraper Failures
-- Check screenshots in `./data/screenshots/` for captcha/layout changes
-- Review HTML snapshots in `./data/html_snapshots/`
-- Adjust user agents or delays in `google_flights.py`
-
-### Notifications Not Working
-- Verify ntfy container: `docker-compose -f docker-compose.phase1a.yml logs ntfy`
-- Test connectivity: `curl http://localhost:8080/v1/health`
-- Check topic subscription at `http://localhost:8080/walkabout-deals`
-
-### Database Issues
-- Verify PostgreSQL: `docker-compose -f docker-compose.phase1a.yml logs db`
-- Run migrations manually: `docker-compose -f docker-compose.phase1a.yml exec backend alembic upgrade head`
-
-## Next Steps
-
-Once Phase 1a success criteria are met:
-
-1. **Analyze metrics** - scrape success rate, deal detection accuracy
-2. **Document learnings** - what worked, what needed adjustment  
-3. **Plan Phase 1b** - add TimescaleDB, Celery, React dashboard
-4. **Migrate gradually** - preserve working Phase 1a as fallback
-
-## Phase 1a vs Original Plan
-
-| Component | Original Plan | Phase 1a Reality | Phase 1b |
-|-----------|--------------|------------------|----------|
-| Database | TimescaleDB | Plain PostgreSQL | TimescaleDB |
-| Scheduling | Celery + Redis | APScheduler | Celery + Redis |
-| Frontend | React | Server HTML | React |
-| Deal Detection | Basic z-score | Robust z-score + new lows | Enhanced |
-| Health Tracking | None | Circuit breaker + alerts | Same |
-| Failure Handling | Basic | Screenshot + classification | Same |
-
-**Oracle's wisdom**: "Tighten MVP around reliable ingestion + alerts + minimal UI before adding complexity."
