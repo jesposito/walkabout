@@ -290,8 +290,13 @@ async def get_flight_options(
                 return_date=price.return_date,
                 adults=definition.adults,
                 children=definition.children,
+                infants_in_seat=getattr(definition, 'infants_in_seat', 0) or 0,
+                infants_on_lap=getattr(definition, 'infants_on_lap', 0) or 0,
                 cabin_class=definition.cabin_class.value,
+                stops_filter=definition.stops_filter.value if definition.stops_filter else "any",
                 currency=definition.currency,
+                carry_on_bags=getattr(definition, 'carry_on_bags', 0) or 0,
+                checked_bags=getattr(definition, 'checked_bags', 0) or 0,
             )
             unique_options.append({
                 "id": price.id,
@@ -383,6 +388,11 @@ async def refresh_search_prices(
         children=definition.children,
         cabin_class=definition.cabin_class.value,
         currency=definition.currency,
+        infants_in_seat=getattr(definition, 'infants_in_seat', 0) or 0,
+        infants_on_lap=getattr(definition, 'infants_on_lap', 0) or 0,
+        stops_filter=definition.stops_filter.value if definition.stops_filter else "any",
+        carry_on_bags=getattr(definition, 'carry_on_bags', 0) or 0,
+        checked_bags=getattr(definition, 'checked_bags', 0) or 0,
         preferred_source=preferred if preferred != "auto" else None,
     )
     

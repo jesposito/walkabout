@@ -53,6 +53,11 @@ class PriceSource(ABC):
         children: int,
         cabin_class: str,
         currency: str,
+        infants_in_seat: int = 0,
+        infants_on_lap: int = 0,
+        stops_filter: str = "any",
+        carry_on_bags: int = 0,
+        checked_bags: int = 0,
     ) -> FetchResult:
         pass
     
@@ -70,18 +75,28 @@ class PriceSource(ABC):
         children: int,
         cabin_class: str,
         currency: str,
+        infants_in_seat: int = 0,
+        infants_on_lap: int = 0,
+        stops_filter: str = "any",
+        carry_on_bags: int = 0,
+        checked_bags: int = 0,
     ) -> FetchResult:
         last_error = None
-        
+
         for attempt in range(self.max_retries + 1):
             if attempt > 0:
                 delay = self.retry_delay * (2 ** (attempt - 1)) + random.uniform(0, 1)
                 logger.info(f"{self.name}: Retry {attempt}/{self.max_retries} after {delay:.1f}s")
                 await asyncio.sleep(delay)
-            
+
             result = await self.fetch_prices(
                 origin, destination, departure_date, return_date,
-                adults, children, cabin_class, currency
+                adults, children, cabin_class, currency,
+                infants_in_seat=infants_in_seat,
+                infants_on_lap=infants_on_lap,
+                stops_filter=stops_filter,
+                carry_on_bags=carry_on_bags,
+                checked_bags=checked_bags,
             )
             result.attempts = attempt + 1
             
@@ -103,13 +118,15 @@ class PriceSource(ABC):
 
 class SerpAPISource(PriceSource):
     name = "serpapi"
-    
+
+    STOPS_MAP = {"any": 0, "nonstop": 1, "one_stop": 2, "two_plus": 3}
+
     def __init__(self):
         self.api_key = getattr(settings, 'serpapi_key', None) or ""
-    
+
     def is_available(self) -> bool:
         return bool(self.api_key)
-    
+
     async def fetch_prices(
         self,
         origin: str,
@@ -120,10 +137,15 @@ class SerpAPISource(PriceSource):
         children: int,
         cabin_class: str,
         currency: str,
+        infants_in_seat: int = 0,
+        infants_on_lap: int = 0,
+        stops_filter: str = "any",
+        carry_on_bags: int = 0,
+        checked_bags: int = 0,
     ) -> FetchResult:
         if not self.is_available():
             return FetchResult(success=False, source=self.name, error="API key not configured")
-        
+
         try:
             params = {
                 "engine": "google_flights",
@@ -136,13 +158,27 @@ class SerpAPISource(PriceSource):
                 "children": children,
                 "api_key": self.api_key,
             }
-            
+
+            if infants_in_seat:
+                params["infants_in_seat"] = infants_in_seat
+            if infants_on_lap:
+                params["infants_on_lap"] = infants_on_lap
+
+            stops_val = self.STOPS_MAP.get(stops_filter, 0)
+            if stops_val:
+                params["stops"] = stops_val
+
+            if carry_on_bags:
+                params["bags"] = max(carry_on_bags, checked_bags)
+            elif checked_bags:
+                params["bags"] = checked_bags
+
             if return_date:
                 params["return_date"] = return_date.isoformat()
                 params["type"] = "1"
             else:
                 params["type"] = "2"
-            
+
             cabin_map = {"economy": "1", "premium_economy": "2", "business": "3", "first": "4"}
             params["travel_class"] = cabin_map.get(cabin_class, "1")
             
@@ -183,14 +219,14 @@ class SerpAPISource(PriceSource):
 
 class SkyscannerSource(PriceSource):
     name = "skyscanner"
-    
+
     def __init__(self):
         self.api_key = getattr(settings, 'skyscanner_api_key', None) or ""
         self.api_host = "skyscanner44.p.rapidapi.com"
-    
+
     def is_available(self) -> bool:
         return bool(self.api_key)
-    
+
     async def fetch_prices(
         self,
         origin: str,
@@ -201,6 +237,11 @@ class SkyscannerSource(PriceSource):
         children: int,
         cabin_class: str,
         currency: str,
+        infants_in_seat: int = 0,
+        infants_on_lap: int = 0,
+        stops_filter: str = "any",
+        carry_on_bags: int = 0,
+        checked_bags: int = 0,
     ) -> FetchResult:
         if not self.is_available():
             return FetchResult(success=False, source=self.name, error="API key not configured")
@@ -306,10 +347,15 @@ class AmadeusSource(PriceSource):
         children: int,
         cabin_class: str,
         currency: str,
+        infants_in_seat: int = 0,
+        infants_on_lap: int = 0,
+        stops_filter: str = "any",
+        carry_on_bags: int = 0,
+        checked_bags: int = 0,
     ) -> FetchResult:
         if not self.is_available():
             return FetchResult(success=False, source=self.name, error="API credentials not configured")
-        
+
         token = await self._get_token()
         if not token:
             return FetchResult(success=False, source=self.name, error="Failed to authenticate")
@@ -327,6 +373,10 @@ class AmadeusSource(PriceSource):
                 "currencyCode": currency,
                 "max": 20,
             }
+            if infants_in_seat + infants_on_lap > 0:
+                params["infants"] = infants_in_seat + infants_on_lap
+            if stops_filter == "nonstop":
+                params["nonStop"] = "true"
             if return_date:
                 params["returnDate"] = return_date.isoformat()
             
@@ -368,10 +418,10 @@ class AmadeusSource(PriceSource):
 class PlaywrightSource(PriceSource):
     name = "playwright"
     max_retries = 1
-    
+
     def is_available(self) -> bool:
         return True
-    
+
     async def fetch_prices(
         self,
         origin: str,
@@ -382,10 +432,15 @@ class PlaywrightSource(PriceSource):
         children: int,
         cabin_class: str,
         currency: str,
+        infants_in_seat: int = 0,
+        infants_on_lap: int = 0,
+        stops_filter: str = "any",
+        carry_on_bags: int = 0,
+        checked_bags: int = 0,
     ) -> FetchResult:
         try:
             from app.scrapers.google_flights import GoogleFlightsScraper
-            
+
             scraper = GoogleFlightsScraper()
             result = await scraper.scrape_route(
                 search_definition_id=0,
@@ -395,8 +450,13 @@ class PlaywrightSource(PriceSource):
                 return_date=return_date,
                 adults=adults,
                 children=children,
+                infants_in_seat=infants_in_seat,
+                infants_on_lap=infants_on_lap,
                 cabin_class=cabin_class,
+                stops_filter=stops_filter,
                 currency=currency,
+                carry_on_bags=carry_on_bags,
+                checked_bags=checked_bags,
             )
             
             if result.is_success and result.prices:
@@ -516,29 +576,34 @@ class FlightPriceFetcher:
         children: int = 0,
         cabin_class: str = "economy",
         currency: str = "NZD",
+        infants_in_seat: int = 0,
+        infants_on_lap: int = 0,
+        stops_filter: str = "any",
+        carry_on_bags: int = 0,
+        checked_bags: int = 0,
         preferred_source: Optional[str] = None,
         include_ai_analysis: bool = True,
         historical_avg: Optional[float] = None,
     ) -> FetchResult:
         sources_to_try = list(self.sources)
-        
+
         if preferred_source:
             sources_to_try = sorted(
                 sources_to_try,
                 key=lambda s: 0 if s.name == preferred_source else 1
             )
-        
+
         last_error = "No sources available"
         fallback_used = False
         total_attempts = 0
-        
+
         for i, source in enumerate(sources_to_try):
             if not source.is_available():
                 logger.debug(f"Skipping {source.name} - not configured")
                 continue
-            
+
             logger.info(f"Trying {source.name} for {origin}-{destination}")
-            
+
             result = await source.fetch_with_retry(
                 origin=origin,
                 destination=destination,
@@ -548,6 +613,11 @@ class FlightPriceFetcher:
                 children=children,
                 cabin_class=cabin_class,
                 currency=currency,
+                infants_in_seat=infants_in_seat,
+                infants_on_lap=infants_on_lap,
+                stops_filter=stops_filter,
+                carry_on_bags=carry_on_bags,
+                checked_bags=checked_bags,
             )
             total_attempts += result.attempts
             
