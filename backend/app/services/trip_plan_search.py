@@ -144,7 +144,9 @@ class TripPlanSearchService:
                     departure_date=dep_date,
                     return_date=ret_date,
                     adults=trip.travelers_adults or 2,
-                    children=trip.travelers_children or 0
+                    children=trip.travelers_children or 0,
+                    cabin_class=getattr(trip, 'cabin_class', 'economy') or 'economy',
+                    currency=getattr(trip, 'currency', 'NZD') or 'NZD',
                 )
                 
                 if result.is_success and result.prices:
@@ -349,16 +351,14 @@ class TripPlanSearchService:
         departure_date: date,
         return_date: Optional[date]
     ) -> str:
-        """Build Google Flights URL for booking."""
-        dep_str = departure_date.strftime("%Y-%m-%d")
-        url = f"https://www.google.com/travel/flights?q=flights%20from%20{origin}%20to%20{destination}%20on%20{dep_str}"
-        
-        if return_date:
-            ret_str = return_date.strftime("%Y-%m-%d")
-            url += f"%20return%20{ret_str}"
-        
-        url += "&curr=NZD&hl=en"
-        return url
+        """Build Google Flights URL for booking via centralized builder."""
+        from app.utils.template_helpers import build_google_flights_url
+        return build_google_flights_url(
+            origin=origin,
+            destination=destination,
+            departure_date=departure_date,
+            return_date=return_date,
+        )
     
     def _persist_matches(
         self,

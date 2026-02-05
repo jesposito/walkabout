@@ -395,6 +395,8 @@ class PlaywrightSource(PriceSource):
                 return_date=return_date,
                 adults=adults,
                 children=children,
+                cabin_class=cabin_class,
+                currency=currency,
             )
             
             if result.is_success and result.prices:

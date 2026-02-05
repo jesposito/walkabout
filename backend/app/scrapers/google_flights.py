@@ -146,26 +146,32 @@ class GoogleFlightsScraper:
         departure_date: date,
         return_date: Optional[date],
         adults: int = 2,
-        children: int = 2
+        children: int = 2,
+        infants_in_seat: int = 0,
+        infants_on_lap: int = 0,
+        cabin_class: str = "economy",
+        stops_filter: str = "any",
+        currency: str = "NZD",
+        carry_on_bags: int = 0,
+        checked_bags: int = 0,
     ) -> str:
-        dep_str = departure_date.strftime("%Y-%m-%d")
-        
-        url = (
-            f"{self.BASE_URL}?q=flights%20from%20{origin}%20to%20{destination}"
-            f"%20on%20{dep_str}"
+        """Delegate to centralized URL builder."""
+        from app.utils.template_helpers import build_google_flights_url
+        return build_google_flights_url(
+            origin=origin,
+            destination=destination,
+            departure_date=departure_date,
+            return_date=return_date,
+            adults=adults,
+            children=children,
+            infants_in_seat=infants_in_seat,
+            infants_on_lap=infants_on_lap,
+            cabin_class=cabin_class,
+            stops_filter=stops_filter,
+            currency=currency,
+            carry_on_bags=carry_on_bags,
+            checked_bags=checked_bags,
         )
-        
-        if return_date:
-            ret_str = return_date.strftime("%Y-%m-%d")
-            url += f"%20return%20{ret_str}"
-        
-        url += f"&curr=NZD&hl=en"
-        
-        # Add passenger counts if non-default
-        # Google Flights URL params: adults, children, infants
-        # Default is 1 adult, so we only add if different
-        
-        return url
     
     async def _random_delay(self, min_sec: float = 2.0, max_sec: float = 5.0):
         await asyncio.sleep(random.uniform(min_sec, max_sec))
@@ -232,7 +238,14 @@ class GoogleFlightsScraper:
         departure_date: date,
         return_date: Optional[date],
         adults: int = 2,
-        children: int = 2
+        children: int = 2,
+        infants_in_seat: int = 0,
+        infants_on_lap: int = 0,
+        cabin_class: str = "economy",
+        stops_filter: str = "any",
+        currency: str = "NZD",
+        carry_on_bags: int = 0,
+        checked_bags: int = 0,
     ) -> ScrapeResult:
         """
         Scrape Google Flights with proper failure classification.
@@ -271,7 +284,14 @@ class GoogleFlightsScraper:
         results: List[FlightResult] = []
         
         try:
-            url = self._build_url(origin, destination, departure_date, return_date, adults, children)
+            url = self._build_url(
+                origin, destination, departure_date, return_date,
+                adults=adults, children=children,
+                infants_in_seat=infants_in_seat, infants_on_lap=infants_on_lap,
+                cabin_class=cabin_class, stops_filter=stops_filter,
+                currency=currency, carry_on_bags=carry_on_bags,
+                checked_bags=checked_bags,
+            )
             
             # Navigate with timeout
             try:
