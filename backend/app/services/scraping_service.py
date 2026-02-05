@@ -142,6 +142,10 @@ class ScrapingService:
         
         return departure_date, return_date
     
+    # Confidence thresholds for data quality gating
+    MIN_CONFIDENCE_FOR_STORAGE = 0.5
+    MIN_CONFIDENCE_FOR_DEALS = 0.6
+
     async def _process_prices(
         self,
         search_def: SearchDefinition,
@@ -150,12 +154,47 @@ class ScrapingService:
         return_date: Optional[date]
     ):
         """
-        Process scraped prices: store in DB, analyze for deals, send notifications.
+        Process scraped prices: filter by confidence, store in DB, analyze for deals.
+
+        Confidence gate:
+        - Flights below MIN_CONFIDENCE_FOR_STORAGE (0.5) are logged but not stored
+        - Flights below MIN_CONFIDENCE_FOR_DEALS (0.6) are stored but excluded from deal analysis
         """
         deals_found = []
-        
-        for flight_result in flight_results:
-            # Store the price
+
+        # Separate flights by confidence
+        storable = []
+        rejected = []
+        for result in flight_results:
+            confidence = result.raw_data.get("overall_confidence", 1.0) if result.raw_data else 1.0
+            method = result.raw_data.get("extraction_method", "unknown") if result.raw_data else "unknown"
+
+            if confidence < self.MIN_CONFIDENCE_FOR_STORAGE:
+                rejected.append((result, confidence, method))
+            else:
+                storable.append((result, confidence, method))
+
+        # Log rejected flights for debugging
+        if rejected:
+            logger.info(
+                f"Confidence gate: rejected {len(rejected)} flights below "
+                f"{self.MIN_CONFIDENCE_FOR_STORAGE} threshold "
+                f"(prices: {[r[0].price_nzd for r in rejected]})"
+            )
+
+        # Log extraction method distribution
+        per_row_count = sum(1 for _, _, m in storable if m == "per_row")
+        page_level_count = sum(1 for _, _, m in storable if m == "page_level")
+        if storable:
+            avg_confidence = sum(c for _, c, _ in storable) / len(storable)
+            logger.info(
+                f"Storing {len(storable)} flights "
+                f"(per_row: {per_row_count}, page_level: {page_level_count}, "
+                f"avg confidence: {avg_confidence:.2f})"
+            )
+
+        # Store flights that pass the storage threshold
+        for flight_result, confidence, method in storable:
             price = FlightPrice(
                 search_definition_id=search_def.id,
                 departure_date=departure_date,
@@ -167,31 +206,38 @@ class ScrapingService:
                 raw_data=flight_result.raw_data
             )
             self.db.add(price)
-        
+
         self.db.commit()
-        
-        # For simplicity in Phase 1a, analyze just the best (cheapest) price
-        if flight_results:
-            best_price = min(flight_results, key=lambda x: x.price_nzd)
-            
+
+        # For deal analysis, only consider flights above the deal threshold
+        deal_candidates = [
+            (r, c, m) for r, c, m in storable
+            if c >= self.MIN_CONFIDENCE_FOR_DEALS
+        ]
+
+        if deal_candidates:
+            best_price = min(deal_candidates, key=lambda x: x[0].price_nzd)
+            flight_result, confidence, method = best_price
+
             # Find the corresponding FlightPrice record we just created
             price_record = self.db.query(FlightPrice).filter(
                 FlightPrice.search_definition_id == search_def.id,
                 FlightPrice.departure_date == departure_date,
-                FlightPrice.price_nzd == best_price.price_nzd
+                FlightPrice.price_nzd == flight_result.price_nzd
             ).order_by(FlightPrice.id.desc()).first()
-            
-            if price_record:
-                # Analyze for deals
-                analysis = self.price_analyzer.analyze_price(price_record)
-                
-                if analysis.is_deal:
-                    logger.info(f"🎉 Deal detected: {search_def.display_name} - ${best_price.price_nzd} ({analysis.reason})")
 
-                    # Get user settings for notification preferences
+            if price_record:
+                analysis = self.price_analyzer.analyze_price(price_record)
+
+                if analysis.is_deal:
+                    logger.info(
+                        f"Deal detected: {search_def.display_name} - "
+                        f"${flight_result.price_nzd} ({analysis.reason}) "
+                        f"[confidence: {confidence:.2f}, method: {method}]"
+                    )
+
                     user_settings = UserSettings.get_or_create(self.db)
 
-                    # Send notification
                     await self.notifier.send_deal_alert(
                         search_def=search_def,
                         price=price_record,
@@ -200,7 +246,7 @@ class ScrapingService:
                     )
 
                     deals_found.append(analysis)
-        
+
         if deals_found:
             logger.info(f"Processed {len(flight_results)} prices, found {len(deals_found)} deals")
         else:

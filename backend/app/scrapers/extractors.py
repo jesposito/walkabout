@@ -344,8 +344,14 @@ class PriceExtractor:
         (r'([\d,]+)\s*AUD', "AUD suffix"),
         (r'€\s*([\d,]+)', "Euro"),
         (r'£\s*([\d,]+)', "Pound"),
-        (r'\b(\d{3,5})\b', "Bare number"),
+        # Bare number regex REMOVED -- was matching flight numbers, seat IDs,
+        # and other non-price numbers. Emergency fallback is now only used
+        # within RowExtractor for elements with price-context indicators.
     ]
+
+    # Emergency fallback: only used within per-row extraction for elements
+    # that have price-related ARIA labels or class names
+    EMERGENCY_PRICE_PATTERN = (r'\b(\d{3,5})\b', "Bare number (emergency)")
 
     @classmethod
     async def extract(cls, page: Page) -> List[ExtractionResult]:
@@ -704,6 +710,511 @@ class FlightDetailsExtractor:
 
 
 # =============================================================================
+# Per-Row Extraction (correlated field extraction)
+# =============================================================================
+
+class FlightRowLocator:
+    """
+    Finds individual flight row containers on the page using multi-level fallback.
+
+    Each row should contain a price, airline, stops, and duration for a single flight.
+    The key insight: extracting fields from the same DOM parent ensures they belong
+    to the same flight, eliminating the index-matching bug.
+    """
+
+    # Row locator strategies in priority order
+    ROW_STRATEGIES = [
+        # Level 0: Specific Google Flights selectors
+        {"name": "yR1fYc", "selector": "li.yR1fYc", "level": 0},
+        {"name": "pIav2d", "selector": "li[class*='pIav2d']", "level": 0},
+
+        # Level 1: Category-scoped row discovery
+        {"name": "Rk10dc-children", "selector": ".Rk10dc > div", "level": 1},
+        {"name": "result-list-item", "selector": "[class*='result'] li", "level": 1},
+
+        # Level 2: ARIA-based (more stable across DOM changes)
+        {"name": "aria-listitem", "selector": "[role='listitem']", "level": 2},
+        {"name": "aria-row", "selector": "[role='row']", "level": 2},
+
+        # Level 3: DOM traversal from price elements
+        {"name": "price-ancestor", "selector": None, "level": 3},  # Special handling
+    ]
+
+    # Minimum requirements for a valid flight row
+    PRICE_INDICATORS = [
+        "[aria-label*='dollar']", "[aria-label*='NZD']", "[aria-label*='price']",
+        "[class*='price']", "[data-price]", "span:has-text('$')",
+    ]
+
+    AIRLINE_INDICATORS = [
+        "[class*='carrier']", "[class*='airline']", "img[alt]",
+        "[aria-label*='airline']", "[data-carrier]",
+    ]
+
+    @classmethod
+    async def find_rows(cls, page: Page) -> Tuple[List[ElementHandle], str, int]:
+        """
+        Find flight row containers on the page.
+
+        Returns:
+            Tuple of (row_elements, strategy_name, strategy_level)
+        """
+        for strategy in cls.ROW_STRATEGIES:
+            if strategy["selector"] is None:
+                # Level 3: DOM traversal from price elements
+                rows = await cls._find_rows_by_price_traversal(page)
+                if rows:
+                    logger.info(
+                        f"FlightRowLocator: found {len(rows)} rows via "
+                        f"price-ancestor traversal (level 3)"
+                    )
+                    return rows, strategy["name"], strategy["level"]
+                continue
+
+            try:
+                elements = await page.query_selector_all(strategy["selector"])
+
+                # Filter to elements that look like flight rows
+                valid_rows = []
+                for el in elements[:30]:  # Cap to prevent scanning too many
+                    if await cls._is_valid_flight_row(el):
+                        valid_rows.append(el)
+
+                if valid_rows:
+                    logger.info(
+                        f"FlightRowLocator: found {len(valid_rows)} rows via "
+                        f"{strategy['name']} (level {strategy['level']})"
+                    )
+                    return valid_rows, strategy["name"], strategy["level"]
+
+            except Exception as e:
+                logger.debug(f"FlightRowLocator strategy {strategy['name']} failed: {e}")
+                continue
+
+        logger.warning("FlightRowLocator: no flight rows found by any strategy")
+        return [], "", -1
+
+    @classmethod
+    async def _is_valid_flight_row(cls, element: ElementHandle) -> bool:
+        """Check if an element looks like a flight row (has price indicator)."""
+        for selector in cls.PRICE_INDICATORS:
+            try:
+                found = await element.query_selector(selector)
+                if found:
+                    return True
+            except Exception:
+                continue
+        return False
+
+    @classmethod
+    async def _find_rows_by_price_traversal(cls, page: Page) -> List[ElementHandle]:
+        """
+        Level 3 fallback: find price elements, walk up to common ancestor.
+
+        Strategy: find all price-containing elements, then for each,
+        walk up the DOM tree to find a reasonable container that also
+        has airline/stops info.
+        """
+        rows = []
+        seen_row_ids = set()
+
+        # Find price elements first
+        price_selectors = [
+            "[aria-label*='dollar']", "[aria-label*='NZD']",
+            "[class*='price'] span", "[data-price]",
+        ]
+
+        for selector in price_selectors:
+            try:
+                price_elements = await page.query_selector_all(selector)
+                for price_el in price_elements[:20]:
+                    # Walk up to find a row-like container
+                    row = await cls._find_row_ancestor(price_el)
+                    if row:
+                        # Deduplicate by checking if we've already found this row
+                        row_text = await row.inner_text() or ""
+                        row_id = hash(row_text[:200])
+                        if row_id not in seen_row_ids:
+                            seen_row_ids.add(row_id)
+                            rows.append(row)
+            except Exception:
+                continue
+
+        return rows
+
+    @classmethod
+    async def _find_row_ancestor(cls, element: ElementHandle) -> Optional[ElementHandle]:
+        """Walk up from a price element to find the flight row container."""
+        current = element
+
+        for _ in range(6):  # Walk up max 6 levels
+            try:
+                parent = await current.evaluate_handle("el => el.parentElement")
+                if not parent:
+                    break
+
+                # Check if this parent has both price and airline indicators
+                has_airline = False
+                for selector in cls.AIRLINE_INDICATORS:
+                    try:
+                        found = await parent.as_element().query_selector(selector)
+                        if found:
+                            has_airline = True
+                            break
+                    except Exception:
+                        continue
+
+                if has_airline:
+                    return parent.as_element()
+
+                current = parent.as_element()
+            except Exception:
+                break
+
+        return None
+
+
+class RowExtractor:
+    """
+    Extracts price, airline, stops, and duration from a single flight row element.
+
+    This is the core of the per-row extraction fix. By scoping all queries to
+    a single row element, we guarantee that extracted fields belong to the same flight.
+    """
+
+    @classmethod
+    async def extract_from_row(
+        cls,
+        row: ElementHandle,
+        row_strategy: str,
+        row_level: int,
+    ) -> Optional['FlightData']:
+        """
+        Extract a FlightData from a single row element.
+
+        Returns None if no price can be extracted (price is required).
+        """
+        # Extract price (required)
+        price_result = await cls._extract_price(row)
+        if not price_result:
+            return None
+
+        # Extract optional fields
+        airline_result = await cls._extract_airline(row)
+        stops_result = await cls._extract_stops(row)
+        duration_result = await cls._extract_duration(row)
+
+        # Determine correlation confidence based on row discovery method
+        correlation = cls._correlation_for_level(row_level)
+
+        flight = FlightData(
+            price=price_result.value,
+            price_confidence=price_result.confidence,
+            price_strategy=price_result.strategy_name,
+            extraction_method="per_row",
+            correlation_confidence=correlation,
+        )
+
+        if airline_result:
+            flight.airline = airline_result.value
+            flight.airline_confidence = airline_result.confidence
+            flight.airline_strategy = airline_result.strategy_name
+
+        if stops_result:
+            flight.stops = stops_result.value
+            flight.stops_confidence = stops_result.confidence
+            flight.stops_strategy = stops_result.strategy_name
+
+        if duration_result:
+            flight.duration_minutes = duration_result.value
+            flight.duration_confidence = duration_result.confidence
+            flight.duration_strategy = duration_result.strategy_name
+
+        flight.calculate_overall_confidence()
+
+        flight.extraction_summary = {
+            "price_strategy": price_result.strategy_name,
+            "price_level": price_result.fallback_level,
+            "airline_extracted": flight.airline is not None,
+            "stops_extracted": flight.stops is not None,
+            "duration_extracted": flight.duration_minutes is not None,
+            "extraction_method": "per_row",
+            "correlation_confidence": correlation,
+            "row_strategy": row_strategy,
+        }
+
+        return flight
+
+    @staticmethod
+    def _correlation_for_level(level: int) -> float:
+        """Map row locator level to correlation confidence."""
+        return {
+            0: 0.95,  # Specific Google Flights selectors
+            1: 0.90,  # Category-scoped rows
+            2: 0.90,  # ARIA-based rows
+            3: 0.80,  # DOM traversal from price elements
+        }.get(level, 0.70)
+
+    @classmethod
+    async def _extract_price(cls, row: ElementHandle) -> Optional[ExtractionResult]:
+        """Extract price from within a row element."""
+        # Try row-scoped price selectors (use standard PRICE_PATTERNS)
+        price_selectors = [
+            ("[data-price]", 0),
+            ("[aria-label*='dollar']", 1),
+            ("[aria-label*='NZD']", 1),
+            ("[aria-label*='price']", 1),
+            ("[class*='price'] span", 2),
+            (".U3gSDe .FpEdX span", 2),  # Known Google Flights price container
+            ("[class*='price']", 2),
+        ]
+
+        for selector, level in price_selectors:
+            try:
+                elements = await row.query_selector_all(selector)
+                for element in elements[:10]:
+                    result = await PriceExtractor._extract_from_element(
+                        element, f"row_{selector}", level
+                    )
+                    if result and result.success:
+                        return result
+            except Exception:
+                continue
+
+        # Emergency fallback: try bare number pattern ONLY on elements
+        # that have price-context indicators (ARIA labels, class names)
+        return await cls._extract_price_emergency(row)
+
+    @classmethod
+    async def _extract_price_emergency(cls, row: ElementHandle) -> Optional[ExtractionResult]:
+        """
+        Emergency price extraction using bare number pattern.
+
+        Only applied to elements within the row that have price-related
+        ARIA labels or class names, to avoid matching flight numbers.
+        """
+        price_context_selectors = [
+            "[aria-label*='dollar']", "[aria-label*='price']",
+            "[aria-label*='cost']", "[aria-label*='fare']",
+            "[class*='price']", "[class*='fare']", "[class*='cost']",
+        ]
+
+        pattern, pattern_name = PriceExtractor.EMERGENCY_PRICE_PATTERN
+
+        for selector in price_context_selectors:
+            try:
+                elements = await row.query_selector_all(selector)
+                for element in elements[:5]:
+                    text = await element.inner_text() or ""
+                    aria = await element.get_attribute("aria-label") or ""
+                    combined = f"{text} {aria}".replace(',', '')
+
+                    match = re.search(pattern, combined)
+                    if match:
+                        try:
+                            price = int(match.group(1))
+                            validation = PriceValidator.validate(price)
+                            if validation.is_valid:
+                                return ExtractionResult(
+                                    success=True,
+                                    value=price,
+                                    confidence=max(validation.confidence - 0.15, 0.3),
+                                    strategy_name=f"row_emergency_{selector}",
+                                    fallback_level=5,
+                                    raw_text=combined[:100],
+                                    validation=validation,
+                                )
+                        except ValueError:
+                            continue
+            except Exception:
+                continue
+
+        return None
+
+    @classmethod
+    async def _extract_airline(cls, row: ElementHandle) -> Optional[ExtractionResult]:
+        """Extract airline from within a row element."""
+        selectors = [
+            ("[data-carrier]", 0),
+            ("[aria-label*='airline']", 0),
+            ("[aria-label*='Operated by']", 0),
+            ("[class*='carrier']", 1),
+            ("[class*='airline']", 1),
+            ("img[alt*='Airways']", 2),
+            ("img[alt*='Airlines']", 2),
+            ("img[alt*='Air']", 2),
+            ("img[alt]", 3),
+        ]
+
+        for selector, level in selectors:
+            try:
+                elements = await row.query_selector_all(selector)
+                for element in elements[:5]:
+                    text = await element.inner_text() or ""
+                    aria = await element.get_attribute("aria-label") or ""
+                    alt = await element.get_attribute("alt") or ""
+
+                    combined = f"{text} {aria} {alt}".strip()
+                    airline = FlightDetailsExtractor._clean_airline_name(combined)
+
+                    if airline:
+                        validation = AirlineValidator.validate(airline)
+                        if validation.is_valid:
+                            level_penalty = level * 0.05
+                            return ExtractionResult(
+                                success=True,
+                                value=airline,
+                                confidence=max(validation.confidence - level_penalty, 0.1),
+                                strategy_name=f"row_{selector}",
+                                fallback_level=level,
+                                raw_text=combined[:100],
+                                validation=validation,
+                            )
+            except Exception:
+                continue
+
+        return None
+
+    @classmethod
+    async def _extract_stops(cls, row: ElementHandle) -> Optional[ExtractionResult]:
+        """Extract stops count from within a row element."""
+        selectors = [
+            ("[aria-label*='stop']", 0),
+            ("[aria-label*='Nonstop']", 0),
+            ("[aria-label*='direct']", 0),
+            ("[class*='stop']", 1),
+            ("[data-stops]", 1),
+        ]
+
+        for selector, level in selectors:
+            try:
+                elements = await row.query_selector_all(selector)
+                for element in elements[:5]:
+                    text = await element.inner_text() or ""
+                    aria = await element.get_attribute("aria-label") or ""
+                    combined = f"{text} {aria}".lower()
+
+                    if re.search(r'nonstop|non-stop|direct', combined):
+                        return ExtractionResult(
+                            success=True,
+                            value=0,
+                            confidence=0.95 - level * 0.05,
+                            strategy_name=f"row_{selector}",
+                            fallback_level=level,
+                            raw_text=combined[:50],
+                        )
+
+                    match = re.search(r'(\d+)\s*stop', combined)
+                    if match:
+                        stops = int(match.group(1))
+                        validation = StopsValidator.validate(stops)
+                        if validation.is_valid:
+                            return ExtractionResult(
+                                success=True,
+                                value=stops,
+                                confidence=validation.confidence - level * 0.05,
+                                strategy_name=f"row_{selector}",
+                                fallback_level=level,
+                                raw_text=combined[:50],
+                                validation=validation,
+                            )
+            except Exception:
+                continue
+
+        return None
+
+    @classmethod
+    async def _extract_duration(cls, row: ElementHandle) -> Optional[ExtractionResult]:
+        """Extract flight duration from within a row element."""
+        selectors = [
+            ("[aria-label*='duration']", 0),
+            ("[aria-label*='hr']", 0),
+            ("[aria-label*='hour']", 0),
+            ("[class*='duration']", 1),
+            ("[class*='total-time']", 1),
+        ]
+
+        for selector, level in selectors:
+            try:
+                elements = await row.query_selector_all(selector)
+                for element in elements[:5]:
+                    text = await element.inner_text() or ""
+                    aria = await element.get_attribute("aria-label") or ""
+                    combined = f"{text} {aria}"
+
+                    duration = FlightDetailsExtractor._parse_duration(combined)
+                    if duration:
+                        validation = DurationValidator.validate(duration)
+                        if validation.is_valid:
+                            return ExtractionResult(
+                                success=True,
+                                value=duration,
+                                confidence=validation.confidence - level * 0.05,
+                                strategy_name=f"row_{selector}",
+                                fallback_level=level,
+                                raw_text=combined[:50],
+                                validation=validation,
+                            )
+            except Exception:
+                continue
+
+        return None
+
+
+class RowValidator:
+    """
+    Validates extracted flight rows for consistency and reasonableness.
+
+    Cross-validates fields against each other to catch mismatched data.
+    """
+
+    @classmethod
+    def validate_row(cls, flight: 'FlightData') -> bool:
+        """
+        Validate a single flight row. Returns True if the row should be kept.
+
+        A row is invalid if:
+        - No price (required field)
+        - Price fails validation
+        """
+        if flight.price is None:
+            return False
+
+        validation = PriceValidator.validate(flight.price)
+        return validation.is_valid
+
+    @classmethod
+    def cross_validate(cls, flight: 'FlightData') -> float:
+        """
+        Cross-validate fields and return a confidence penalty (0.0 = no penalty).
+
+        Checks for inconsistencies like:
+        - Nonstop flight with very long duration (>24h)
+        - 2+ stops with very short duration (<2h)
+        """
+        penalty = 0.0
+
+        if flight.stops is not None and flight.duration_minutes is not None:
+            # Nonstop but extremely long
+            if flight.stops == 0 and flight.duration_minutes > 24 * 60:
+                penalty += 0.15
+                logger.debug(
+                    f"Cross-validation: nonstop flight with {flight.duration_minutes}m "
+                    f"duration seems too long, applying penalty"
+                )
+
+            # Multiple stops but very short
+            if flight.stops >= 2 and flight.duration_minutes < 120:
+                penalty += 0.15
+                logger.debug(
+                    f"Cross-validation: {flight.stops} stops but only "
+                    f"{flight.duration_minutes}m seems too short, applying penalty"
+                )
+
+        return penalty
+
+
+# =============================================================================
 # Unified Extraction Interface
 # =============================================================================
 
@@ -726,8 +1237,32 @@ class FlightData:
     duration_confidence: float = 0.0
     duration_strategy: str = ""
 
+    correlation_confidence: float = 0.0  # How sure fields are from same flight
+    extraction_method: str = ""  # "per_row" or "page_level"
+
     overall_confidence: float = 0.0
     extraction_summary: Dict[str, Any] = field(default_factory=dict)
+
+    def calculate_overall_confidence(self) -> float:
+        """Calculate overall confidence weighting correlation heavily."""
+        field_confidences = [self.price_confidence]
+        if self.airline_confidence > 0:
+            field_confidences.append(self.airline_confidence)
+        if self.stops_confidence > 0:
+            field_confidences.append(self.stops_confidence)
+        if self.duration_confidence > 0:
+            field_confidences.append(self.duration_confidence)
+
+        field_avg = sum(field_confidences) / len(field_confidences)
+
+        if self.correlation_confidence > 0:
+            # Weight correlation heavily -- correlated data is far more trustworthy
+            self.overall_confidence = field_avg * 0.4 + self.correlation_confidence * 0.6
+        else:
+            # Legacy path: no correlation data, use field average only
+            self.overall_confidence = field_avg
+
+        return self.overall_confidence
 
 
 class UnifiedExtractor:
@@ -743,22 +1278,97 @@ class UnifiedExtractor:
         """
         Extract all flight data from page.
 
-        Returns list of FlightData objects, one per detected flight.
-        Gracefully degrades - returns partial data if full extraction fails.
+        Strategy 1 (primary): Per-row extraction - find flight row containers,
+        extract correlated fields from each row. High correlation confidence.
+
+        Strategy 2 (fallback): Page-level extraction - extract flat lists and
+        zip by index. Low correlation confidence (the old buggy approach).
+
+        During initial deployment, runs both strategies and logs comparison
+        metrics before returning per-row results.
         """
-        # Extract prices first (required)
+        # Strategy 1: Per-row extraction
+        per_row_flights = await cls._extract_per_row(page)
+
+        # Strategy 2: Page-level fallback (always run for comparison logging)
+        page_level_flights = await cls._extract_page_level(page)
+
+        # Log comparison between strategies
+        if per_row_flights and page_level_flights:
+            per_row_prices = sorted(f.price for f in per_row_flights if f.price)
+            page_level_prices = sorted(f.price for f in page_level_flights if f.price)
+            logger.info(
+                f"Extraction comparison - Per-row: {len(per_row_flights)} flights "
+                f"(prices: {per_row_prices[:5]}), "
+                f"Page-level: {len(page_level_flights)} flights "
+                f"(prices: {page_level_prices[:5]})"
+            )
+
+        # Use per-row results if available, otherwise fall back to page-level
+        if per_row_flights:
+            logger.info(
+                f"Using per-row extraction: {len(per_row_flights)} flights "
+                f"(avg confidence {sum(f.overall_confidence for f in per_row_flights) / len(per_row_flights):.2f})"
+            )
+            return per_row_flights
+
+        if page_level_flights:
+            logger.warning(
+                f"Per-row extraction returned no results, falling back to page-level: "
+                f"{len(page_level_flights)} flights"
+            )
+            return page_level_flights
+
+        logger.warning("No flights extracted by any strategy")
+        return []
+
+    @classmethod
+    async def _extract_per_row(cls, page: Page) -> List[FlightData]:
+        """Strategy 1: Per-row extraction with correlated fields."""
+        rows, strategy_name, strategy_level = await FlightRowLocator.find_rows(page)
+
+        if not rows:
+            return []
+
+        flights = []
+        for row in rows:
+            try:
+                flight = await RowExtractor.extract_from_row(
+                    row, strategy_name, strategy_level
+                )
+
+                if flight and RowValidator.validate_row(flight):
+                    # Apply cross-validation penalty
+                    penalty = RowValidator.cross_validate(flight)
+                    if penalty > 0:
+                        flight.overall_confidence = max(
+                            flight.overall_confidence - penalty, 0.1
+                        )
+
+                    flights.append(flight)
+            except Exception as e:
+                logger.debug(f"Row extraction failed: {e}")
+                continue
+
+        return flights
+
+    @classmethod
+    async def _extract_page_level(cls, page: Page) -> List[FlightData]:
+        """
+        Strategy 2: Page-level extraction (legacy fallback).
+
+        Extracts flat lists of prices, airlines, stops, durations and zips
+        by index. Low correlation confidence since fields may not correspond.
+        """
         price_results = await PriceExtractor.extract(page)
 
         if not price_results:
-            logger.warning("No prices extracted - returning empty results")
             return []
 
-        # Extract supplementary data
         airline_results = await FlightDetailsExtractor.extract_airline(page)
         stops_results = await FlightDetailsExtractor.extract_stops(page)
         duration_results = await FlightDetailsExtractor.extract_duration(page)
 
-        # Build flight data objects
         flights = []
 
         for i, price_result in enumerate(price_results):
@@ -768,52 +1378,42 @@ class UnifiedExtractor:
                 price_strategy=price_result.strategy_name,
             )
 
-            # Try to match with airline (use index if available, else best match)
             if airline_results:
                 airline = airline_results[min(i, len(airline_results) - 1)]
                 flight.airline = airline.value
                 flight.airline_confidence = airline.confidence
                 flight.airline_strategy = airline.strategy_name
 
-            # Try to match with stops
             if stops_results:
                 stops = stops_results[min(i, len(stops_results) - 1)]
                 flight.stops = stops.value
                 flight.stops_confidence = stops.confidence
                 flight.stops_strategy = stops.strategy_name
 
-            # Try to match with duration
             if duration_results:
                 duration = duration_results[min(i, len(duration_results) - 1)]
                 flight.duration_minutes = duration.value
                 flight.duration_confidence = duration.confidence
                 flight.duration_strategy = duration.strategy_name
 
-            # Calculate overall confidence
-            confidences = [flight.price_confidence]
-            if flight.airline_confidence > 0:
-                confidences.append(flight.airline_confidence)
-            if flight.stops_confidence > 0:
-                confidences.append(flight.stops_confidence)
-            if flight.duration_confidence > 0:
-                confidences.append(flight.duration_confidence)
+            flight.extraction_method = "page_level"
+            flight.correlation_confidence = 0.30 if len(price_results) > 1 else 0.70
+            flight.calculate_overall_confidence()
 
-            flight.overall_confidence = sum(confidences) / len(confidences)
-
-            # Build extraction summary
             flight.extraction_summary = {
                 "price_strategy": price_result.strategy_name,
                 "price_level": price_result.fallback_level,
                 "airline_extracted": flight.airline is not None,
                 "stops_extracted": flight.stops is not None,
                 "duration_extracted": flight.duration_minutes is not None,
+                "extraction_method": "page_level",
+                "correlation_confidence": flight.correlation_confidence,
             }
 
             flights.append(flight)
 
-        # Log summary
         logger.info(
-            f"Extracted {len(flights)} flights. "
+            f"Page-level extracted {len(flights)} flights. "
             f"Prices: {len(price_results)}, Airlines: {len(airline_results)}, "
             f"Stops: {len(stops_results)}, Durations: {len(duration_results)}"
         )
