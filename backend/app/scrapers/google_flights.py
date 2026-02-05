@@ -53,6 +53,7 @@ class ScrapeResult:
     error_message: Optional[str] = None
     duration_ms: int = 0
     scraped_at: datetime = field(default_factory=datetime.utcnow)
+    currency_verified: Optional[bool] = None
     
     @property
     def is_success(self) -> bool:
@@ -127,14 +128,24 @@ class GoogleFlightsScraper:
         "div[class*='price'] span",           # Generic price div
     ]
     
+    # Currency indicators for verification
+    CURRENCY_INDICATORS = {
+        "NZD": ["NZ$", "NZD", "nz$"],
+        "USD": ["US$", "USD", "us$"],
+        "AUD": ["A$", "AU$", "AUD"],
+        "GBP": ["£", "GBP"],
+        "EUR": ["€", "EUR"],
+    }
+
     def __init__(self, screenshots_dir: Optional[Path] = None, html_dir: Optional[Path] = None):
         self.screenshots_dir = screenshots_dir or self.SCREENSHOTS_DIR
         self.html_dir = html_dir or self.HTML_SNAPSHOTS_DIR
-        
+        self.save_debug_snapshots = os.environ.get("SAVE_DEBUG_SNAPSHOTS", "").lower() in ("1", "true", "yes")
+
         # Ensure directories exist
         self.screenshots_dir.mkdir(parents=True, exist_ok=True)
         self.html_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Store playwright instance for cleanup (set during scrape)
         self._playwright = None
         self._browser = None
@@ -418,11 +429,18 @@ class GoogleFlightsScraper:
                     duration_ms=int((datetime.utcnow() - start_time).total_seconds() * 1000)
                 )
             
+            # Verify currency matches what was requested
+            currency_ok = await self._verify_currency(page, currency)
+
+            # Save debug snapshot if enabled
+            await self._save_debug_snapshot(page, search_definition_id)
+
             # Success!
             return ScrapeResult(
                 status="success",
                 prices=results,
-                duration_ms=int((datetime.utcnow() - start_time).total_seconds() * 1000)
+                duration_ms=int((datetime.utcnow() - start_time).total_seconds() * 1000),
+                currency_verified=currency_ok,
             )
             
         except Exception as e:
@@ -447,6 +465,63 @@ class GoogleFlightsScraper:
             
             await self._cleanup_browser()
     
+    async def _verify_currency(self, page: Page, expected_currency: str) -> bool:
+        """Check if rendered prices match the expected currency."""
+        indicators = self.CURRENCY_INDICATORS.get(expected_currency.upper(), [])
+        if not indicators:
+            return True  # Unknown currency, can't verify
+
+        try:
+            # Check ARIA labels and price text for currency indicators
+            price_elements = await page.query_selector_all("[aria-label*='dollar'], [aria-label*='price'], [data-gs]")
+            sampled_text = ""
+            for el in price_elements[:10]:
+                aria = await el.get_attribute("aria-label") or ""
+                inner = await el.inner_text()
+                sampled_text += f" {aria} {inner}"
+
+            if not sampled_text.strip():
+                logger.warning(f"Currency verification: no price text found to verify")
+                return True  # No text to check, assume OK
+
+            sampled_lower = sampled_text.lower()
+            for indicator in indicators:
+                if indicator.lower() in sampled_lower:
+                    return True
+
+            # Check for other currencies that might indicate a mismatch
+            for other_currency, other_indicators in self.CURRENCY_INDICATORS.items():
+                if other_currency == expected_currency.upper():
+                    continue
+                for ind in other_indicators:
+                    if ind.lower() in sampled_lower:
+                        logger.warning(
+                            f"Currency mismatch: expected {expected_currency}, "
+                            f"found indicators for {other_currency} in price text"
+                        )
+                        return False
+
+            # No indicators found for any known currency
+            logger.debug(f"Currency verification: no known currency indicators in text")
+            return True
+        except Exception as e:
+            logger.debug(f"Currency verification error: {e}")
+            return True  # Fail open
+
+    async def _save_debug_snapshot(self, page: Page, search_def_id: int) -> Optional[str]:
+        """Save HTML snapshot on successful scrape for debugging/test fixtures."""
+        if not self.save_debug_snapshots:
+            return None
+        try:
+            timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+            html_file = self.html_dir / f"{search_def_id}_{timestamp}_success.html"
+            content = await page.content()
+            html_file.write_text(content, encoding="utf-8")
+            logger.debug(f"Saved debug snapshot: {html_file}")
+            return str(html_file)
+        except Exception:
+            return None
+
     async def _cleanup_browser(self):
         """Clean up browser and playwright instances."""
         if self._browser:
