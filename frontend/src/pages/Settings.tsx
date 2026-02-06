@@ -1,16 +1,24 @@
+import { PageHeader, Card } from '../components/shared'
+
 export default function Settings() {
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-deck-text-primary">Settings</h1>
-        <p className="text-deck-text-secondary mt-1">Configure your preferences</p>
-      </div>
-
-      <div className="bg-deck-surface rounded-card border border-deck-border p-6">
-        <p className="text-deck-text-muted text-center py-8">
-          Settings panel coming soon.
-        </p>
-      </div>
+      <PageHeader
+        title="Settings"
+        subtitle="Configure your preferences"
+      />
+      <Card>
+        <h3 className="text-sm font-medium text-deck-text-secondary uppercase tracking-wide mb-3">Location</h3>
+        <p className="text-deck-text-muted text-sm">Home airport configuration coming soon.</p>
+      </Card>
+      <Card>
+        <h3 className="text-sm font-medium text-deck-text-secondary uppercase tracking-wide mb-3">Notifications</h3>
+        <p className="text-deck-text-muted text-sm">Notification preferences coming soon.</p>
+      </Card>
+      <Card>
+        <h3 className="text-sm font-medium text-deck-text-secondary uppercase tracking-wide mb-3">API Keys</h3>
+        <p className="text-deck-text-muted text-sm">API key configuration coming soon.</p>
+      </Card>
     </div>
   )
 }

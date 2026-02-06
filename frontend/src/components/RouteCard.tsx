@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
-import { Route, fetchPriceStats } from '../api/client'
+import { SearchDefinition, fetchPriceStats } from '../api/client'
+import { Card, Badge, PriceDisplay } from './shared'
 import PriceChart from './PriceChart'
 
 interface RouteCardProps {
-  route: Route
+  route: SearchDefinition
 }
 
 export default function RouteCard({ route }: RouteCardProps) {
@@ -12,64 +13,65 @@ export default function RouteCard({ route }: RouteCardProps) {
     queryFn: () => fetchPriceStats(route.id),
   })
 
-  const formatPrice = (price: number | null | undefined) => {
-    if (price == null) return 'N/A'
-    return `$${price.toLocaleString()}`
-  }
+  const displayName = route.name || `${route.origin} → ${route.destination}`
 
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden">
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">
-            {route.origin} → {route.destination}
-          </h3>
-          <span className={`px-2 py-1 text-xs rounded ${
-            route.is_active 
-              ? 'bg-green-100 text-green-800' 
-              : 'bg-gray-100 text-gray-800'
-          }`}>
-            {route.is_active ? 'Active' : 'Paused'}
-          </span>
-        </div>
-
-        <p className="text-gray-600 text-sm mb-4">{route.name}</p>
-
-        {stats && (
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <p className="text-xs text-gray-500 uppercase">Current</p>
-              <p className="text-2xl font-bold text-blue-600">
-                {formatPrice(stats.current_price)}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500 uppercase">Average</p>
-              <p className="text-lg text-gray-700">
-                {formatPrice(stats.avg_price)}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500 uppercase">Lowest</p>
-              <p className="text-lg text-green-600">
-                {formatPrice(stats.min_price)}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500 uppercase">Highest</p>
-              <p className="text-lg text-red-600">
-                {formatPrice(stats.max_price)}
-              </p>
-            </div>
-          </div>
-        )}
-
-        <PriceChart routeId={route.id} />
-
-        <div className="mt-4 text-xs text-gray-400">
-          {stats?.price_count || 0} price points tracked
-        </div>
+    <Card>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-deck-text-primary">
+          {displayName}
+        </h3>
+        <Badge variant={route.is_active ? 'info' : 'normal'}>
+          {route.is_active ? 'Active' : 'Paused'}
+        </Badge>
       </div>
-    </div>
+
+      <p className="text-sm text-deck-text-secondary mb-4">
+        {route.origin} → {route.destination} · {route.cabin_class} · {route.stops_filter}
+      </p>
+
+      {stats && (
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div>
+            <p className="text-xs text-deck-text-muted uppercase">Current</p>
+            {stats.current_price != null ? (
+              <PriceDisplay price={stats.current_price} currency={route.currency || 'NZD'} size="lg" />
+            ) : (
+              <span className="font-mono text-price-lg text-deck-text-muted">N/A</span>
+            )}
+          </div>
+          <div>
+            <p className="text-xs text-deck-text-muted uppercase">Average</p>
+            {stats.avg_price != null ? (
+              <PriceDisplay price={stats.avg_price} currency={route.currency || 'NZD'} size="md" />
+            ) : (
+              <span className="font-mono text-price-md text-deck-text-muted">N/A</span>
+            )}
+          </div>
+          <div>
+            <p className="text-xs text-deck-text-muted uppercase">Lowest</p>
+            {stats.min_price != null ? (
+              <PriceDisplay price={stats.min_price} currency={route.currency || 'NZD'} size="md" trend="down" />
+            ) : (
+              <span className="font-mono text-price-md text-deck-text-muted">N/A</span>
+            )}
+          </div>
+          <div>
+            <p className="text-xs text-deck-text-muted uppercase">Highest</p>
+            {stats.max_price != null ? (
+              <PriceDisplay price={stats.max_price} currency={route.currency || 'NZD'} size="md" trend="up" />
+            ) : (
+              <span className="font-mono text-price-md text-deck-text-muted">N/A</span>
+            )}
+          </div>
+        </div>
+      )}
+
+      <PriceChart searchId={route.id} />
+
+      <div className="mt-4 text-xs text-deck-text-muted">
+        {stats?.price_count || 0} price points tracked
+      </div>
+    </Card>
   )
 }
