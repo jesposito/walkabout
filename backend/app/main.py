@@ -49,6 +49,20 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"⚠️ AI configuration failed: {e}")
 
+    # Clear stale search_in_progress flags from previous container lifecycle
+    try:
+        db = SessionLocal()
+        from app.models.trip_plan import TripPlan
+        stale = db.query(TripPlan).filter(TripPlan.search_in_progress == True).all()
+        if stale:
+            for trip in stale:
+                trip.search_in_progress = False
+            db.commit()
+            logger.info(f"✅ Cleared {len(stale)} stale trip search locks")
+        db.close()
+    except Exception as e:
+        logger.warning(f"⚠️ Failed to clear stale search locks: {e}")
+
     try:
         # Start the scheduler
         start_scheduler()
