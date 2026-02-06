@@ -325,6 +325,9 @@ export default function Settings() {
         }
       />
 
+      {/* Setup Status */}
+      <SetupStatus settings={form} />
+
       {/* Location */}
       <Section title="Location & Destinations" icon="📍" defaultOpen>
         <AirportSelect
@@ -618,6 +621,101 @@ export default function Settings() {
       {/* AI Settings Review */}
       <SettingsReview />
     </div>
+  )
+}
+
+// --- Setup Status Checklist ---
+
+interface ReadinessItem {
+  label: string
+  configured: boolean
+  required: boolean
+  description: string
+}
+
+function getReadinessItems(settings: Partial<UserSettings>): ReadinessItem[] {
+  const hasHomeAirports = (settings.home_airports || []).length > 0
+  const hasNotifications = (settings.notification_provider || 'none') !== 'none'
+  const hasSerpapi = Boolean(settings.serpapi_key)
+  const hasAmadeus = Boolean(settings.amadeus_client_id)
+  const hasAI = (settings.ai_provider || 'none') !== 'none' && Boolean(settings.ai_api_key || settings.ai_ollama_url)
+  const hasSeatsAero = Boolean(settings.seats_aero_api_key)
+
+  return [
+    {
+      label: 'Home airport(s)',
+      configured: hasHomeAirports,
+      required: true,
+      description: 'Deal filtering, relevance scoring, trip search origins',
+    },
+    {
+      label: 'Notifications',
+      configured: hasNotifications,
+      required: false,
+      description: 'Push alerts for deals, trip matches, and price drops',
+    },
+    {
+      label: 'SerpAPI key',
+      configured: hasSerpapi,
+      required: false,
+      description: 'Fast Google Flights price lookups',
+    },
+    {
+      label: 'Amadeus keys',
+      configured: hasAmadeus,
+      required: false,
+      description: 'GDS price comparison from airlines',
+    },
+    {
+      label: 'AI provider',
+      configured: hasAI,
+      required: false,
+      description: 'Deal explanations, trip intelligence, settings review',
+    },
+    {
+      label: 'Seats.aero key',
+      configured: hasSeatsAero,
+      required: false,
+      description: 'Award flight tracking with points/miles',
+    },
+  ]
+}
+
+function SetupStatus({ settings }: { settings: Partial<UserSettings> }) {
+  const items = getReadinessItems(settings)
+  const configured = items.filter((i) => i.configured).length
+
+  return (
+    <Card className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-medium text-deck-text-secondary uppercase tracking-wide">
+          Setup Status
+        </h3>
+        <span className="text-xs text-deck-text-muted">
+          {configured} of {items.length} configured
+        </span>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        {items.map((item) => (
+          <div key={item.label} className="flex items-start gap-2 p-2 rounded-lg">
+            <span className={`mt-0.5 ${item.configured ? 'text-deal-hot' : 'text-deck-text-muted'}`}>
+              {item.configured ? '\u2713' : '\u2014'}
+            </span>
+            <div className="min-w-0">
+              <p className={`text-sm ${item.configured ? 'text-deck-text-primary' : 'text-deck-text-muted'}`}>
+                {item.label}
+                {item.required && !item.configured && (
+                  <span className="text-[10px] ml-1 text-yellow-500">Required</span>
+                )}
+              </p>
+              {!item.configured && (
+                <p className="text-xs text-deck-text-muted">{item.description}</p>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </Card>
   )
 }
 
