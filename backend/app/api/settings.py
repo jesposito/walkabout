@@ -87,7 +87,7 @@ class SettingsResponse(BaseModel):
     notification_quiet_hours_start: Optional[int] = None
     notification_quiet_hours_end: Optional[int] = None
     notification_cooldown_minutes: int = 60
-    timezone: str = "Pacific/Auckland"
+    timezone: str = "America/New_York"
     # Granular notification toggles
     notify_deals: bool = True
     notify_trip_matches: bool = True
@@ -141,7 +141,7 @@ def build_settings_response(settings: UserSettings) -> SettingsResponse:
         notification_quiet_hours_start=settings.notification_quiet_hours_start,
         notification_quiet_hours_end=settings.notification_quiet_hours_end,
         notification_cooldown_minutes=settings.notification_cooldown_minutes or 60,
-        timezone=settings.timezone or "Pacific/Auckland",
+        timezone=settings.timezone or "America/New_York",
         # Granular notification toggles
         notify_deals=settings.notify_deals if settings.notify_deals is not None else True,
         notify_trip_matches=settings.notify_trip_matches if settings.notify_trip_matches is not None else True,

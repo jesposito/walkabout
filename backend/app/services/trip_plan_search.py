@@ -221,8 +221,8 @@ class TripPlanSearchService:
         if settings.home_airport:
             return [settings.home_airport.upper()]
         
-        # Default to Auckland
-        return ["AKL"]
+        # Default fallback
+        return ["JFK"]
     
     def _get_destinations(self, trip: TripPlan) -> list[str]:
         """

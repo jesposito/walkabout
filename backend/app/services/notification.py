@@ -100,7 +100,7 @@ class NotificationService:
         self,
         quiet_start: Optional[int],
         quiet_end: Optional[int],
-        user_timezone: str = "Pacific/Auckland"
+        user_timezone: str = "America/New_York"
     ) -> bool:
         """Check if current time is within quiet hours."""
         if quiet_start is None or quiet_end is None:
@@ -313,7 +313,7 @@ class NotificationService:
         # Check quiet hours
         quiet_start = getattr(user_settings, 'notification_quiet_hours_start', None)
         quiet_end = getattr(user_settings, 'notification_quiet_hours_end', None)
-        user_tz = getattr(user_settings, 'timezone', 'Pacific/Auckland')
+        user_tz = getattr(user_settings, 'timezone', 'America/New_York')
 
         if self._is_quiet_hours(quiet_start, quiet_end, user_tz):
             logger.debug("Skipping notification during quiet hours")

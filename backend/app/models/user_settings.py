@@ -38,7 +38,7 @@ class UserSettings(Base):
     notification_quiet_hours_start = Column(Integer, nullable=True)  # Hour 0-23, e.g., 22 for 10 PM
     notification_quiet_hours_end = Column(Integer, nullable=True)    # Hour 0-23, e.g., 7 for 7 AM
     notification_cooldown_minutes = Column(Integer, default=60)      # Min time between notifications
-    timezone = Column(String(50), default="Pacific/Auckland")
+    timezone = Column(String(50), default="America/New_York")
 
     # Granular notification toggles
     notify_deals = Column(Boolean, default=True)           # Flight deal alerts
