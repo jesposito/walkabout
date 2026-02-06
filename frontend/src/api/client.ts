@@ -347,6 +347,87 @@ export async function fetchTripPlanMatches(id: number, limit = 20): Promise<Trip
   return data.matches || data
 }
 
+// --- Awards ---
+
+export interface AwardSearch {
+  id: number
+  name: string | null
+  origin: string
+  destination: string
+  program: string | null
+  date_start: string | null
+  date_end: string | null
+  cabin_class: string
+  min_seats: number
+  direct_only: boolean
+  is_active: boolean
+  notify_on_change: boolean
+  last_polled_at: string | null
+  notes: string | null
+  created_at: string
+}
+
+export interface AwardSearchCreate {
+  name?: string
+  origin: string
+  destination: string
+  program?: string | null
+  date_start?: string | null
+  date_end?: string | null
+  cabin_class?: string
+  min_seats?: number
+  direct_only?: boolean
+  notify_on_change?: boolean
+  notes?: string | null
+}
+
+export interface AwardObservation {
+  id: number
+  search_id: number
+  observed_at: string
+  is_changed: boolean
+  programs_with_availability: string[]
+  best_economy_miles: number | null
+  best_business_miles: number | null
+  best_first_miles: number | null
+  total_options: number
+  max_seats_available: number
+}
+
+export async function fetchAwardSearches(activeOnly = false): Promise<AwardSearch[]> {
+  const { data } = await api.get('/awards/api/awards', { params: { active_only: activeOnly } })
+  return data
+}
+
+export async function createAwardSearch(search: AwardSearchCreate): Promise<AwardSearch> {
+  const { data } = await api.post('/awards/api/awards', search)
+  return data
+}
+
+export async function deleteAwardSearch(id: number): Promise<void> {
+  await api.delete(`/awards/api/awards/${id}`)
+}
+
+export async function toggleAwardSearch(id: number): Promise<{ is_active: boolean }> {
+  const { data } = await api.put(`/awards/api/awards/${id}/toggle`)
+  return data
+}
+
+export async function pollAwardSearch(id: number): Promise<{ status: string; changed?: boolean; total_options?: number }> {
+  const { data } = await api.post(`/awards/api/awards/${id}/poll`)
+  return data
+}
+
+export async function fetchAwardObservations(id: number, limit = 20): Promise<{ search: AwardSearch; observations: AwardObservation[] }> {
+  const { data } = await api.get(`/awards/api/awards/${id}/observations`, { params: { limit } })
+  return data
+}
+
+export async function fetchLatestAwardResults(id: number): Promise<{ observation: AwardObservation | null; results: unknown[] }> {
+  const { data } = await api.get(`/awards/api/awards/${id}/latest`)
+  return data
+}
+
 // --- Legacy compatibility ---
 
 export async function fetchRoutes(): Promise<SearchDefinition[]> {

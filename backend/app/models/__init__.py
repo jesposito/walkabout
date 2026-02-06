@@ -8,6 +8,7 @@ from app.models.feed_health import FeedHealth
 from app.models.user_settings import UserSettings
 from app.models.trip_plan import TripPlan
 from app.models.trip_plan_match import TripPlanMatch, MatchSource
+from app.models.award import TrackedAwardSearch, AwardObservation, AwardProgram
 
 __all__ = [
     "SearchDefinition",
@@ -26,4 +27,7 @@ __all__ = [
     "StopsFilter",
     "TripPlanMatch",
     "MatchSource",
+    "TrackedAwardSearch",
+    "AwardObservation",
+    "AwardProgram",
 ]

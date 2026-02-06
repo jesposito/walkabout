@@ -10,6 +10,7 @@ import TripPlans from './pages/TripPlans'
 import Deals from './pages/Deals'
 import History from './pages/History'
 import Settings from './pages/Settings'
+import Awards from './pages/Awards'
 
 function AppContent() {
   const queryClient = useQueryClient()
@@ -43,6 +44,7 @@ function AppContent() {
           <Route path="/trips" element={<TripPlans />} />
           <Route path="/deals" element={<Deals />} />
           <Route path="/history" element={<History />} />
+          <Route path="/awards" element={<Awards />} />
           <Route path="/settings" element={<Settings />} />
         </Route>
       </Routes>
