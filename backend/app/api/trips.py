@@ -210,17 +210,46 @@ async def get_trip_matches(
     trip = db.query(TripPlan).filter(TripPlan.id == trip_id).first()
     if not trip:
         return {"error": "Trip not found"}
-    
-    matcher = TripMatcher(db)
-    matches = matcher.get_matches_for_plan(trip_id, limit=limit)
-    
+
     settings = UserSettings.get_or_create(db)
     preferred_currency = settings.preferred_currency or "NZD"
-    
-    return {
-        "trip": TripPlanResponse.model_validate(trip),
-        "matches": [
-            {
+
+    combined = []
+
+    # Google Flights / scraped matches from TripPlanMatch table
+    from datetime import date
+    flight_matches = db.query(TripPlanMatch).filter(
+        TripPlanMatch.trip_plan_id == trip_id,
+        TripPlanMatch.departure_date >= date.today(),
+    ).order_by(TripPlanMatch.match_score.desc()).limit(limit).all()
+
+    for fm in flight_matches:
+        combined.append({
+            "id": fm.id,
+            "trip_plan_id": fm.trip_plan_id,
+            "source": fm.source,
+            "origin": fm.origin,
+            "destination": fm.destination,
+            "departure_date": fm.departure_date.isoformat() if fm.departure_date else None,
+            "return_date": fm.return_date.isoformat() if fm.return_date else None,
+            "price_nzd": float(fm.price_nzd) if fm.price_nzd else 0,
+            "airline": fm.airline,
+            "stops": fm.stops or 0,
+            "duration_minutes": fm.duration_minutes,
+            "booking_url": fm.booking_url,
+            "match_score": float(fm.match_score) if fm.match_score else 50,
+            "deal_title": fm.deal_title,
+            "found_at": fm.found_at.isoformat() if fm.found_at else None,
+        })
+
+    # RSS deal matches from TripMatcher
+    remaining = max(0, limit - len(combined))
+    if remaining > 0:
+        matcher = TripMatcher(db)
+        rss_matches = matcher.get_matches_for_plan(trip_id, limit=remaining)
+
+        for deal, score in rss_matches:
+            combined.append({
                 "deal": {
                     "id": deal.id,
                     "title": deal.raw_title,
@@ -239,9 +268,11 @@ async def get_trip_matches(
                     "published_at": deal.published_at.isoformat() if deal.published_at else None,
                 },
                 "match_score": score,
-            }
-            for deal, score in matches
-        ],
+            })
+
+    return {
+        "trip": TripPlanResponse.model_validate(trip),
+        "matches": combined,
     }
 
 

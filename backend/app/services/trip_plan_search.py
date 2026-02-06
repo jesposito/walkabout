@@ -175,14 +175,19 @@ class TripPlanSearchService:
         
         # Sort results by price
         all_results.sort(key=lambda x: x.price_nzd)
-        
+
+        logger.info(f"Trip Plan {trip_plan_id}: {len(all_results)} total results before budget filter")
+
         # Filter by budget if set
         if trip.budget_max:
-            budget = Decimal(trip.budget_max)
-            all_results = [r for r in all_results if r.price_nzd <= budget]
-        
+            budget = Decimal(str(trip.budget_max))
+            before_count = len(all_results)
+            all_results = [r for r in all_results if Decimal(str(r.price_nzd)) <= budget]
+            logger.info(f"Trip Plan {trip_plan_id}: Budget filter {budget} {trip.budget_currency}: {before_count} -> {len(all_results)} results")
+
         top_results = self._keep_top_per_destination(all_results, top_n=3)
-        
+        logger.info(f"Trip Plan {trip_plan_id}: {len(top_results)} results after top-per-destination filter")
+
         self._persist_matches(trip, top_results, max_matches=5)
         
         duration_ms = int((datetime.utcnow() - start_time).total_seconds() * 1000)
@@ -367,69 +372,95 @@ class TripPlanSearchService:
         max_matches: int = 10
     ) -> int:
         today = date.today()
-        
-        self.db.query(TripPlanMatch).filter(
-            TripPlanMatch.trip_plan_id == trip.id,
-            TripPlanMatch.departure_date < today
-        ).delete()
-        
-        for result in results:
-            existing = self.db.query(TripPlanMatch).filter(
+        logger.info(f"Trip {trip.id}: Persisting {len(results)} results (max_matches={max_matches})")
+
+        if not results:
+            logger.info(f"Trip {trip.id}: No results to persist")
+            return 0
+
+        try:
+            expired = self.db.query(TripPlanMatch).filter(
                 TripPlanMatch.trip_plan_id == trip.id,
-                TripPlanMatch.origin == result.origin,
-                TripPlanMatch.destination == result.destination,
-                TripPlanMatch.departure_date == result.departure_date,
-                TripPlanMatch.return_date == result.return_date,
-            ).first()
-            
-            if existing:
-                if result.price_nzd < existing.price_nzd:
-                    existing.price_nzd = result.price_nzd
-                    existing.airline = result.airline
-                    existing.stops = result.stops
-                    existing.duration_minutes = result.duration_minutes
-                    existing.booking_url = result.booking_url
-                    existing.updated_at = datetime.utcnow()
-            else:
-                match = TripPlanMatch(
-                    trip_plan_id=trip.id,
-                    source=MatchSource.GOOGLE_FLIGHTS.value,
-                    origin=result.origin,
-                    destination=result.destination,
-                    departure_date=result.departure_date,
-                    return_date=result.return_date,
-                    price_nzd=result.price_nzd,
-                    airline=result.airline,
-                    stops=result.stops,
-                    duration_minutes=result.duration_minutes,
-                    booking_url=result.booking_url,
-                    match_score=Decimal("50"),
-                )
-                self.db.add(match)
-        
-        self.db.commit()
-        
-        all_matches = self.db.query(TripPlanMatch).filter(
-            TripPlanMatch.trip_plan_id == trip.id,
-            TripPlanMatch.source == MatchSource.GOOGLE_FLIGHTS.value,
-            TripPlanMatch.departure_date >= today
-        ).order_by(TripPlanMatch.price_nzd).all()
-        
-        for i, match in enumerate(all_matches):
-            base_score = 90 - (i * 3)
-            if trip.budget_max:
-                budget = Decimal(trip.budget_max)
-                if match.price_nzd < budget * Decimal("0.5"):
-                    base_score += 10
-                elif match.price_nzd < budget * Decimal("0.75"):
-                    base_score += 5
-            match.match_score = Decimal(str(min(100, max(0, base_score))))
-            
-            if i >= max_matches:
-                self.db.delete(match)
-        
-        self.db.commit()
-        return min(len(all_matches), max_matches)
+                TripPlanMatch.departure_date < today
+            ).delete()
+            if expired:
+                logger.info(f"Trip {trip.id}: Removed {expired} expired matches")
+
+            added = 0
+            updated = 0
+            for result in results:
+                existing = self.db.query(TripPlanMatch).filter(
+                    TripPlanMatch.trip_plan_id == trip.id,
+                    TripPlanMatch.origin == result.origin,
+                    TripPlanMatch.destination == result.destination,
+                    TripPlanMatch.departure_date == result.departure_date,
+                    TripPlanMatch.return_date == result.return_date,
+                ).first()
+
+                if existing:
+                    if result.price_nzd < existing.price_nzd:
+                        existing.price_nzd = result.price_nzd
+                        existing.airline = result.airline
+                        existing.stops = result.stops
+                        existing.duration_minutes = result.duration_minutes
+                        existing.booking_url = result.booking_url
+                        existing.updated_at = datetime.utcnow()
+                        updated += 1
+                else:
+                    match = TripPlanMatch(
+                        trip_plan_id=trip.id,
+                        source=MatchSource.GOOGLE_FLIGHTS.value,
+                        origin=result.origin,
+                        destination=result.destination,
+                        departure_date=result.departure_date,
+                        return_date=result.return_date,
+                        price_nzd=Decimal(str(result.price_nzd)),
+                        airline=result.airline,
+                        stops=result.stops,
+                        duration_minutes=result.duration_minutes,
+                        booking_url=result.booking_url,
+                        match_score=Decimal("50"),
+                    )
+                    self.db.add(match)
+                    added += 1
+
+            self.db.commit()
+            logger.info(f"Trip {trip.id}: Added {added}, updated {updated} matches")
+
+            all_matches = self.db.query(TripPlanMatch).filter(
+                TripPlanMatch.trip_plan_id == trip.id,
+                TripPlanMatch.source == MatchSource.GOOGLE_FLIGHTS.value,
+                TripPlanMatch.departure_date >= today
+            ).order_by(TripPlanMatch.price_nzd).all()
+
+            for i, match in enumerate(all_matches):
+                base_score = 90 - (i * 3)
+                if trip.budget_max:
+                    budget = Decimal(str(trip.budget_max))
+                    if match.price_nzd < budget * Decimal("0.5"):
+                        base_score += 10
+                    elif match.price_nzd < budget * Decimal("0.75"):
+                        base_score += 5
+                match.match_score = Decimal(str(min(100, max(0, base_score))))
+
+                if i >= max_matches:
+                    self.db.delete(match)
+
+            # Update the trip plan's match_count to include flight matches
+            trip.match_count = (trip.match_count or 0)
+            flight_count = min(len(all_matches), max_matches)
+            # Set match_count to at least the flight match count
+            if flight_count > trip.match_count:
+                trip.match_count = flight_count
+                trip.last_match_at = datetime.utcnow()
+
+            self.db.commit()
+            logger.info(f"Trip {trip.id}: Scored and kept {flight_count} matches")
+            return flight_count
+        except Exception as e:
+            logger.error(f"Trip {trip.id}: Failed to persist matches: {e}", exc_info=True)
+            self.db.rollback()
+            return 0
     
     async def close(self):
         await self.scraper.close()

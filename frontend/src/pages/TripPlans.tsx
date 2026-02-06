@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   fetchTripPlans,
+  fetchTripPlan,
   createTripPlan,
   updateTripPlan,
   deleteTripPlan,
@@ -468,12 +469,17 @@ function TripPlanCard({
     queryKey: ['tripMatches', plan.id],
     queryFn: () => fetchTripPlanMatches(plan.id),
     enabled: expanded,
+    refetchInterval: searching ? 5000 : false,
   })
+
+  // Sync searching state with plan prop
+  useEffect(() => {
+    setSearching(plan.search_in_progress)
+  }, [plan.search_in_progress])
 
   const handleSearch = () => {
     setSearching(true)
     onSearch(plan.id)
-    setTimeout(() => setSearching(false), 3000)
   }
 
   return (
@@ -650,12 +656,25 @@ export default function TripPlans() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tripPlans'] }),
   })
 
-  const handleSearch = (id: number) => {
-    searchTripPlan(id)
-    setTimeout(() => {
+  const handleSearch = async (id: number) => {
+    await searchTripPlan(id)
+    // Poll until search_in_progress is false (searches take ~20-30s)
+    const poll = async (attempts: number) => {
+      if (attempts <= 0) {
+        queryClient.invalidateQueries({ queryKey: ['tripPlans'] })
+        queryClient.invalidateQueries({ queryKey: ['tripMatches', id] })
+        return
+      }
+      await new Promise((r) => setTimeout(r, 5000))
+      const trip = await fetchTripPlan(id)
       queryClient.invalidateQueries({ queryKey: ['tripMatches', id] })
-      queryClient.invalidateQueries({ queryKey: ['tripPlans'] })
-    }, 5000)
+      if (trip.search_in_progress) {
+        poll(attempts - 1)
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['tripPlans'] })
+      }
+    }
+    poll(12) // Poll up to 60 seconds
   }
 
   const handleEdit = (plan: TripPlan) => {
