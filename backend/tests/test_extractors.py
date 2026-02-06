@@ -219,6 +219,57 @@ class TestCrossValidatePriceDurationConfusion:
         assert penalty == 0.0
 
 
+class TestDeduplication:
+    """Tests for UnifiedExtractor._deduplicate()."""
+
+    def test_exact_duplicates_removed(self):
+        """Identical flights should be deduplicated to one."""
+        from app.scrapers.extractors import UnifiedExtractor
+        flights = [
+            FlightData(price=500, stops=1, duration_minutes=600),
+            FlightData(price=500, stops=1, duration_minutes=600),
+        ]
+        result = UnifiedExtractor._deduplicate(flights)
+        assert len(result) == 1
+        assert result[0].price == 500
+
+    def test_different_prices_kept(self):
+        """Flights with different prices should all be kept."""
+        from app.scrapers.extractors import UnifiedExtractor
+        flights = [
+            FlightData(price=500, stops=1, duration_minutes=600),
+            FlightData(price=600, stops=1, duration_minutes=600),
+            FlightData(price=700, stops=0, duration_minutes=400),
+        ]
+        result = UnifiedExtractor._deduplicate(flights)
+        assert len(result) == 3
+
+    def test_same_price_different_duration_kept(self):
+        """Same price but different duration = different flight."""
+        from app.scrapers.extractors import UnifiedExtractor
+        flights = [
+            FlightData(price=500, stops=0, duration_minutes=225),
+            FlightData(price=500, stops=0, duration_minutes=215),
+        ]
+        result = UnifiedExtractor._deduplicate(flights)
+        assert len(result) == 2
+
+    def test_full_batch_dedup(self):
+        """Simulates Google Flights double-rendering: exact 2x batch."""
+        from app.scrapers.extractors import UnifiedExtractor
+        batch = [
+            FlightData(price=1260, stops=0, duration_minutes=225),
+            FlightData(price=1288, stops=0, duration_minutes=225),
+            FlightData(price=1300, stops=0, duration_minutes=230),
+        ]
+        duplicated = batch + [
+            FlightData(price=f.price, stops=f.stops, duration_minutes=f.duration_minutes)
+            for f in batch
+        ]
+        result = UnifiedExtractor._deduplicate(duplicated)
+        assert len(result) == 3
+
+
 class TestBareNumberRegexRemoval:
     """Tests verifying bare number regex is no longer in PRICE_PATTERNS."""
 

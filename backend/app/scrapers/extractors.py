@@ -15,7 +15,6 @@ Principles:
 import re
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime
 from typing import Optional, List, Dict, Any, Tuple
 from decimal import Decimal
 from playwright.async_api import Page, ElementHandle
@@ -1329,43 +1328,55 @@ class UnifiedExtractor:
         Strategy 2 (fallback): Page-level extraction - extract flat lists and
         zip by index. Low correlation confidence (the old buggy approach).
 
-        During initial deployment, runs both strategies and logs comparison
-        metrics before returning per-row results.
+        Results are deduplicated by (price, stops, duration) to handle
+        Google Flights rendering the same flights in multiple DOM sections.
         """
         # Strategy 1: Per-row extraction
         per_row_flights = await cls._extract_per_row(page)
 
-        # Strategy 2: Page-level fallback (always run for comparison logging)
-        page_level_flights = await cls._extract_page_level(page)
+        # Strategy 2: Page-level fallback (only if per-row found nothing)
+        if not per_row_flights:
+            page_level_flights = await cls._extract_page_level(page)
 
-        # Log comparison between strategies
-        if per_row_flights and page_level_flights:
-            per_row_prices = sorted(f.price for f in per_row_flights if f.price)
-            page_level_prices = sorted(f.price for f in page_level_flights if f.price)
+            if page_level_flights:
+                logger.warning(
+                    f"Per-row extraction returned no results, falling back to page-level: "
+                    f"{len(page_level_flights)} flights"
+                )
+                return cls._deduplicate(page_level_flights)
+
+            logger.warning("No flights extracted by any strategy")
+            return []
+
+        logger.info(
+            f"Using per-row extraction: {len(per_row_flights)} flights "
+            f"(avg confidence {sum(f.overall_confidence for f in per_row_flights) / len(per_row_flights):.2f})"
+        )
+        return cls._deduplicate(per_row_flights)
+
+    @staticmethod
+    def _deduplicate(flights: List[FlightData]) -> List[FlightData]:
+        """Remove duplicate flights based on (price, stops, duration).
+
+        Google Flights renders the same flight cards in multiple DOM sections
+        (e.g. 'Best flights' and 'Other departing flights', or hidden tabs).
+        The row locator picks up all of them, causing exact duplicates.
+        Keeps the first occurrence (typically higher confidence).
+        """
+        seen = set()
+        unique = []
+        for flight in flights:
+            key = (flight.price, flight.stops, flight.duration_minutes)
+            if key not in seen:
+                seen.add(key)
+                unique.append(flight)
+
+        if len(unique) < len(flights):
             logger.info(
-                f"Extraction comparison - Per-row: {len(per_row_flights)} flights "
-                f"(prices: {per_row_prices[:5]}), "
-                f"Page-level: {len(page_level_flights)} flights "
-                f"(prices: {page_level_prices[:5]})"
+                f"Deduplicated {len(flights)} flights to {len(unique)} unique entries"
             )
 
-        # Use per-row results if available, otherwise fall back to page-level
-        if per_row_flights:
-            logger.info(
-                f"Using per-row extraction: {len(per_row_flights)} flights "
-                f"(avg confidence {sum(f.overall_confidence for f in per_row_flights) / len(per_row_flights):.2f})"
-            )
-            return per_row_flights
-
-        if page_level_flights:
-            logger.warning(
-                f"Per-row extraction returned no results, falling back to page-level: "
-                f"{len(page_level_flights)} flights"
-            )
-            return page_level_flights
-
-        logger.warning("No flights extracted by any strategy")
-        return []
+        return unique
 
     @classmethod
     async def _extract_per_row(cls, page: Page) -> List[FlightData]:
