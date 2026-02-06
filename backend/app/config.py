@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     skyscanner_api_key: str = ""
     amadeus_client_id: str = ""
     amadeus_client_secret: str = ""
+    amadeus_base_url: str = "https://api.amadeus.com"
     
     ntfy_url: str = "http://localhost:8080"
     ntfy_topic: str = "walkabout-deals"
