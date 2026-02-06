@@ -1,6 +1,6 @@
 # Walkabout
 
-**Personal Flight Deal Intelligence Platform** - A self-hosted dashboard that aggregates flight deals, tracks prices, and monitors award availability for your specific routes.
+**Personal Flight Deal Intelligence Platform** - A self-hosted dashboard that aggregates flight deals, tracks prices, monitors award availability, and provides AI-powered insights for your specific routes.
 
 ```
 Your flight intelligence, your data, your server.
@@ -16,7 +16,7 @@ Flight deal hunting is fragmented: deals are scattered across dozens of blogs, G
 |--------|-------------|
 | **Deal Aggregator** | Unified feed from Secret Flying, OMAAT, TPG, etc., filtered to YOUR home airports |
 | **Price Tracker** | Historical context for YOUR routes ("Is $800 AKL→LAX actually good?") |
-| **Award Monitor** | Track points availability via Seats.aero (Phase 2) |
+| **Award Monitor** | Track points availability via Seats.aero across United, Aeroplan, Qantas, and more |
 
 **Target User:** NZ-based families planning trips from AKL/CHC/WLG with school holiday constraints, comfortable self-hosting on Unraid/Docker.
 
@@ -27,35 +27,28 @@ Google is great for what it does. Walkabout fills the gaps:
 - **Aggregated deal feeds** - One place for Secret Flying, OMAAT, TPG, etc.
 - **Award flight tracking** - Points availability that Google doesn't show
 - **Your historical context** - "Is this actually a good price for MY route?"
+- **AI intelligence** - Deal explanations, trip feasibility, award sweet spots
 - **Self-hosted** - Your data stays on your server
 
-## Current State (Phase 1a)
+## Current State
 
-The app is a **single-container FastAPI monolith** with SQLite:
+The app is a **single-container FastAPI + React monolith** with SQLite:
 
 | Component | Status |
 |-----------|--------|
-| Deal RSS Aggregation | RSS sources (Secret Flying, OMAAT, TPG, regional) |
-| AI Deal Parsing | Optional Claude/Ollama API enhancement |
-| Google Flights Scraper | Playwright with stealth mode |
+| React SPA Frontend | Dark/light mode, mobile-responsive with bottom nav |
+| Deal RSS Aggregation | 15+ RSS sources (Secret Flying, OMAAT, TPG, regional) |
+| AI Deal Intelligence | Claude/Ollama-powered deal explanations, settings review, trip planning |
+| Google Flights Scraper | Playwright with stealth mode and confidence gating |
+| SerpAPI Integration | Google Flights data with price insights and deep search |
+| Amadeus Integration | GDS flight data with price analysis metrics |
+| Trip Plans | Multi-origin/destination flexible search with AI feasibility checks |
+| Award Tracking | Seats.aero integration with AI pattern analysis and mile valuation |
+| Notifications | ntfy and Discord webhook support with granular controls |
 | Robust Price Analysis | Median/MAD z-scores + new low detection |
-| Scrape Health & Circuit Breaker | Failure classification, auto-recovery |
-| Trip Plans (Flexible Search) | Multi-origin/dest, budget constraints |
-| Notifications | ntfy and Discord webhook support |
-| Server-rendered UI | Jinja2 templates with light/dark mode |
-| Deal Scoring/Rating | Market price comparison |
-| Settings UI | Full configuration via web interface |
+| Scrape Health | Failure classification, circuit breaker, auto-recovery |
 
-**Tech Stack:** FastAPI + SQLite + Playwright + APScheduler
-
-### What's Deferred (Phase 1b+)
-
-- TimescaleDB (time-series optimization)
-- Celery + Redis (distributed jobs)
-- React SPA frontend
-- Seats.aero award tracking
-- Calendar heatmaps
-- Multi-user support
+**Tech Stack:** FastAPI + React + SQLite + Playwright + APScheduler
 
 ## Quick Start (Docker)
 
@@ -81,6 +74,7 @@ docker run -d \
 2. Go to **Settings** to configure:
    - Home airports (e.g., AKL, WLG, CHC)
    - AI provider (optional - Claude or Ollama)
+   - API keys (SerpAPI, Amadeus, Seats.aero - all optional)
    - Notification provider (ntfy or Discord)
    - Notification preferences
 
@@ -95,9 +89,12 @@ All configuration is done via the **Settings** page in the web UI:
 | Setting | Description |
 |---------|-------------|
 | Home Airports | Your departure airports for deal filtering |
-| AI Provider | Optional - Claude API or local Ollama for deal parsing |
+| AI Provider | Optional - Claude API or local Ollama for deal intelligence |
+| SerpAPI Key | Optional - Google Flights price data with insights |
+| Amadeus Credentials | Optional - GDS flight data and price analysis |
+| Seats.aero Key | Optional - Award availability tracking ($10/mo Pro) |
 | Notification Provider | ntfy server or Discord webhook |
-| Notification Preferences | Quiet hours, cooldowns, minimum deal rating |
+| Notification Preferences | Quiet hours, cooldowns, minimum deal rating, category filters |
 | Timezone | For scheduling and quiet hours |
 
 ### Environment Variables
@@ -111,24 +108,31 @@ Only a few environment variables are needed:
 
 ## Architecture
 
-Single container, simple stack:
+Single container, multi-source stack:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│              Walkabout Phase 1a Stack                       │
+│              Walkabout Stack                                  │
 ├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  FastAPI Backend (Python)                                   │
-│  ├─ Route Handlers (deals, trips, settings, health)        │
-│  ├─ Scraping Service (Google Flights via Playwright)       │
-│  ├─ Price Analyzer (robust z-score + new lows)             │
-│  ├─ Deal Feed Aggregator (RSS parsing)                     │
-│  ├─ APScheduler (background jobs)                          │
-│  └─ Notification Service (ntfy/Discord integration)        │
-│                                                             │
-│  Database: SQLite + SQLAlchemy ORM                          │
-│  Files: Screenshots & HTML snapshots for debugging          │
-│                                                             │
+│                                                              │
+│  React SPA (Vite + TailwindCSS + React Router)              │
+│  ├─ Dashboard (status, deals, AI digest)                    │
+│  ├─ Deals (categorized feed with AI explanations)           │
+│  ├─ Trips (multi-leg planner with AI feasibility)           │
+│  ├─ Awards (Seats.aero tracking with AI analysis)           │
+│  └─ Settings (full config with AI review)                   │
+│                                                              │
+│  FastAPI Backend (Python)                                    │
+│  ├─ Route Handlers (deals, trips, settings, awards, ai)     │
+│  ├─ Price Sources (SerpAPI, Amadeus, Playwright scraper)    │
+│  ├─ AI Service Layer (Claude/Ollama with cost tracking)     │
+│  ├─ Deal Feed Aggregator (RSS parsing + AI enhancement)     │
+│  ├─ APScheduler (background jobs)                           │
+│  └─ Notification Service (ntfy/Discord)                     │
+│                                                              │
+│  Database: SQLite + SQLAlchemy ORM                           │
+│  Files: Screenshots & HTML snapshots for debugging           │
+│                                                              │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -142,11 +146,13 @@ Single container, simple stack:
 - Fly4Free, regional sources
 
 ### Price Data
-- Google Flights (via Playwright scraper)
+- **SerpAPI** - Google Flights data with price insights (recommended)
+- **Amadeus** - GDS flight data with price analysis metrics
+- **Google Flights Scraper** - Playwright-based fallback with confidence gating
 
-### Award Availability (Phase 2)
+### Award Availability
 - **Seats.aero** ($10/mo Pro subscription)
-- Tracks: United, Aeroplan, Qantas FF, Velocity
+- Tracks: United, Aeroplan, Qantas FF, Velocity, and more
 
 ## Documentation
 
@@ -165,10 +171,15 @@ cd walkabout
 docker build -t walkabout .
 docker run -p 8000:8000 -v ./data:/app/data walkabout
 
-# Or run directly (requires Python 3.11+)
+# Or run backend directly (requires Python 3.11+)
 cd backend
 pip install -r requirements.txt
 uvicorn app.main:app --reload
+
+# Frontend development (requires Node.js 18+)
+cd frontend
+npm install
+npm run dev
 ```
 
 ## Community

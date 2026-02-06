@@ -49,8 +49,9 @@ function ThemeToggle({ isDark, onToggle }: { isDark: boolean; onToggle: () => vo
   return (
     <button
       onClick={onToggle}
-      className="p-2 rounded-lg text-deck-text-secondary hover:text-deck-text-primary hover:bg-deck-surface-hover transition-colors"
+      className="p-2 rounded-lg text-deck-text-secondary hover:text-deck-text-primary hover:bg-deck-surface-hover transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
       title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+      aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
     >
       {isDark ? (
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -70,6 +71,14 @@ export default function AppShell() {
 
   return (
     <div className="min-h-screen bg-deck-bg flex flex-col md:flex-row">
+      {/* Skip to main content link for keyboard users */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-2 focus:left-2 focus:px-4 focus:py-2 focus:bg-accent-primary focus:text-deck-bg focus:rounded-lg"
+      >
+        Skip to main content
+      </a>
+
       {/* Desktop sidebar - frosted glass */}
       <aside className="hidden md:flex md:flex-col md:w-56 bg-deck-surface/80 backdrop-blur-md border-r border-deck-border">
         <div className="p-4 border-b border-deck-border flex items-center justify-between">
@@ -82,7 +91,7 @@ export default function AppShell() {
           <ThemeToggle isDark={isDark} onToggle={toggle} />
         </div>
 
-        <nav className="flex-1 p-3 space-y-1">
+        <nav className="flex-1 p-3 space-y-1" aria-label="Main navigation">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
@@ -104,14 +113,14 @@ export default function AppShell() {
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 pb-20 md:pb-0">
+      <main id="main-content" className="flex-1 pb-20 md:pb-0">
         <div className="max-w-5xl mx-auto px-4 py-6 md:py-8">
           <Outlet />
         </div>
       </main>
 
       {/* Mobile bottom tab bar - frosted glass */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 bg-deck-surface/80 backdrop-blur-md border-t border-deck-border z-50">
+      <nav className="md:hidden fixed bottom-0 inset-x-0 bg-deck-surface/80 backdrop-blur-md border-t border-deck-border z-50" aria-label="Mobile navigation">
         <div className="flex justify-around">
           {navItems.slice(0, 5).map((item) => (
             <NavLink
