@@ -407,49 +407,87 @@ class AirportLookup:
     def extract_route(cls, text: str) -> tuple[Optional[str], Optional[str]]:
         """
         Extract origin and destination from text.
-        Uses separators (–, -, to, from) to determine direction.
+        Only returns a route when there's structural evidence (separators, to/from patterns).
+        Returns (None, None) for city lists or incidental mentions.
         """
-        locations = cls.find_locations(text)
-        
+        raw_locations = cls.find_locations(text)
+
+        if len(raw_locations) < 2:
+            return (None, None)
+
+        # Deduplicate: same code at same position can appear as both 'code' and 'city'
+        seen = set()
+        locations = []
+        for code, pos, match_type in raw_locations:
+            key = (code, pos)
+            if key not in seen:
+                seen.add(key)
+                locations.append((code, pos, match_type))
+
         if len(locations) < 2:
             return (None, None)
-        
+
+        # Count unique airport codes (not positions)
+        unique_codes = set(code for code, _, _ in locations)
+
+        # City lists: 4+ unique locations is almost certainly a list, not a route
+        if len(unique_codes) >= 4:
+            return (None, None)
+
+        # 3+ unique locations with commas between them is a list
+        if len(unique_codes) >= 3:
+            span = text[locations[0][1]:locations[-1][1] + 10]
+            if span.count(',') >= 2:
+                return (None, None)
+
         text_lower = text.lower()
-        
-        separators = ['–', '—', '-', '→', ' to ']
-        sep_pos = -1
-        for sep in separators:
+
+        # Strategy 1: Strong separators (unambiguous route indicators)
+        for sep in ['–', '—', '→']:
             pos = text.find(sep)
             if pos > 0:
-                sep_pos = pos
-                break
-        
-        if sep_pos > 0:
-            before = [(code, pos, t) for code, pos, t in locations if pos < sep_pos]
-            after = [(code, pos, t) for code, pos, t in locations if pos > sep_pos]
-            
+                before = [(code, p, t) for code, p, t in locations if p < pos]
+                after = [(code, p, t) for code, p, t in locations if p > pos]
+                if before and after:
+                    origin = before[-1][0]
+                    dest = after[0][0]
+                    if origin != dest:
+                        return (origin, dest)
+
+        # Strategy 2: "to" keyword between locations
+        for to_match in re.finditer(r'\bto\b', text_lower):
+            to_pos = to_match.start()
+            before = [(code, p, t) for code, p, t in locations if p < to_pos]
+            after = [(code, p, t) for code, p, t in locations if p > to_match.end()]
             if before and after:
                 origin = before[-1][0]
                 dest = after[0][0]
                 if origin != dest:
                     return (origin, dest)
-        
+
+        # Strategy 3: "from ORIGIN" with destination mentioned earlier
+        # Handles "Tokyo from Auckland $599" → origin=AKL, dest=NRT
         from_match = re.search(r'\bfrom\s+', text_lower)
         if from_match:
             from_pos = from_match.end()
-            before_from = [(code, pos, t) for code, pos, t in locations if pos < from_match.start()]
-            after_from = [(code, pos, t) for code, pos, t in locations if pos >= from_pos]
-            
+            before_from = [(code, p, t) for code, p, t in locations if p < from_match.start()]
+            after_from = [(code, p, t) for code, p, t in locations if p >= from_pos]
+
             if before_from and after_from:
                 destination = before_from[-1][0]
                 origin = after_from[0][0]
                 if origin != destination:
                     return (origin, destination)
-        
-        if len(locations) >= 2:
-            if locations[0][0] != locations[1][0]:
-                return (locations[0][0], locations[1][0])
-        
+
+        # Strategy 4: CODE-CODE pattern with hyphen (e.g., "AKL-SYD", "AKL - SYD")
+        # Only for explicit IATA code pairs, not general hyphens in titles
+        code_dash = re.search(r'\b([A-Z]{3})\s*-\s*([A-Z]{3})\b', text)
+        if code_dash:
+            c1, c2 = code_dash.group(1), code_dash.group(2)
+            if c1 in AIRPORTS and c2 in AIRPORTS and c1 != c2:
+                return (c1, c2)
+
+        # No structural route evidence found — don't guess from incidental mentions
         return (None, None)
 
 

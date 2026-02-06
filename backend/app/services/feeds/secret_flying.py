@@ -67,10 +67,7 @@ class SecretFlyingParser(BaseFeedParser):
                 if origin and dest and len(origin) > 1 and len(dest) > 1:
                     return (origin, dest)
         
-        airports = self._extract_airports(title)
-        if len(airports) >= 2:
-            return (airports[0], airports[1])
-        
+        # No structured route pattern found — don't guess from incidental mentions
         return (None, None)
     
     def _normalize_location(self, location: str) -> Optional[str]:
