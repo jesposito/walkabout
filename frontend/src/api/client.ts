@@ -30,9 +30,13 @@ export interface FlightPrice {
   departure_date: string
   return_date: string | null
   price_nzd: number
+  total_price_nzd: number | null
+  passengers: number | null
+  trip_type: string | null
   airline: string | null
   stops: number
   duration_minutes: number | null
+  layover_airports: string | null
 }
 
 export interface PriceStats {

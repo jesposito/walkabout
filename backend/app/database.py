@@ -98,6 +98,11 @@ def ensure_sqlite_columns():
         # Price anomaly guard (migration 005)
         ("flight_prices", "confidence", "REAL"),
         ("flight_prices", "is_suspicious", "BOOLEAN DEFAULT 0"),
+        # Semantic price context (migration 006)
+        ("flight_prices", "total_price_nzd", "REAL"),
+        ("flight_prices", "passengers", "INTEGER"),
+        ("flight_prices", "trip_type", "VARCHAR(20)"),
+        ("flight_prices", "layover_airports", "VARCHAR(200)"),
     ]
     
     with engine.connect() as conn:

@@ -29,10 +29,14 @@ class PriceResponse(BaseModel):
     departure_date: date
     return_date: Optional[date]
     price_nzd: Decimal
+    total_price_nzd: Optional[Decimal] = None
+    passengers: Optional[int] = None
+    trip_type: Optional[str] = None
     airline: Optional[str]
     stops: int
     duration_minutes: Optional[int]
-    
+    layover_airports: Optional[str] = None
+
     class Config:
         from_attributes = True
 

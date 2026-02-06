@@ -227,14 +227,28 @@ class ScrapingService:
                         f"30-day median ${median_price:.0f} for {search_def.display_name}"
                     )
 
+            # Compute total price (Google Flights shows per-person prices)
+            passenger_count = search_def.total_passengers
+            per_person_price = float(flight_result.price_nzd)
+            total_price = per_person_price * passenger_count
+
+            # Extract layover airports from raw_data if available
+            layover_airports = None
+            if flight_result.raw_data and "layover_airports" in flight_result.raw_data:
+                layover_airports = ",".join(flight_result.raw_data["layover_airports"])
+
             price = FlightPrice(
                 search_definition_id=search_def.id,
                 departure_date=departure_date,
                 return_date=return_date,
                 price_nzd=flight_result.price_nzd,
+                total_price_nzd=total_price,
+                passengers=passenger_count,
+                trip_type=search_def.trip_type.value if search_def.trip_type else None,
                 airline=flight_result.airline,
                 stops=flight_result.stops,
                 duration_minutes=flight_result.duration_minutes,
+                layover_airports=layover_airports,
                 raw_data=flight_result.raw_data,
                 confidence=confidence,
                 is_suspicious=is_suspicious,

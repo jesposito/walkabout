@@ -32,13 +32,17 @@ class FlightPrice(Base):
     departure_date = Column(Date, nullable=False)
     return_date = Column(Date, nullable=True)  # Null for one-way
     
-    # Price
+    # Price (per person, as shown by Google Flights)
     price_nzd = Column(Numeric(10, 2), nullable=False)
-    
+    total_price_nzd = Column(Numeric(10, 2), nullable=True)  # price_nzd * passengers
+    passengers = Column(Integer, nullable=True)  # Passenger count used for this search
+    trip_type = Column(String(20), nullable=True)  # round_trip or one_way
+
     # Flight details (extracted from scrape)
     airline = Column(String(100), nullable=True)
     stops = Column(Integer, default=0)
     duration_minutes = Column(Integer, nullable=True)
+    layover_airports = Column(String(200), nullable=True)  # Comma-separated IATA codes
     
     # Raw data for debugging/reprocessing
     raw_data = Column(JSON, nullable=True)
