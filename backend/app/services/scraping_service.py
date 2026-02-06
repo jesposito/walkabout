@@ -200,8 +200,33 @@ class ScrapingService:
                 f"avg confidence: {avg_confidence:.2f})"
             )
 
+        # Get 30-day price history for anomaly detection
+        history = self.price_analyzer.get_price_history(search_def.id, days=30)
+        median_price = None
+        if len(history) >= 5:
+            median_price = sorted(history)[len(history) // 2]
+
+        threshold_pct = settings.price_anomaly_threshold_percent
+
         # Store flights that pass the storage threshold
         for flight_result, confidence, method in storable:
+            # Determine if this price is suspicious
+            is_suspicious = False
+            if median_price is not None:
+                price_val = float(flight_result.price_nzd)
+                if price_val > median_price * (1 + threshold_pct / 100):
+                    is_suspicious = True
+                    logger.warning(
+                        f"Anomaly guard: ${price_val:.0f} is >{threshold_pct:.0f}% above "
+                        f"30-day median ${median_price:.0f} for {search_def.display_name}"
+                    )
+                elif price_val < median_price * 0.2:
+                    is_suspicious = True
+                    logger.warning(
+                        f"Anomaly guard: ${price_val:.0f} is >80% below "
+                        f"30-day median ${median_price:.0f} for {search_def.display_name}"
+                    )
+
             price = FlightPrice(
                 search_definition_id=search_def.id,
                 departure_date=departure_date,
@@ -210,16 +235,19 @@ class ScrapingService:
                 airline=flight_result.airline,
                 stops=flight_result.stops,
                 duration_minutes=flight_result.duration_minutes,
-                raw_data=flight_result.raw_data
+                raw_data=flight_result.raw_data,
+                confidence=confidence,
+                is_suspicious=is_suspicious,
             )
             self.db.add(price)
 
         self.db.commit()
 
-        # For deal analysis, only consider flights above the deal threshold
+        # For deal analysis, only consider flights above the deal threshold and not suspicious
         deal_candidates = [
             (r, c, m) for r, c, m in storable
             if c >= self.MIN_CONFIDENCE_FOR_DEALS
+            and not self._is_suspicious(r, median_price, threshold_pct)
         ]
 
         if deal_candidates:
@@ -259,6 +287,17 @@ class ScrapingService:
         else:
             logger.info(f"Processed {len(flight_results)} prices, no deals")
     
+    @staticmethod
+    def _is_suspicious(flight_result, median_price: float | None, threshold_pct: float) -> bool:
+        if median_price is None:
+            return False
+        price_val = float(flight_result.price_nzd)
+        if price_val > median_price * (1 + threshold_pct / 100):
+            return True
+        if price_val < median_price * 0.2:
+            return True
+        return False
+
     async def send_stale_data_alert(self, search_def: SearchDefinition, health: ScrapeHealth):
         """Send alert for stale data (no successful scrape for too long)."""
         hours_since_success = (datetime.utcnow() - health.last_success_at).total_seconds() / 3600
