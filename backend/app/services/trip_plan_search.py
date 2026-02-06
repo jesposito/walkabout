@@ -185,10 +185,17 @@ class TripPlanSearchService:
             all_results = [r for r in all_results if Decimal(str(r.price_nzd)) <= budget]
             logger.info(f"Trip Plan {trip_plan_id}: Budget filter {budget} {trip.budget_currency}: {before_count} -> {len(all_results)} results")
 
+        # Filter obviously bogus prices (international flights under $200 NZD are not real)
+        if origins and all_results:
+            before_sanity = len(all_results)
+            all_results = [r for r in all_results if self._passes_sanity_check(r)]
+            if before_sanity != len(all_results):
+                logger.info(f"Trip Plan {trip_plan_id}: Sanity filter removed {before_sanity - len(all_results)} implausible results")
+
         top_results = self._keep_top_per_destination(all_results, top_n=3)
         logger.info(f"Trip Plan {trip_plan_id}: {len(top_results)} results after top-per-destination filter")
 
-        self._persist_matches(trip, top_results, max_matches=5)
+        self._persist_matches(trip, top_results, max_matches=10)
         
         duration_ms = int((datetime.utcnow() - start_time).total_seconds() * 1000)
         
@@ -327,6 +334,20 @@ class TripPlanSearchService:
         
         return combos
     
+    @staticmethod
+    def _passes_sanity_check(result: 'TripPlanSearchResult') -> bool:
+        """Reject prices that are obviously wrong (e.g. $128 international flights)."""
+        price = float(result.price_nzd)
+        if price <= 0:
+            return False
+        # International flights under $200 NZD are almost certainly extraction errors
+        if result.origin[:1] != result.destination[:1] and price < 200:
+            return False
+        # Nonstop with 0 duration is bogus
+        if result.stops == 0 and result.duration_minutes == 0 and price < 500:
+            return False
+        return True
+
     def _keep_top_per_destination(
         self,
         results: list[TripPlanSearchResult],
