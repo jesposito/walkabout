@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   fetchSettings,
@@ -228,9 +228,10 @@ const TIMEZONES = [
 export default function Settings() {
   const queryClient = useQueryClient()
   const [form, setForm] = useState<Partial<UserSettings>>({})
-  const [saving, setSaving] = useState(false)
-  const [saveMsg, setSaveMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [testMsg, setTestMsg] = useState<string | null>(null)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const initialLoadRef = useRef(true)
 
   const { data: settings, isLoading } = useQuery({
     queryKey: ['settings'],
@@ -239,32 +240,42 @@ export default function Settings() {
 
   // Sync form state when settings load
   useEffect(() => {
-    if (settings) setForm(settings)
+    if (settings) {
+      setForm(settings)
+      // Mark initial load complete after a tick so the first setForm doesn't trigger auto-save
+      setTimeout(() => { initialLoadRef.current = false }, 100)
+    }
   }, [settings])
 
   const saveMutation = useMutation({
     mutationFn: (updates: Partial<UserSettings>) => updateSettings(updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['settings'] })
-      setSaveMsg({ type: 'success', text: 'Settings saved' })
-      setTimeout(() => setSaveMsg(null), 3000)
+      setSaveStatus('saved')
+      setTimeout(() => setSaveStatus('idle'), 2000)
     },
-    onError: (err) => {
-      setSaveMsg({
-        type: 'error',
-        text: err instanceof Error ? err.message : 'Save failed',
-      })
+    onError: () => {
+      setSaveStatus('error')
+      setTimeout(() => setSaveStatus('idle'), 3000)
     },
-    onSettled: () => setSaving(false),
   })
 
-  const handleSave = () => {
-    setSaving(true)
-    saveMutation.mutate(form)
-  }
+  // Auto-save with debounce
+  const autoSave = useCallback((updatedForm: Partial<UserSettings>) => {
+    if (initialLoadRef.current) return
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    setSaveStatus('saving')
+    debounceRef.current = setTimeout(() => {
+      saveMutation.mutate(updatedForm)
+    }, 800)
+  }, [saveMutation])
 
   const update = <K extends keyof UserSettings>(key: K, value: UserSettings[K]) => {
-    setForm((prev) => ({ ...prev, [key]: value }))
+    setForm((prev) => {
+      const next = { ...prev, [key]: value }
+      autoSave(next)
+      return next
+    })
   }
 
   const handleTestNotification = async () => {
@@ -295,20 +306,11 @@ export default function Settings() {
         title="Settings"
         subtitle="Configure your preferences"
         actions={
-          <div className="flex items-center gap-3">
-            {saveMsg && (
-              <span
-                className={`text-sm ${
-                  saveMsg.type === 'success' ? 'text-deal-hot' : 'text-deal-above'
-                }`}
-              >
-                {saveMsg.text}
-              </span>
-            )}
-            <Button onClick={handleSave} disabled={saving}>
-              {saving ? 'Saving...' : 'Save'}
-            </Button>
-          </div>
+          <span className={`text-sm transition-opacity ${saveStatus === 'idle' ? 'opacity-0' : 'opacity-100'}`}>
+            {saveStatus === 'saving' && <span className="text-deck-text-muted">Saving...</span>}
+            {saveStatus === 'saved' && <span className="text-deal-hot">Saved</span>}
+            {saveStatus === 'error' && <span className="text-deal-above">Save failed</span>}
+          </span>
         }
       />
 
