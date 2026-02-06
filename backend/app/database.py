@@ -105,6 +105,10 @@ def ensure_sqlite_columns():
         ("flight_prices", "passengers", "INTEGER"),
         ("flight_prices", "trip_type", "VARCHAR(20)"),
         ("flight_prices", "layover_airports", "VARCHAR(200)"),
+        # SerpAPI price intelligence (migration 008)
+        ("flight_prices", "price_level", "VARCHAR(20)"),
+        ("flight_prices", "typical_price_low", "REAL"),
+        ("flight_prices", "typical_price_high", "REAL"),
         # AI usage tracking (migration 007)
         ("ai_usage_log", "endpoint", "VARCHAR(100) NOT NULL DEFAULT ''"),
         ("ai_usage_log", "provider", "VARCHAR(30) NOT NULL DEFAULT ''"),

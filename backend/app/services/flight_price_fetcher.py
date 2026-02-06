@@ -2,6 +2,7 @@ import asyncio
 import httpx
 import logging
 import random
+import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
@@ -13,6 +14,27 @@ from app.services.api_keys import get_api_key
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
+
+
+def parse_iso_duration(duration_str: str) -> Optional[int]:
+    """Convert an ISO 8601 duration string to total minutes.
+
+    Examples:
+        "PT12H30M" -> 750
+        "PT2H" -> 120
+        "PT45M" -> 45
+        Invalid/None -> None
+    """
+    if not duration_str:
+        return None
+    match = re.match(r"^PT(?:(\d+)H)?(?:(\d+)M)?$", duration_str)
+    if not match:
+        return None
+    hours = int(match.group(1)) if match.group(1) else 0
+    minutes = int(match.group(2)) if match.group(2) else 0
+    if hours == 0 and minutes == 0:
+        return None
+    return hours * 60 + minutes
 
 
 @dataclass
@@ -28,7 +50,7 @@ class PriceResult:
     source: str = "unknown"
 
 
-@dataclass 
+@dataclass
 class FetchResult:
     success: bool
     prices: List[PriceResult] = field(default_factory=list)
@@ -36,6 +58,7 @@ class FetchResult:
     error: Optional[str] = None
     fallback_used: bool = False
     attempts: int = 1
+    price_insights: Optional[dict] = None
 
 
 class PriceSource(ABC):
@@ -117,6 +140,20 @@ class PriceSource(ABC):
         )
 
 
+NZ_AIRPORTS = {"AKL", "WLG", "CHC", "ZQN"}
+AU_AIRPORTS = {"SYD", "MEL", "BNE", "PER", "ADL"}
+
+
+def determine_gl(origin: str) -> Optional[str]:
+    """Determine the Google country code (gl) parameter based on origin airport."""
+    code = origin.upper()
+    if code in NZ_AIRPORTS:
+        return "nz"
+    if code in AU_AIRPORTS:
+        return "au"
+    return None
+
+
 class SerpAPISource(PriceSource):
     name = "serpapi"
 
@@ -158,7 +195,12 @@ class SerpAPISource(PriceSource):
                 "adults": adults,
                 "children": children,
                 "api_key": self.api_key,
+                "deep_search": True,
             }
+
+            gl = determine_gl(origin)
+            if gl:
+                params["gl"] = gl
 
             if infants_in_seat:
                 params["infants_in_seat"] = infants_in_seat
@@ -182,12 +224,15 @@ class SerpAPISource(PriceSource):
 
             cabin_map = {"economy": "1", "premium_economy": "2", "business": "3", "first": "4"}
             params["travel_class"] = cabin_map.get(cabin_class, "1")
-            
+
             async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.get("https://serpapi.com/search", params=params)
                 response.raise_for_status()
                 data = response.json()
-            
+
+            # Extract price_insights from SerpAPI response
+            price_insights = data.get("price_insights")
+
             prices = []
             for flight in data.get("best_flights", []) + data.get("other_flights", []):
                 try:
@@ -207,9 +252,14 @@ class SerpAPISource(PriceSource):
                         ))
                 except (ValueError, KeyError):
                     continue
-            
+
             if prices:
-                return FetchResult(success=True, prices=prices, source=self.name)
+                return FetchResult(
+                    success=True,
+                    prices=prices,
+                    source=self.name,
+                    price_insights=price_insights,
+                )
             return FetchResult(success=False, source=self.name, error="No prices in response")
                 
         except httpx.HTTPStatusError as e:
@@ -305,24 +355,25 @@ class SkyscannerSource(PriceSource):
 
 class AmadeusSource(PriceSource):
     name = "amadeus"
-    
+
     def __init__(self, db=None):
         self.client_id = get_api_key("amadeus_client_id", db) or ""
         self.client_secret = get_api_key("amadeus_client_secret", db) or ""
+        self.base_url = settings.amadeus_base_url.rstrip("/")
         self._token: Optional[str] = None
         self._token_expires: Optional[datetime] = None
-    
+
     def is_available(self) -> bool:
         return bool(self.client_id and self.client_secret)
-    
+
     async def _get_token(self) -> Optional[str]:
         if self._token and self._token_expires and datetime.utcnow() < self._token_expires:
             return self._token
-        
+
         try:
             async with httpx.AsyncClient(timeout=10.0) as client:
                 response = await client.post(
-                    "https://api.amadeus.com/v1/security/oauth2/token",
+                    f"{self.base_url}/v1/security/oauth2/token",
                     data={
                         "grant_type": "client_credentials",
                         "client_id": self.client_id,
@@ -337,7 +388,7 @@ class AmadeusSource(PriceSource):
         except Exception as e:
             logger.warning(f"Amadeus auth failed: {e}")
             return None
-    
+
     async def fetch_prices(
         self,
         origin: str,
@@ -360,7 +411,7 @@ class AmadeusSource(PriceSource):
         token = await self._get_token()
         if not token:
             return FetchResult(success=False, source=self.name, error="Failed to authenticate")
-        
+
         try:
             cabin_map = {"economy": "ECONOMY", "premium_economy": "PREMIUM_ECONOMY",
                         "business": "BUSINESS", "first": "FIRST"}
@@ -378,38 +429,55 @@ class AmadeusSource(PriceSource):
                 params["infants"] = infants_in_seat + infants_on_lap
             if stops_filter == "nonstop":
                 params["nonStop"] = "true"
+            else:
+                params["nonStop"] = "false"
             if return_date:
                 params["returnDate"] = return_date.isoformat()
-            
+
             async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.get(
-                    "https://api.amadeus.com/v2/shopping/flight-offers",
+                    f"{self.base_url}/v2/shopping/flight-offers",
                     headers={"Authorization": f"Bearer {token}"},
                     params=params
                 )
                 response.raise_for_status()
                 data = response.json()
-            
+
+            # Build carrier lookup from dictionaries
+            carriers_dict = data.get("dictionaries", {}).get("carriers", {})
+
             prices = []
             for offer in data.get("data", []):
                 try:
                     price_val = offer.get("price", {}).get("grandTotal")
                     if price_val:
-                        segments = offer.get("itineraries", [{}])[0].get("segments", [])
+                        itineraries = offer.get("itineraries", [{}])
+                        first_itinerary = itineraries[0] if itineraries else {}
+                        segments = first_itinerary.get("segments", [])
+
+                        # Parse duration from itinerary
+                        duration_str = first_itinerary.get("duration")
+                        duration_minutes = parse_iso_duration(duration_str)
+
+                        # Resolve carrier code to name via dictionaries
+                        carrier_code = segments[0].get("carrierCode") if segments else None
+                        airline = carriers_dict.get(carrier_code, carrier_code) if carrier_code else None
+
                         prices.append(PriceResult(
                             price=Decimal(str(price_val)),
                             currency=offer.get("price", {}).get("currency", currency),
-                            airline=segments[0].get("carrierCode") if segments else None,
+                            airline=airline,
                             stops=len(segments) - 1 if segments else 0,
+                            duration_minutes=duration_minutes,
                             source=self.name,
                         ))
                 except (ValueError, KeyError, IndexError):
                     continue
-            
+
             if prices:
                 return FetchResult(success=True, prices=prices, source=self.name)
             return FetchResult(success=False, source=self.name, error="No prices in response")
-                
+
         except httpx.HTTPStatusError as e:
             return FetchResult(success=False, source=self.name, error=f"HTTP {e.response.status_code}")
         except Exception as e:

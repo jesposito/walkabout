@@ -34,7 +34,11 @@ RATING_LABELS = {
 MARKET_PRICE_MAX_AGE_DAYS = 7
 
 
-def calculate_rating(deal_price: float, market_price: float) -> Tuple[float, str]:
+def calculate_rating(
+    deal_price: float,
+    market_price: float,
+    price_level: Optional[str] = None,
+) -> Tuple[float, str]:
     if market_price <= 0:
         return 0.0, RATING_LABELS["normal"]
 
@@ -43,6 +47,24 @@ def calculate_rating(deal_price: float, market_price: float) -> Tuple[float, str
     # Flag unrealistically large savings as suspicious (likely extraction error)
     if savings_percent >= SUSPICIOUS_SAVINGS_THRESHOLD:
         return savings_percent, RATING_LABELS["suspicious"]
+
+    # When SerpAPI provides a price_level, use it to adjust the rating.
+    # "low" means Google considers the price a deal regardless of our threshold math.
+    # "high" means the price is above typical, so it cannot be a deal.
+    if price_level == "low":
+        # SerpAPI says this is a low price - ensure at least "decent"
+        if savings_percent >= RATING_THRESHOLDS["hot"]:
+            return savings_percent, RATING_LABELS["hot"]
+        elif savings_percent >= RATING_THRESHOLDS["good"]:
+            return savings_percent, RATING_LABELS["good"]
+        else:
+            return savings_percent, RATING_LABELS["decent"]
+    elif price_level == "high":
+        # SerpAPI says price is above typical - cap rating at "above"
+        if savings_percent < 0:
+            return savings_percent, RATING_LABELS["above"]
+        else:
+            return savings_percent, RATING_LABELS["normal"]
 
     if savings_percent >= RATING_THRESHOLDS["hot"]:
         return savings_percent, RATING_LABELS["hot"]
@@ -184,6 +206,8 @@ async def rate_deal(db: Session, deal: Deal) -> bool:
         travel_month,
     )
     
+    price_level = None
+
     if cached:
         logger.info(f"Using cached market price for {deal.parsed_origin}-{deal.parsed_destination}: {cached.market_price} {cached.currency}")
         market_price = cached.market_price
@@ -200,15 +224,19 @@ async def rate_deal(db: Session, deal: Deal) -> bool:
             market_currency,
             db=db,
         )
-        
+
         if not result or not result.success or not result.prices:
             logger.warning(f"Failed to fetch market price for deal {deal.id}")
             return False
-        
+
         prices = [float(p.price) for p in result.prices]
         market_price = sum(prices) / len(prices)
         source = result.source
-        
+
+        # Extract price_level from SerpAPI price_insights if available
+        if result.price_insights:
+            price_level = result.price_insights.get("price_level")
+
         save_market_price(
             db,
             deal.parsed_origin,
@@ -219,7 +247,7 @@ async def rate_deal(db: Session, deal: Deal) -> bool:
             cabin_class,
             travel_month,
         )
-    
+
     # Normalize deal price to market currency for comparison
     deal_price_normalized = deal.parsed_price
     if deal_currency != market_currency:
@@ -229,8 +257,8 @@ async def rate_deal(db: Session, deal: Deal) -> bool:
             logger.info(f"Converted deal price: {deal.parsed_price} {deal_currency} -> {deal_price_normalized} {market_currency}")
         else:
             logger.warning(f"Could not convert {deal_currency} to {market_currency}, using raw price")
-    
-    rating, label = calculate_rating(deal_price_normalized, market_price)
+
+    rating, label = calculate_rating(deal_price_normalized, market_price, price_level)
     
     deal.market_price = market_price
     deal.market_currency = market_currency

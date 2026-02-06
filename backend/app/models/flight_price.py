@@ -1,4 +1,4 @@
-from sqlalchemy import Column, BigInteger, Boolean, Integer, String, Date, DateTime, Numeric, ForeignKey, JSON
+from sqlalchemy import Column, BigInteger, Boolean, Float, Integer, String, Date, DateTime, Numeric, ForeignKey, JSON
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.database import Base
@@ -46,6 +46,11 @@ class FlightPrice(Base):
     
     # Raw data for debugging/reprocessing
     raw_data = Column(JSON, nullable=True)
+
+    # SerpAPI price intelligence
+    price_level = Column(String(20), nullable=True)  # "low", "typical", or "high"
+    typical_price_low = Column(Float, nullable=True)  # Lower bound of typical price range
+    typical_price_high = Column(Float, nullable=True)  # Upper bound of typical price range
 
     # Data quality (anomaly guard)
     confidence = Column(Numeric(5, 4), nullable=True)
