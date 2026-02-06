@@ -7,16 +7,32 @@ import enum
 
 
 class AwardProgram(str, enum.Enum):
-    """Supported loyalty/mileage programs."""
-    UNITED = "united"
+    """Supported loyalty/mileage programs.
+
+    Values must match Seats.aero 'Source' identifiers used in the /search endpoint.
+    See: https://developers.seats.aero
+    """
     AEROPLAN = "aeroplan"
-    QANTAS_FF = "qantas_ff"
-    VELOCITY = "velocity"
-    FLYING_BLUE = "flying_blue"
     ALASKA = "alaska"
-    AADVANTAGE = "aadvantage"
-    VIRGIN_ATLANTIC = "virgin_atlantic"
+    AMERICAN = "american"
+    ASIA_MILES = "asiamiles"
+    CONNECT_MILES = "connectmiles"
+    DELTA = "delta"
+    EMIRATES = "emirates"
+    ETIHAD = "etihad"
+    EUROBONUS = "eurobonus"
+    FLYING_BLUE = "flyingblue"
+    JETBLUE = "jetblue"
+    LIFE_MILES = "lifemiles"
+    QANTAS = "qantas"
+    QATAR = "qatar"
+    SAUDIA = "saudia"
+    SINGAPORE = "singapore"
+    SMILES = "smiles"
     TURKISH = "turkish"
+    UNITED = "united"
+    VELOCITY = "velocity"
+    VIRGIN_ATLANTIC = "virginatlantic"
     AEROMEXICO = "aeromexico"
 
 

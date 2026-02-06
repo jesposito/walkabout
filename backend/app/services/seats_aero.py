@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 BASE_URL = "https://seats.aero/partnerapi"
 
-# Cabin class mapping: Seats.aero uses single-letter codes
+# Cabin class mapping: Seats.aero uses single-letter codes internally
 CABIN_MAP = {
     "economy": "Y",
     "premium_economy": "W",
@@ -27,6 +27,14 @@ CABIN_MAP = {
 }
 
 CABIN_REVERSE = {v: k for k, v in CABIN_MAP.items()}
+
+# Cabin names for the /search endpoint 'cabin' parameter
+CABIN_API_NAMES = {
+    "economy": "economy",
+    "premium_economy": "premiumeconomy",
+    "business": "business",
+    "first": "first",
+}
 
 
 @dataclass
@@ -97,13 +105,16 @@ class SeatsAeroClient:
         """
         Search for award availability between two airports.
 
+        Uses the /search endpoint which is cached and supports multi-program queries.
+
         Args:
             origin: Origin IATA code (e.g., "AKL")
             destination: Destination IATA code (e.g., "SYD")
             start_date: Start of date range (YYYY-MM-DD)
             end_date: End of date range (YYYY-MM-DD)
             cabin: Cabin class (economy, premium_economy, business, first)
-            program: Filter by program (e.g., "united") or None for all
+            program: Filter by program (e.g., "united") or None for all.
+                     Can be comma-separated for multiple programs (e.g., "qantas,united").
             direct_only: Only return direct flights
             take: Number of results per page (10-1000)
 
@@ -112,21 +123,24 @@ class SeatsAeroClient:
         """
         client = await self._get_client()
 
+        cabin_code = CABIN_MAP.get(cabin, "J")
+        cabin_api_name = CABIN_API_NAMES.get(cabin, "business")
+
         params = {
             "origin_airport": origin.upper(),
             "destination_airport": destination.upper(),
             "start_date": start_date,
             "end_date": end_date,
+            "cabin": cabin_api_name,
+            "order_by": "lowest_mileage",
             "take": min(take, 1000),
         }
 
         if program:
-            params["source"] = program
-
-        cabin_code = CABIN_MAP.get(cabin, "J")
+            params["sources"] = program
 
         try:
-            response = await client.get("/availability", params=params)
+            response = await client.get("/search", params=params)
             response.raise_for_status()
             data = response.json()
         except httpx.HTTPStatusError as e:
@@ -144,30 +158,46 @@ class SeatsAeroClient:
             if not item.get(avail_key, False):
                 continue
 
+            # Direct flight detection: use per-cabin flag (YDirect, WDirect, JDirect, FDirect)
+            direct_key = f"{cabin_code}Direct"
+            is_direct = bool(item.get(direct_key, False))
+
             # Check direct filter
-            if direct_only and not item.get("isDirect", False):
+            if direct_only and not is_direct:
                 continue
 
             miles_key = f"{cabin_code}MileageCost"
             seats_key = f"{cabin_code}RemainingSeats"
+            airlines_key = f"{cabin_code}Airlines"
 
-            miles = item.get(miles_key, 0) or 0
+            miles_raw = item.get(miles_key, "0") or "0"
+            miles = int(miles_raw) if isinstance(miles_raw, str) else (miles_raw or 0)
             seats = item.get(seats_key, 0) or 0
 
             if miles <= 0:
                 continue
 
+            # Parse route from "SYD-LAX" format
+            route = item.get("Route", "")
+            if isinstance(route, str) and "-" in route:
+                route_parts = route.split("-", 1)
+                item_origin = route_parts[0]
+                item_destination = route_parts[1]
+            else:
+                item_origin = origin
+                item_destination = destination
+
             results.append(AwardResult(
-                origin=item.get("Route", {}).get("OriginAirport", origin),
-                destination=item.get("Route", {}).get("DestinationAirport", destination),
+                origin=item_origin,
+                destination=item_destination,
                 date=item.get("Date", ""),
                 program=item.get("Source", ""),
                 cabin=cabin,
                 miles=miles,
                 taxes_usd=item.get("taxes", 0.0) or 0.0,
                 seats_available=seats,
-                is_direct=item.get("isDirect", False),
-                airline=item.get("Route", {}).get("Airline", ""),
+                is_direct=is_direct,
+                airline=item.get(airlines_key, ""),
                 raw=item,
             ))
 
