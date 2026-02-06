@@ -278,6 +278,10 @@ async def update_settings(
     db.commit()
     db.refresh(settings)
 
+    # Reconfigure AI service if AI settings changed
+    from app.services.ai_service import configure_ai_from_settings
+    configure_ai_from_settings(settings)
+
     relevance = RelevanceService(db)
     updated_count = relevance.update_all_deals()
 
