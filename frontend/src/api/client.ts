@@ -230,6 +230,109 @@ export async function testNotification(): Promise<{ success: boolean; message: s
   return data
 }
 
+// --- Trip Plans ---
+
+export interface TripPlan {
+  id: number
+  name: string
+  origins: string[]
+  destinations: string[]
+  destination_types: string[]
+  available_from: string | null
+  available_to: string | null
+  trip_duration_min: number
+  trip_duration_max: number
+  budget_max: number | null
+  budget_currency: string
+  cabin_classes: string[]
+  travelers_adults: number
+  travelers_children: number
+  is_active: boolean
+  notify_on_match: boolean
+  check_frequency_hours: number
+  match_count: number
+  last_match_at: string | null
+  notes: string | null
+  created_at: string
+  search_in_progress: boolean
+}
+
+export interface TripPlanCreate {
+  name: string
+  origins?: string[]
+  destinations?: string[]
+  destination_types?: string[]
+  available_from?: string | null
+  available_to?: string | null
+  trip_duration_min?: number
+  trip_duration_max?: number
+  budget_max?: number | null
+  budget_currency?: string
+  cabin_classes?: string[]
+  travelers_adults?: number
+  travelers_children?: number
+  notify_on_match?: boolean
+  check_frequency_hours?: number
+  notes?: string | null
+}
+
+export interface TripPlanMatch {
+  id: number
+  trip_plan_id: number
+  source: string
+  origin: string
+  destination: string
+  departure_date: string
+  return_date: string | null
+  price_nzd: number
+  airline: string | null
+  stops: number
+  duration_minutes: number | null
+  booking_url: string | null
+  match_score: number
+  deal_title: string | null
+  found_at: string
+}
+
+export async function fetchTripPlans(activeOnly = false): Promise<TripPlan[]> {
+  const { data } = await api.get('/trips/api/trips', { params: { active_only: activeOnly } })
+  return data
+}
+
+export async function fetchTripPlan(id: number): Promise<TripPlan> {
+  const { data } = await api.get(`/trips/api/trips/${id}`)
+  return data
+}
+
+export async function createTripPlan(plan: TripPlanCreate): Promise<TripPlan> {
+  const { data } = await api.post('/trips/api/trips', plan)
+  return data
+}
+
+export async function updateTripPlan(id: number, plan: TripPlanCreate): Promise<TripPlan> {
+  const { data } = await api.put(`/trips/api/trips/${id}`, plan)
+  return data
+}
+
+export async function deleteTripPlan(id: number): Promise<void> {
+  await api.delete(`/trips/api/trips/${id}`)
+}
+
+export async function toggleTripPlan(id: number): Promise<{ is_active: boolean }> {
+  const { data } = await api.put(`/trips/api/trips/${id}/toggle`)
+  return data
+}
+
+export async function searchTripPlan(id: number): Promise<{ status: string; message: string }> {
+  const { data } = await api.post(`/trips/api/trips/${id}/search`)
+  return data
+}
+
+export async function fetchTripPlanMatches(id: number, limit = 20): Promise<TripPlanMatch[]> {
+  const { data } = await api.get(`/trips/api/trips/${id}/matches`, { params: { limit } })
+  return data.matches || data
+}
+
 // --- Legacy compatibility ---
 
 export async function fetchRoutes(): Promise<SearchDefinition[]> {
