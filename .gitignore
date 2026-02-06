@@ -40,3 +40,7 @@ docs/CI_DETAILS.md
 
 # Editor config (personal preference)
 .editorconfig
+
+# Experiment/research artifacts
+.empirica/
+.empirica_reflex_logs/
