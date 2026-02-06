@@ -45,6 +45,16 @@
     <DonateText>Buy me a coffee</DonateText>
     <DonateLink>https://buymeacoffee.com/jesposito</DonateLink>
     <Changes>
+        ### v0.5.0 - 2026-02-06
+
+        - Auto-generated SQLite schema management (no manual migration list)
+        - SQLite backup service with daily scheduled backups and manual trigger
+        - Docker HEALTHCHECK instruction
+        - Rolling-horizon date sampling for price monitoring
+        - Removed dead Celery/Redis/Postgres/Alembic infrastructure
+        - Consolidated docker-compose files to single container config
+        - Default timezone changed to America/New_York
+
         ### v0.4.0 - 2026-02-06
 
         - WCAG AA color contrast compliance (both modes)

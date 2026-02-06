@@ -1,9 +1,10 @@
 """
-Scraping orchestration service for Phase 1a.
+Scraping orchestration service.
 
 Coordinates scraping, health tracking, deal detection, and notifications.
 """
 
+import hashlib
 import logging
 from datetime import date, datetime, timedelta
 from typing import List, Optional
@@ -118,35 +119,57 @@ class ScrapingService:
         
         return result
     
+    @staticmethod
+    def _deterministic_sample(search_id: int, today: date, min_val: int, max_val: int) -> int:
+        """Pick a deterministic value within [min_val, max_val] that varies by day.
+
+        Uses a hash of (search_id, today) so the same search gets a consistent
+        date within a single day, but samples different dates across days.
+        """
+        seed = hashlib.md5(f"{search_id}-{today.isoformat()}".encode()).hexdigest()
+        hash_int = int(seed[:8], 16)
+        return min_val + (hash_int % (max_val - min_val + 1))
+
     def _generate_travel_dates(self, search_def: SearchDefinition) -> tuple[date, Optional[date]]:
+        """Generate travel dates for a scrape, sampling across the search window.
+
+        Fixed-date searches use the start date directly. Rolling-window searches
+        pick a different date each day (deterministic per search+day) to build
+        price coverage across the entire window over time.
         """
-        Generate specific travel dates based on the search definition pattern.
-        
-        For Phase 1a, we'll use the simplest approach: middle of the window.
-        """
+        today = date.today()
+
         if search_def.departure_date_start and search_def.departure_date_end:
             # Fixed date mode - use the start date
             departure_date = search_def.departure_date_start
         else:
-            # Rolling window mode - pick middle of range
+            # Rolling window mode - sample across the range
             if search_def.departure_days_min is not None:
-                days_from_now = (search_def.departure_days_min + search_def.departure_days_max) // 2
-                departure_date = date.today() + timedelta(days=days_from_now)
+                days_from_now = self._deterministic_sample(
+                    search_def.id, today,
+                    search_def.departure_days_min,
+                    search_def.departure_days_max,
+                )
+                departure_date = today + timedelta(days=days_from_now)
             else:
                 # Fallback - 60 days from now
-                departure_date = date.today() + timedelta(days=60)
-        
+                departure_date = today + timedelta(days=60)
+
         # Generate return date
         if search_def.trip_type.value == "one_way":
             return_date = None
         else:
             if search_def.trip_duration_days_min is not None:
-                trip_days = (search_def.trip_duration_days_min + search_def.trip_duration_days_max) // 2
+                trip_days = self._deterministic_sample(
+                    search_def.id + 10000, today,
+                    search_def.trip_duration_days_min,
+                    search_def.trip_duration_days_max,
+                )
                 return_date = departure_date + timedelta(days=trip_days)
             else:
                 # Fallback - 7 day trip
                 return_date = departure_date + timedelta(days=7)
-        
+
         return departure_date, return_date
     
     # Confidence thresholds for data quality gating

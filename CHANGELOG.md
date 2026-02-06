@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-02-06
+
+### Added
+- SQLite backup service with daily scheduled backups (3:00 AM) and manual trigger
+- `POST /api/backup` endpoint for on-demand backups with rotation (keeps last 7)
+- `GET /api/backups` endpoint to list available backups
+- Docker HEALTHCHECK instruction in Dockerfile
+- Rolling-horizon date sampling for price monitoring (varies across search window daily)
+- Unit tests for date sampling (9 tests)
+
+### Changed
+- `ensure_sqlite_columns()` now auto-generates from SQLAlchemy model metadata (no manual list)
+- Default timezone changed from Pacific/Auckland to America/New_York throughout
+- Default fallback airport changed from AKL to JFK
+- Playwright browser locale changed from en-NZ to en-US
+- Consolidated 4 docker-compose files into single docker-compose.yml
+- Stale trip search locks automatically cleared on startup
+
+### Removed
+- Dead Celery worker/beat infrastructure (`celery_app/` directory)
+- Dead Alembic migration files (`alembic/` directory, `alembic.ini`)
+- Unused dependencies: celery, redis, asyncpg, psycopg2-binary, alembic
+- Postgres connection pool configuration (SQLite is the target database)
+- Production SQLite rejection guard (`model_post_init`)
+- Obsolete docker-compose files (phase1a, prod, single variants)
+
 ## [0.4.0] - 2026-02-06
 
 ### Added
@@ -111,7 +137,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - SQLite foreign key constraints now enabled (fixes trip plan match contamination)
 
-[Unreleased]: https://github.com/jesposito/walkabout/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/jesposito/walkabout/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/jesposito/walkabout/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/jesposito/walkabout/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/jesposito/walkabout/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/jesposito/walkabout/compare/v0.1.2...v0.2.0

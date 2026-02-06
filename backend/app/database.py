@@ -7,28 +7,19 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 db_url = settings.database_url
-is_sqlite = db_url.startswith("sqlite")
 
-if is_sqlite:
-    engine = create_engine(
-        db_url,
-        connect_args={"check_same_thread": False}
-    )
+engine = create_engine(
+    db_url,
+    connect_args={"check_same_thread": False}
+)
 
-    # Enable foreign key constraints for SQLite
-    # Without this, ON DELETE CASCADE doesn't work!
-    @event.listens_for(engine, "connect")
-    def set_sqlite_pragma(dbapi_connection, connection_record):
-        cursor = dbapi_connection.cursor()
-        cursor.execute("PRAGMA foreign_keys=ON")
-        cursor.close()
-else:
-    engine = create_engine(
-        db_url,
-        pool_pre_ping=True,
-        pool_size=5,
-        max_overflow=10
-    )
+# Enable foreign key constraints for SQLite
+# Without this, ON DELETE CASCADE doesn't work!
+@event.listens_for(engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA foreign_keys=ON")
+    cursor.close()
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
@@ -43,91 +34,87 @@ def get_db():
         db.close()
 
 
+def _sqlite_col_type(col) -> str:
+    """Convert a SQLAlchemy column type to a SQLite type string."""
+    type_name = type(col.type).__name__
+    type_map = {
+        "Integer": "INTEGER",
+        "Float": "REAL",
+        "Boolean": "BOOLEAN",
+        "DateTime": "DATETIME",
+        "Text": "TEXT",
+        "String": f"VARCHAR({col.type.length})" if hasattr(col.type, 'length') and col.type.length else "TEXT",
+        "Enum": f"VARCHAR(50)",
+    }
+    return type_map.get(type_name, "TEXT")
+
+
+def _sqlite_default(col) -> str:
+    """Extract a DEFAULT clause from a SQLAlchemy column, or empty string."""
+    if col.default is not None and col.default.arg is not None:
+        val = col.default.arg
+        if callable(val):
+            return ""
+        if isinstance(val, bool):
+            return f" DEFAULT {1 if val else 0}"
+        if isinstance(val, (int, float)):
+            return f" DEFAULT {val}"
+        if isinstance(val, str):
+            escaped = val.replace("'", "''")
+            return f" DEFAULT '{escaped}'"
+        if hasattr(val, 'value'):
+            escaped = str(val.value).replace("'", "''")
+            return f" DEFAULT '{escaped}'"
+    return ""
+
+
 def ensure_sqlite_columns():
-    """Add any missing columns to SQLite tables (SQLite doesn't support full ALTER TABLE)."""
-    if not is_sqlite:
-        return
-    
-    migrations = [
-        ("deals", "is_relevant", "BOOLEAN DEFAULT 1"),
-        ("deals", "relevance_reason", "TEXT"),
-        ("deals", "score", "INTEGER DEFAULT 0"),
-        # Deal rating columns
-        ("deals", "market_price", "REAL"),
-        ("deals", "market_currency", "VARCHAR(3)"),
-        ("deals", "deal_rating", "REAL"),
-        ("deals", "rating_label", "VARCHAR(20)"),
-        ("deals", "market_price_source", "VARCHAR(50)"),
-        ("deals", "market_price_checked_at", "DATETIME"),
-        ("trip_plans", "legs", "TEXT DEFAULT '[]'"),
-        ("trip_plans", "search_in_progress", "BOOLEAN DEFAULT 0"),
-        ("trip_plans", "search_started_at", "DATETIME"),
-        ("trip_plans", "last_search_at", "DATETIME"),
-        ("search_definitions", "preferred_source", "VARCHAR(20) DEFAULT 'auto'"),
-        ("user_settings", "home_airports", "TEXT DEFAULT '[]'"),
-        ("user_settings", "ai_provider", "VARCHAR(20) DEFAULT 'none'"),
-        ("user_settings", "ai_api_key", "VARCHAR(200)"),
-        ("user_settings", "ai_ollama_url", "VARCHAR(200)"),
-        ("user_settings", "ai_model", "VARCHAR(50)"),
-        # Base notification settings
-        ("user_settings", "notifications_enabled", "BOOLEAN DEFAULT 0"),
-        ("user_settings", "notification_min_discount_percent", "INTEGER DEFAULT 20"),
-        ("user_settings", "last_notified_deal_id", "INTEGER"),
-        # Notification provider settings (migration 003)
-        ("user_settings", "notification_provider", "VARCHAR(20) DEFAULT 'none'"),
-        ("user_settings", "notification_ntfy_url", "VARCHAR(200)"),
-        ("user_settings", "notification_ntfy_topic", "VARCHAR(100)"),
-        ("user_settings", "notification_discord_webhook", "VARCHAR(300)"),
-        ("user_settings", "notification_quiet_hours_start", "INTEGER"),
-        ("user_settings", "notification_quiet_hours_end", "INTEGER"),
-        ("user_settings", "notification_cooldown_minutes", "INTEGER DEFAULT 60"),
-        ("user_settings", "timezone", "VARCHAR(50) DEFAULT 'Pacific/Auckland'"),
-        # Granular notification settings (migration 004)
-        ("user_settings", "notify_deals", "BOOLEAN DEFAULT 1"),
-        ("user_settings", "notify_trip_matches", "BOOLEAN DEFAULT 1"),
-        ("user_settings", "notify_route_updates", "BOOLEAN DEFAULT 1"),
-        ("user_settings", "notify_system", "BOOLEAN DEFAULT 1"),
-        ("user_settings", "deal_notify_min_rating", "INTEGER DEFAULT 3"),
-        ("user_settings", "deal_notify_categories", "TEXT DEFAULT '[\"local\", \"regional\"]'"),
-        ("user_settings", "deal_notify_cabin_classes", "TEXT DEFAULT '[\"economy\", \"premium_economy\", \"business\", \"first\"]'"),
-        ("user_settings", "deal_cooldown_minutes", "INTEGER DEFAULT 60"),
-        ("user_settings", "trip_cooldown_hours", "INTEGER DEFAULT 6"),
-        ("user_settings", "route_cooldown_hours", "INTEGER DEFAULT 24"),
-        ("user_settings", "daily_digest_enabled", "BOOLEAN DEFAULT 0"),
-        ("user_settings", "daily_digest_hour", "INTEGER DEFAULT 8"),
-        # Seats.aero API key
-        ("user_settings", "seats_aero_api_key", "VARCHAR(200)"),
-        # Price anomaly guard (migration 005)
-        ("flight_prices", "confidence", "REAL"),
-        ("flight_prices", "is_suspicious", "BOOLEAN DEFAULT 0"),
-        # Semantic price context (migration 006)
-        ("flight_prices", "total_price_nzd", "REAL"),
-        ("flight_prices", "passengers", "INTEGER"),
-        ("flight_prices", "trip_type", "VARCHAR(20)"),
-        ("flight_prices", "layover_airports", "VARCHAR(200)"),
-        # SerpAPI price intelligence (migration 008)
-        ("flight_prices", "price_level", "VARCHAR(20)"),
-        ("flight_prices", "typical_price_low", "REAL"),
-        ("flight_prices", "typical_price_high", "REAL"),
-        # AI usage tracking (migration 007)
-        ("ai_usage_log", "endpoint", "VARCHAR(100) NOT NULL DEFAULT ''"),
-        ("ai_usage_log", "provider", "VARCHAR(30) NOT NULL DEFAULT ''"),
-        ("ai_usage_log", "model", "VARCHAR(50) NOT NULL DEFAULT ''"),
-        ("ai_usage_log", "input_tokens_est", "INTEGER NOT NULL DEFAULT 0"),
-        ("ai_usage_log", "output_tokens_est", "INTEGER NOT NULL DEFAULT 0"),
-        ("ai_usage_log", "cost_est_usd", "REAL NOT NULL DEFAULT 0.0"),
-        ("ai_usage_log", "cached", "BOOLEAN NOT NULL DEFAULT 0"),
-        ("ai_usage_log", "prompt_hash", "VARCHAR(64) NOT NULL DEFAULT ''"),
-    ]
-    
+    """Add any missing columns to SQLite tables.
+
+    Auto-generates migration list from SQLAlchemy model metadata.
+    No manual column list needed — new model columns are handled automatically.
+    """
+    added = 0
     with engine.connect() as conn:
-        for table, column, col_type in migrations:
+        for table in Base.metadata.sorted_tables:
             try:
-                result = conn.execute(text(f"PRAGMA table_info({table})")).fetchall()
-                existing_cols = [r[1] for r in result]
-                if column not in existing_cols:
-                    conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}"))
-                    logger.info(f"Added column {table}.{column}")
-            except Exception as e:
-                logger.debug(f"Migration check for {table}.{column}: {e}")
+                result = conn.execute(text(f"PRAGMA table_info({table.name})")).fetchall()
+            except Exception:
+                continue
+            existing_cols = {r[1] for r in result}
+
+            for col in table.columns:
+                if col.name in existing_cols:
+                    continue
+
+                col_type = _sqlite_col_type(col)
+                nullable = "" if col.nullable else " NOT NULL"
+                default = _sqlite_default(col)
+
+                # NOT NULL without DEFAULT is invalid for ALTER TABLE ADD COLUMN in SQLite
+                if nullable == " NOT NULL" and not default:
+                    default = _sqlite_default_for_type(col_type)
+
+                ddl = f"ALTER TABLE {table.name} ADD COLUMN {col.name} {col_type}{nullable}{default}"
+                try:
+                    conn.execute(text(ddl))
+                    logger.info(f"Added column {table.name}.{col.name}")
+                    added += 1
+                except Exception as e:
+                    logger.debug(f"Migration check for {table.name}.{col.name}: {e}")
+
         conn.commit()
+
+    if added:
+        logger.info(f"Schema migration: added {added} column(s)")
+
+
+def _sqlite_default_for_type(col_type: str) -> str:
+    """Provide a safe default for NOT NULL columns without explicit defaults."""
+    if "INT" in col_type:
+        return " DEFAULT 0"
+    if col_type == "REAL":
+        return " DEFAULT 0.0"
+    if col_type == "BOOLEAN":
+        return " DEFAULT 0"
+    return " DEFAULT ''"

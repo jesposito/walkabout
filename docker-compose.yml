@@ -1,149 +1,26 @@
 version: '3.8'
 
 services:
-  # PostgreSQL with TimescaleDB extension
-  db:
-    image: timescale/timescaledb:latest-pg16
-    container_name: walkabout-db
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: walkabout
-      POSTGRES_USER: walkabout
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-walkabout_dev}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U walkabout"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # Redis for Celery broker and caching
-  redis:
-    image: redis:7-alpine
-    container_name: walkabout-redis
-    restart: unless-stopped
-    volumes:
-      - redis_data:/data
-    ports:
-      - "6379:6379"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # FastAPI Backend
-  backend:
+  walkabout:
     build:
-      context: ./backend
+      context: .
       dockerfile: Dockerfile
-    container_name: walkabout-backend
+    container_name: walkabout
     restart: unless-stopped
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://walkabout:${DB_PASSWORD:-walkabout_dev}@db:5432/walkabout
-      REDIS_URL: redis://redis:6379/0
-      SEATS_AERO_API_KEY: ${SEATS_AERO_API_KEY:-}
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-      NTFY_URL: http://ntfy:80
+      ENV: dev
+      DATABASE_URL: sqlite:///./data/walkabout.db
+      SCHEDULER_ENABLED: "true"
+      SCRAPE_FREQUENCY_HOURS: "12"
+      NTFY_URL: ${NTFY_URL:-}
       NTFY_TOPIC: ${NTFY_TOPIC:-walkabout-deals}
-    ports:
-      - "8000:8000"
-    volumes:
-      - ./backend:/app
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-
-  # Celery Worker
-  celery-worker:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: walkabout-celery-worker
-    restart: unless-stopped
-    depends_on:
-      - backend
-    environment:
-      DATABASE_URL: postgresql://walkabout:${DB_PASSWORD:-walkabout_dev}@db:5432/walkabout
-      REDIS_URL: redis://redis:6379/0
-      SEATS_AERO_API_KEY: ${SEATS_AERO_API_KEY:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-      NTFY_URL: http://ntfy:80
-      NTFY_TOPIC: ${NTFY_TOPIC:-walkabout-deals}
-    volumes:
-      - ./backend:/app
-    command: celery -A celery_app.celery worker -l info -c 2
-
-  # Celery Beat Scheduler
-  celery-beat:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: walkabout-celery-beat
-    restart: unless-stopped
-    depends_on:
-      - celery-worker
-    environment:
-      DATABASE_URL: postgresql://walkabout:${DB_PASSWORD:-walkabout_dev}@db:5432/walkabout
-      REDIS_URL: redis://redis:6379/0
-    volumes:
-      - ./backend:/app
-    command: celery -A celery_app.celery beat -l info
-
-  # Playwright Browser for scraping
-  playwright:
-    build:
-      context: ./playwright
-      dockerfile: Dockerfile
-    container_name: walkabout-playwright
-    restart: unless-stopped
-    shm_size: '2gb'
-    environment:
-      - DISPLAY=:99
-    volumes:
-      - playwright_cache:/ms-playwright
-
-  # ntfy notification server
-  ntfy:
-    image: binwiederhier/ntfy:latest
-    container_name: walkabout-ntfy
-    restart: unless-stopped
-    command: serve --cache-file /var/lib/ntfy/cache.db
-    volumes:
-      - ntfy_cache:/var/lib/ntfy
+      TZ: ${TZ:-America/New_York}
     ports:
-      - "8080:80"
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:80/v1/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # React Frontend
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: walkabout-frontend
-    restart: unless-stopped
-    depends_on:
-      - backend
-    ports:
-      - "3000:3000"
+      - "${PORT:-8000}:8000"
     volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    environment:
-      - VITE_API_URL=http://localhost:8000
+      - walkabout_data:/app/data
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1
 
 volumes:
-  postgres_data:
-  redis_data:
-  ntfy_cache:
-  playwright_cache:
+  walkabout_data:

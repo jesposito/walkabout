@@ -269,14 +269,16 @@
                             <label for="timezone" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Timezone</label>
                             <select id="timezone" name="timezone"
                                     class="w-full sm:w-64 px-3 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
-                                <option value="Pacific/Auckland" {% if (settings.timezone or 'Pacific/Auckland') == 'Pacific/Auckland' %}selected{% endif %}>Pacific/Auckland</option>
-                                <option value="Australia/Sydney" {% if settings.timezone == 'Australia/Sydney' %}selected{% endif %}>Australia/Sydney</option>
-                                <option value="Australia/Melbourne" {% if settings.timezone == 'Australia/Melbourne' %}selected{% endif %}>Australia/Melbourne</option>
-                                <option value="Asia/Singapore" {% if settings.timezone == 'Asia/Singapore' %}selected{% endif %}>Asia/Singapore</option>
-                                <option value="Asia/Tokyo" {% if settings.timezone == 'Asia/Tokyo' %}selected{% endif %}>Asia/Tokyo</option>
-                                <option value="Europe/London" {% if settings.timezone == 'Europe/London' %}selected{% endif %}>Europe/London</option>
+                                <option value="America/New_York" {% if (settings.timezone or 'America/New_York') == 'America/New_York' %}selected{% endif %}>America/New York</option>
+                                <option value="America/Chicago" {% if settings.timezone == 'America/Chicago' %}selected{% endif %}>America/Chicago</option>
+                                <option value="America/Denver" {% if settings.timezone == 'America/Denver' %}selected{% endif %}>America/Denver</option>
                                 <option value="America/Los_Angeles" {% if settings.timezone == 'America/Los_Angeles' %}selected{% endif %}>America/Los Angeles</option>
-                                <option value="America/New_York" {% if settings.timezone == 'America/New_York' %}selected{% endif %}>America/New York</option>
+                                <option value="Europe/London" {% if settings.timezone == 'Europe/London' %}selected{% endif %}>Europe/London</option>
+                                <option value="Europe/Paris" {% if settings.timezone == 'Europe/Paris' %}selected{% endif %}>Europe/Paris</option>
+                                <option value="Asia/Tokyo" {% if settings.timezone == 'Asia/Tokyo' %}selected{% endif %}>Asia/Tokyo</option>
+                                <option value="Asia/Singapore" {% if settings.timezone == 'Asia/Singapore' %}selected{% endif %}>Asia/Singapore</option>
+                                <option value="Australia/Sydney" {% if settings.timezone == 'Australia/Sydney' %}selected{% endif %}>Australia/Sydney</option>
+                                <option value="Pacific/Auckland" {% if settings.timezone == 'Pacific/Auckland' %}selected{% endif %}>Pacific/Auckland</option>
                             </select>
                         </div>
 

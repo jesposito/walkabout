@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("🚀 Starting Walkabout Phase 1a")
+    logger.info("🚀 Starting Walkabout v0.5.0")
     
     if settings.database_url.startswith("sqlite"):
         logger.info("SQLite detected - creating tables if needed")
@@ -96,13 +96,13 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Walkabout Phase 1a",
-    description="Self-hosted travel deal monitor - Prove Ingestion Phase",
-    version="1a.0.0",
+    title="Walkabout",
+    description="Self-hosted flight deal intelligence platform",
+    version="0.5.0",
     lifespan=lifespan
 )
 
-# CORS for Phase 1a - only localhost (security)
+# CORS - allow all origins (self-hosted, accessed via LAN/Tailscale)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -132,7 +132,7 @@ app.include_router(ai.router, prefix="/ai", tags=["ai"])
 @app.get("/ping")
 async def ping():
     """Simple ping endpoint for health checks."""
-    return {"status": "ok", "phase": "1a"}
+    return {"status": "ok", "version": "0.5.0"}
 
 
 # Serve React SPA from baked-in frontend build

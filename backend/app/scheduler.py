@@ -1,8 +1,5 @@
 """
-APScheduler setup for Phase 1a - Simple scheduling without Celery complexity.
-
-Oracle Review: "Consider defer Celery/Redis initially. A single cron/APScheduler 
-can run 2-6 jobs/day safely."
+APScheduler setup for background job scheduling.
 """
 
 import logging
@@ -20,6 +17,7 @@ from app.models import SearchDefinition, ScrapeHealth, TripPlan
 from app.services.scraping_service import ScrapingService
 from app.services.trip_plan_search import TripPlanSearchService
 from app.services.deal_rating import rate_unrated_deals
+from app.services.backup_service import create_backup
 from app.config import get_settings
 import os
 
@@ -101,13 +99,23 @@ def _setup_scheduled_jobs():
         replace_existing=True,
         max_instances=1,
     )
-    
+
+    scheduler.add_job(
+        daily_backup_job,
+        trigger=CronTrigger(hour=3, minute=0),
+        id='daily_backup',
+        name='Daily SQLite Backup (3:00 AM)',
+        replace_existing=True,
+        max_instances=1,
+    )
+
     logger.info("Scheduled jobs configured:")
     logger.info("  - Morning scrape: 6:30 AM daily (local time)")
     logger.info("  - Evening scrape: 6:30 PM daily (local time)")
     logger.info("  - Health check: Every hour")
     logger.info("  - Trip Plan search: Every 6 hours")
     logger.info("  - Deal rating: Every 2 hours")
+    logger.info("  - Daily backup: 3:00 AM daily (local time)")
 
 
 async def scrape_all_active_definitions():
@@ -283,6 +291,16 @@ async def search_active_trip_plans():
         
     finally:
         db.close()
+
+
+async def daily_backup_job():
+    """Create a daily SQLite backup."""
+    logger.info("Starting daily backup")
+    result = create_backup()
+    if result["status"] == "ok":
+        logger.info(f"Daily backup complete: {result['path']} ({result['size_bytes']:,} bytes)")
+    else:
+        logger.error(f"Daily backup failed: {result.get('error', 'unknown')}")
 
 
 async def manual_scrape_definition(search_definition_id: int) -> dict:

@@ -287,8 +287,8 @@ class GoogleFlightsScraper:
                 "AppleWebKit/537.36 (KHTML, like Gecko) "
                 "Chrome/120.0.0.0 Safari/537.36"
             ),
-            locale="en-NZ",
-            timezone_id="Pacific/Auckland",
+            locale="en-US",
+            timezone_id="America/New_York",
         )
         
         page = await context.new_page()
