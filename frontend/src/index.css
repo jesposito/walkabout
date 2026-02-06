@@ -2,6 +2,24 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Font imports */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+/* Dark mode defaults */
 body {
-  @apply bg-gray-50 text-gray-900;
+  @apply bg-deck-bg text-deck-text-primary font-sans antialiased;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-deck-bg;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-deck-border rounded-full;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-deck-text-muted;
 }

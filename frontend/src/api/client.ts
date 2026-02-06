@@ -6,57 +6,133 @@ const api = axios.create({
   baseURL: API_URL,
 })
 
-export interface Route {
+// --- Types ---
+
+export interface SearchDefinition {
   id: number
   origin: string
   destination: string
-  name: string
+  trip_type: string
+  adults: number
+  children: number
+  cabin_class: string
+  stops_filter: string
+  currency: string
+  name: string | null
   is_active: boolean
-  scrape_frequency_hours: number
-  created_at: string
+  created_at: string | null
 }
 
 export interface FlightPrice {
   id: number
-  route_id: number
+  search_definition_id: number
   scraped_at: string
   departure_date: string
-  return_date: string
+  return_date: string | null
   price_nzd: number
   airline: string | null
   stops: number
-  cabin_class: string
-  passengers: number
+  duration_minutes: number | null
 }
 
 export interface PriceStats {
-  route_id: number
-  min_price: number
-  max_price: number
-  avg_price: number
+  search_definition_id: number
+  min_price: number | null
+  max_price: number | null
+  avg_price: number | null
   current_price: number | null
   price_count: number
-  z_score: number | null
-  percentile: number | null
+  price_trend: string | null
 }
 
-export async function fetchRoutes(): Promise<Route[]> {
-  const { data } = await api.get('/api/routes')
+export interface Deal {
+  id: number
+  title: string
+  origin: string | null
+  destination: string | null
+  price: number | null
+  currency: string | null
+  source: string
+  url: string | null
+  deal_rating: number | null
+  rating_label: string | null
+  created_at: string
+}
+
+export interface UserSettings {
+  home_airport: string | null
+  notification_enabled: boolean
+  ntfy_topic: string | null
+}
+
+// --- Search Definitions (Watchlist) ---
+
+export async function fetchSearchDefinitions(activeOnly = true): Promise<SearchDefinition[]> {
+  const { data } = await api.get('/prices/searches', { params: { active_only: activeOnly } })
   return data
 }
 
-export async function fetchPriceHistory(routeId: number, days = 30): Promise<FlightPrice[]> {
-  const { data } = await api.get(`/api/prices/${routeId}`, {
-    params: { days }
-  })
+export async function fetchSearchDefinition(id: number): Promise<SearchDefinition> {
+  const { data } = await api.get(`/prices/searches/${id}`)
   return data
 }
 
-export async function fetchPriceStats(routeId: number): Promise<PriceStats> {
-  const { data } = await api.get(`/api/prices/${routeId}/stats`)
+export async function createSearchDefinition(search: Partial<SearchDefinition>): Promise<SearchDefinition> {
+  const { data } = await api.post('/prices/searches', search)
   return data
 }
 
-export async function triggerScrape(): Promise<void> {
-  await api.post('/api/scrape/trigger')
+export async function deleteSearchDefinition(id: number): Promise<void> {
+  await api.delete(`/prices/searches/${id}`)
+}
+
+// --- Prices ---
+
+export async function fetchPriceHistory(searchId: number, days = 30): Promise<FlightPrice[]> {
+  const { data } = await api.get(`/prices/searches/${searchId}/prices`, { params: { days } })
+  return data
+}
+
+export async function fetchPriceStats(searchId: number): Promise<PriceStats> {
+  const { data } = await api.get(`/prices/searches/${searchId}/stats`)
+  return data
+}
+
+export async function fetchFlightOptions(searchId: number, limit = 3): Promise<{ options: unknown[] }> {
+  const { data } = await api.get(`/prices/searches/${searchId}/options`, { params: { limit } })
+  return data
+}
+
+export async function refreshPrices(searchId: number): Promise<{ success: boolean; prices_found?: number; error?: string }> {
+  const { data } = await api.post(`/prices/searches/${searchId}/refresh`)
+  return data
+}
+
+// --- Deals ---
+
+export async function fetchDeals(limit = 20): Promise<Deal[]> {
+  const { data } = await api.get('/deals/api/deals', { params: { limit } })
+  return data
+}
+
+export async function dismissDeal(id: number): Promise<void> {
+  await api.post(`/deals/api/deals/${id}/dismiss`)
+}
+
+// --- Settings ---
+
+export async function fetchSettings(): Promise<UserSettings> {
+  const { data } = await api.get('/settings/api/settings')
+  return data
+}
+
+export async function updateSettings(settings: Partial<UserSettings>): Promise<UserSettings> {
+  const { data } = await api.put('/settings/api/settings', settings)
+  return data
+}
+
+// --- Legacy compatibility ---
+
+export async function fetchRoutes(): Promise<SearchDefinition[]> {
+  return fetchSearchDefinitions()
 }
