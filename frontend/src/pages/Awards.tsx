@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   fetchAwardSearches,
@@ -8,11 +8,20 @@ import {
   pollAwardSearch,
   fetchLatestAwardResults,
   fetchSystemStatus,
+  aiFindPatterns,
+  aiPatternsEstimate,
+  aiMileValue,
+  aiMileValueEstimate,
   type AwardSearch,
   type AwardSearchCreate,
+  type AwardPatternResult,
+  type MileValueResult,
+  type MileValueRequest,
+  type TokenEstimate,
 } from '../api/client'
 import { PageHeader, Card, Button, Input, Badge, EmptyState, Spinner, AirportInput, AirportRoute } from '../components/shared'
 import { useAirports, formatAirport } from '../hooks/useAirports'
+import { useAIAction } from '../hooks/useAIAction'
 
 const CABIN_OPTIONS = [
   { value: 'economy', label: 'Economy' },
@@ -212,6 +221,177 @@ function AwardSearchTitle({ search }: { search: AwardSearch }) {
   )
 }
 
+// --- AI Action Button (same pattern as TripPlans) ---
+
+function formatEstimate(estimate: TokenEstimate | null): string {
+  if (!estimate) return ''
+  const totalTokens = estimate.input_tokens_est + estimate.output_tokens_est
+  const cost = estimate.cost_est_usd
+  if (cost < 0.001) return `~${totalTokens} tokens`
+  return `~${totalTokens} tokens (~$${cost.toFixed(3)})`
+}
+
+function AIActionButton<T>({
+  label,
+  action,
+  fetchEstimate,
+  onSuccess,
+  renderResult,
+}: {
+  label: string
+  action: () => Promise<T>
+  fetchEstimate?: () => Promise<TokenEstimate>
+  onSuccess?: (result: T) => void
+  renderResult: (result: T) => React.ReactNode
+}) {
+  const ai = useAIAction<T>({ action, fetchEstimate, onSuccess })
+
+  useEffect(() => {
+    if (fetchEstimate && !ai.estimate && !ai.estimateLoading) {
+      ai.loadEstimate()
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center gap-2">
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={(e) => { e.stopPropagation(); ai.execute() }}
+          disabled={ai.loading}
+        >
+          {ai.loading ? (
+            <span className="flex items-center gap-1.5">
+              <Spinner size="sm" />
+              Thinking...
+            </span>
+          ) : (
+            label
+          )}
+        </Button>
+        {ai.estimate && !ai.result && !ai.loading && (
+          <span className="text-xs text-deck-text-muted">
+            {formatEstimate(ai.estimate)}
+          </span>
+        )}
+      </div>
+
+      {ai.error && (
+        <p className="text-xs text-deal-above">{ai.error}</p>
+      )}
+
+      {ai.result && (
+        <div className="p-3 rounded-lg bg-deck-bg border border-deck-border space-y-2">
+          {renderResult(ai.result)}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); ai.execute() }}
+              className="text-xs text-accent-primary hover:underline"
+              disabled={ai.loading}
+            >
+              Refresh
+            </button>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); ai.clear() }}
+              className="text-xs text-deck-text-muted hover:text-deck-text-secondary"
+            >
+              Hide
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// --- Mile Value Form ---
+
+function MileValueForm({ search }: { search: AwardSearch }) {
+  const [miles, setMiles] = useState('')
+  const [cashPrice, setCashPrice] = useState('')
+  const [submitted, setSubmitted] = useState<MileValueRequest | null>(null)
+
+  const program = search.program || 'unknown'
+
+  const handleSubmit = () => {
+    if (!miles || parseInt(miles) <= 0) return
+    const request: MileValueRequest = {
+      origin: search.origin,
+      destination: search.destination,
+      miles: parseInt(miles),
+      program,
+      cabin: search.cabin_class,
+      cash_price: cashPrice ? parseFloat(cashPrice) : undefined,
+    }
+    setSubmitted(request)
+  }
+
+  if (!submitted) {
+    return (
+      <div className="space-y-2">
+        <div className="grid grid-cols-2 gap-2">
+          <Input
+            label="Miles required"
+            type="number"
+            value={miles}
+            onChange={(e) => setMiles(e.target.value)}
+            placeholder="e.g. 85000"
+          />
+          <Input
+            label="Cash price (USD, optional)"
+            type="number"
+            value={cashPrice}
+            onChange={(e) => setCashPrice(e.target.value)}
+            placeholder="e.g. 3500"
+          />
+        </div>
+        <Button variant="secondary" size="sm" onClick={handleSubmit} disabled={!miles || parseInt(miles) <= 0}>
+          Evaluate value
+        </Button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-2">
+      <AIActionButton<MileValueResult>
+        label="Evaluate mile value"
+        action={() => aiMileValue(submitted)}
+        fetchEstimate={() => aiMileValueEstimate(submitted)}
+        renderResult={(r) => (
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-lg font-mono font-bold text-deck-text-primary">
+                {r.cents_per_mile.toFixed(1)} cpp
+              </span>
+              <Badge variant={
+                r.rating === 'excellent' ? 'hot'
+                : r.rating === 'good' ? 'good'
+                : r.rating === 'fair' ? 'decent'
+                : 'normal'
+              }>
+                {r.rating}
+              </Badge>
+            </div>
+            {r.reasoning && <p className="text-xs text-deck-text-secondary">{r.reasoning}</p>}
+            {r.benchmark && <p className="text-xs text-deck-text-muted mt-1">{r.benchmark}</p>}
+          </div>
+        )}
+      />
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); setSubmitted(null) }}
+        className="text-xs text-deck-text-muted hover:text-deck-text-secondary"
+      >
+        Change inputs
+      </button>
+    </div>
+  )
+}
+
 function AwardSearchCard({
   search,
   onDelete,
@@ -307,6 +487,58 @@ function AwardSearchCard({
             {pollMsg && (
               <span className="text-xs text-deck-text-secondary ml-auto">{pollMsg}</span>
             )}
+          </div>
+
+          {/* AI Intelligence */}
+          <div className="space-y-2 pt-1">
+            <p className="text-xs text-deck-text-muted uppercase tracking-wide">AI Intelligence</p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <AIActionButton<AwardPatternResult>
+                label="Find sweet spots"
+                action={() => aiFindPatterns(search.id)}
+                fetchEstimate={() => aiPatternsEstimate(search.id)}
+                renderResult={(r) => (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="text-xs text-deck-text-muted uppercase">Trend</p>
+                      <Badge variant={
+                        r.trend === 'improving' ? 'hot'
+                        : r.trend === 'declining' ? 'normal'
+                        : r.trend === 'stable' ? 'good'
+                        : 'info'
+                      }>
+                        {r.trend.replace('_', ' ')}
+                      </Badge>
+                      {r.best_value_program && (
+                        <span className="text-xs text-deck-text-secondary">
+                          Best program: <span className="font-medium">{r.best_value_program}</span>
+                        </span>
+                      )}
+                    </div>
+                    {r.sweet_spots.length > 0 && (
+                      <div>
+                        <p className="text-xs text-deck-text-muted uppercase mb-1">Sweet Spots</p>
+                        {r.sweet_spots.map((s, i) => (
+                          <div key={i} className="text-xs text-deck-text-secondary mb-1">
+                            <span className="font-medium text-deck-text-primary">{s.program}</span>: {s.insight}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {r.timing && (
+                      <p className="text-xs text-deck-text-secondary"><span className="font-medium">Timing:</span> {r.timing}</p>
+                    )}
+                    {r.recommendation && (
+                      <p className="text-xs text-deck-text-secondary"><span className="font-medium">Recommendation:</span> {r.recommendation}</p>
+                    )}
+                  </div>
+                )}
+              />
+            </div>
+            <div className="pt-1">
+              <p className="text-xs text-deck-text-muted uppercase tracking-wide mb-2">Mile Valuation</p>
+              <MileValueForm search={search} />
+            </div>
           </div>
         </div>
       )}

@@ -4,6 +4,9 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
+import logging
+
+logger = logging.getLogger(__name__)
 
 from app.database import get_db
 from app.models.award import TrackedAwardSearch, AwardObservation
@@ -176,3 +179,107 @@ async def get_latest_observation(search_id: int, db: Session = Depends(get_db)):
         "observation": ObservationResponse.model_validate(obs),
         "results": obs.raw_results or [],
     }
+
+
+# --- AI Award Intelligence ---
+
+
+class MileValueRequest(BaseModel):
+    origin: str
+    destination: str
+    miles: int
+    program: str
+    cabin: str = "business"
+    cash_price: Optional[float] = None
+
+
+@router.post("/api/searches/{search_id}/patterns")
+async def ai_find_patterns(search_id: int, db: Session = Depends(get_db)):
+    """AI-powered analysis of award observation history to find sweet spots."""
+    from app.services.ai_service import AIService
+    if not AIService.is_configured():
+        raise HTTPException(status_code=503, detail="AI service is not configured")
+
+    search = db.query(TrackedAwardSearch).filter(TrackedAwardSearch.id == search_id).first()
+    if not search:
+        raise HTTPException(status_code=404, detail="Award search not found")
+
+    observations = db.query(AwardObservation).filter(
+        AwardObservation.search_id == search_id
+    ).order_by(AwardObservation.observed_at.desc()).limit(50).all()
+
+    from app.services.ai_awards import find_patterns
+    result = await find_patterns(search, observations, db=db)
+
+    return {
+        "sweet_spots": result["sweet_spots"],
+        "timing": result["timing"],
+        "trend": result["trend"],
+        "recommendation": result["recommendation"],
+        "best_value_program": result["best_value_program"],
+        "estimate": result["estimate"],
+    }
+
+
+@router.get("/api/searches/{search_id}/patterns/estimate")
+async def ai_patterns_estimate(search_id: int, db: Session = Depends(get_db)):
+    """Return token/cost estimate for pattern analysis without running the AI."""
+    from app.services.ai_service import AIService
+    if not AIService.is_configured():
+        raise HTTPException(status_code=503, detail="AI service is not configured")
+
+    search = db.query(TrackedAwardSearch).filter(TrackedAwardSearch.id == search_id).first()
+    if not search:
+        raise HTTPException(status_code=404, detail="Award search not found")
+
+    observations = db.query(AwardObservation).filter(
+        AwardObservation.search_id == search_id
+    ).order_by(AwardObservation.observed_at.desc()).limit(50).all()
+
+    from app.services.ai_awards import estimate_patterns
+    return estimate_patterns(search, observations)
+
+
+@router.post("/api/mile-value")
+async def ai_mile_value(request: MileValueRequest, db: Session = Depends(get_db)):
+    """AI-powered evaluation of miles redemption value."""
+    from app.services.ai_service import AIService
+    if not AIService.is_configured():
+        raise HTTPException(status_code=503, detail="AI service is not configured")
+
+    from app.services.ai_awards import evaluate_miles
+    result = await evaluate_miles(
+        origin=request.origin.upper(),
+        destination=request.destination.upper(),
+        miles=request.miles,
+        program=request.program,
+        cabin=request.cabin,
+        cash_price=request.cash_price,
+        db=db,
+    )
+
+    return {
+        "cents_per_mile": result["cents_per_mile"],
+        "rating": result["rating"],
+        "reasoning": result["reasoning"],
+        "benchmark": result["benchmark"],
+        "estimate": result["estimate"],
+    }
+
+
+@router.post("/api/mile-value/estimate")
+async def ai_mile_value_estimate(request: MileValueRequest):
+    """Return token/cost estimate for mile valuation without running the AI."""
+    from app.services.ai_service import AIService
+    if not AIService.is_configured():
+        raise HTTPException(status_code=503, detail="AI service is not configured")
+
+    from app.services.ai_awards import estimate_mile_value
+    return estimate_mile_value(
+        origin=request.origin.upper(),
+        destination=request.destination.upper(),
+        miles=request.miles,
+        program=request.program,
+        cabin=request.cabin,
+        cash_price=request.cash_price,
+    )
