@@ -52,11 +52,29 @@ export interface Deal {
   destination: string | null
   price: number | null
   currency: string | null
+  airline: string | null
+  cabin_class: string | null
   source: string
-  url: string | null
+  link: string | null
+  published_at: string | null
+  is_relevant: boolean
+  relevance_reason: string | null
   deal_rating: number | null
   rating_label: string | null
-  created_at: string
+}
+
+export interface DealsResponse {
+  deals: Deal[]
+  count: number
+}
+
+export interface FeedHealth {
+  source: string
+  last_success: string | null
+  consecutive_failures: number
+  total_fetched: number
+  total_new: number
+  last_error: string | null
 }
 
 export interface UserSettings {
@@ -110,13 +128,29 @@ export async function refreshPrices(searchId: number): Promise<{ success: boolea
 
 // --- Deals ---
 
-export async function fetchDeals(limit = 20): Promise<Deal[]> {
-  const { data } = await api.get('/deals/api/deals', { params: { limit } })
+export async function fetchDeals(params: {
+  origin?: string
+  relevant?: boolean
+  limit?: number
+  offset?: number
+} = {}): Promise<DealsResponse> {
+  const { data } = await api.get('/deals/api/deals', {
+    params: { limit: 50, ...params },
+  })
   return data
 }
 
 export async function dismissDeal(id: number): Promise<void> {
   await api.post(`/deals/api/deals/${id}/dismiss`)
+}
+
+export async function restoreDeal(id: number): Promise<void> {
+  await api.post(`/deals/api/deals/${id}/restore`)
+}
+
+export async function fetchFeedHealth(): Promise<FeedHealth[]> {
+  const { data } = await api.get('/deals/api/health/feeds')
+  return data.feeds
 }
 
 // --- Settings ---
