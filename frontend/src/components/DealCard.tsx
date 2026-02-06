@@ -97,12 +97,23 @@ export default function DealCard({ deal, onDismiss, onRestore }: DealCardProps) 
 
       {/* Price + cabin */}
       <div className="flex items-center gap-3">
-        {deal.price != null && (
+        {deal.converted_price != null && deal.preferred_currency ? (
+          <PriceDisplay
+            price={deal.converted_price}
+            currency={deal.preferred_currency}
+            size="lg"
+          />
+        ) : deal.price != null ? (
           <PriceDisplay
             price={deal.price}
             currency={deal.currency || 'USD'}
             size="lg"
           />
+        ) : null}
+        {deal.converted_price != null && deal.price != null && deal.currency && deal.currency !== deal.preferred_currency && (
+          <span className="text-xs text-deck-text-muted">
+            ({deal.currency} {deal.price.toLocaleString()})
+          </span>
         )}
         {deal.cabin_class && deal.cabin_class !== 'ECONOMY' && (
           <Badge variant="info">

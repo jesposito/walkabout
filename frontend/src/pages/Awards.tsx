@@ -10,7 +10,7 @@ import {
   type AwardSearch,
   type AwardSearchCreate,
 } from '../api/client'
-import { PageHeader, Card, Button, Input, Badge, EmptyState, Spinner } from '../components/shared'
+import { PageHeader, Card, Button, Input, Badge, EmptyState, Spinner, AirportInput } from '../components/shared'
 
 const CABIN_OPTIONS = [
   { value: 'economy', label: 'Economy' },
@@ -70,19 +70,17 @@ function AddAwardForm({ onClose }: { onClose: () => void }) {
         <h3 className="text-base font-semibold text-deck-text-primary">Track Award Availability</h3>
 
         <div className="grid grid-cols-2 gap-3">
-          <Input
+          <AirportInput
             label="Origin"
-            placeholder="AKL"
+            placeholder="Search airports..."
             value={form.origin}
-            onChange={(e) => setForm({ ...form, origin: e.target.value })}
-            maxLength={3}
+            onChange={(code) => setForm({ ...form, origin: code })}
           />
-          <Input
+          <AirportInput
             label="Destination"
-            placeholder="SYD"
+            placeholder="Search airports..."
             value={form.destination}
-            onChange={(e) => setForm({ ...form, destination: e.target.value })}
-            maxLength={3}
+            onChange={(code) => setForm({ ...form, destination: code })}
           />
         </div>
 
@@ -216,11 +214,25 @@ function AwardSearchCard({
 }) {
   const [expanded, setExpanded] = useState(false)
   const [polling, setPolling] = useState(false)
+  const [pollMsg, setPollMsg] = useState<string | null>(null)
 
-  const handlePoll = () => {
+  const handlePoll = async () => {
     setPolling(true)
-    onPoll(search.id)
-    setTimeout(() => setPolling(false), 5000)
+    setPollMsg(null)
+    try {
+      const result = await pollAwardSearch(search.id)
+      if (result.status === 'error') {
+        setPollMsg(result.message || 'Poll failed. Check API key.')
+      } else {
+        setPollMsg(result.total_options ? `Found ${result.total_options} options` : 'Poll complete')
+      }
+    } catch {
+      setPollMsg('Poll failed. Is the Seats.aero API key configured?')
+    } finally {
+      setPolling(false)
+      onPoll(search.id)
+      setTimeout(() => setPollMsg(null), 8000)
+    }
   }
 
   return (
@@ -270,7 +282,7 @@ function AwardSearchCard({
 
           <AwardResultsList searchId={search.id} />
 
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
             <Button variant="secondary" size="sm" onClick={handlePoll} disabled={polling}>
               {polling ? 'Polling...' : 'Poll now'}
             </Button>
@@ -285,6 +297,9 @@ function AwardSearchCard({
             >
               Delete
             </Button>
+            {pollMsg && (
+              <span className="text-xs text-deck-text-secondary ml-auto">{pollMsg}</span>
+            )}
           </div>
         </div>
       )}
@@ -312,12 +327,8 @@ export default function Awards() {
   })
 
   const handlePoll = (id: number) => {
-    pollAwardSearch(id).then(() => {
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ['awardLatest', id] })
-        queryClient.invalidateQueries({ queryKey: ['awardSearches'] })
-      }, 3000)
-    })
+    queryClient.invalidateQueries({ queryKey: ['awardLatest', id] })
+    queryClient.invalidateQueries({ queryKey: ['awardSearches'] })
   }
 
   return (

@@ -1,90 +1,14 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   fetchSearchDefinitions,
   createSearchDefinition,
   deleteSearchDefinition,
   refreshPrices,
-  searchAirports,
   SearchDefinition,
-  AirportSearchResult,
 } from '../api/client'
-import { PageHeader, Card, Button, Input, EmptyState, Spinner, Badge } from '../components/shared'
+import { PageHeader, Card, Button, Input, EmptyState, Spinner, Badge, AirportInput } from '../components/shared'
 import RouteCard from '../components/RouteCard'
-
-// --- Airport Autocomplete ---
-
-function AirportInput({
-  label,
-  value,
-  onChange,
-}: {
-  label: string
-  value: string
-  onChange: (code: string) => void
-}) {
-  const [query, setQuery] = useState(value)
-  const [results, setResults] = useState<AirportSearchResult[]>([])
-  const [showDropdown, setShowDropdown] = useState(false)
-
-  const search = useCallback(async (q: string) => {
-    if (q.length < 2) {
-      setResults([])
-      return
-    }
-    const data = await searchAirports(q)
-    setResults(data)
-  }, [])
-
-  useEffect(() => {
-    const timer = setTimeout(() => search(query), 200)
-    return () => clearTimeout(timer)
-  }, [query, search])
-
-  return (
-    <div>
-      <label className="block text-sm text-deck-text-secondary mb-1">{label}</label>
-      <div className="relative">
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value.toUpperCase())
-            setShowDropdown(true)
-          }}
-          onFocus={() => setShowDropdown(true)}
-          onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
-          placeholder="Search airports..."
-          className="w-full px-3 py-2 text-sm rounded-lg bg-deck-bg border border-deck-border text-deck-text-primary placeholder-deck-text-muted focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary font-mono"
-        />
-        {showDropdown && results.length > 0 && (
-          <ul className="absolute z-10 w-full mt-1 bg-deck-surface border border-deck-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
-            {results.map((airport) => (
-              <li key={airport.code}>
-                <button
-                  type="button"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => {
-                    onChange(airport.code)
-                    setQuery(airport.code)
-                    setResults([])
-                    setShowDropdown(false)
-                  }}
-                  className="w-full text-left px-3 py-2 text-sm hover:bg-deck-surface-hover text-deck-text-primary"
-                >
-                  <span className="font-mono font-semibold">{airport.code}</span>
-                  <span className="text-deck-text-secondary ml-2">
-                    {airport.city}, {airport.country}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    </div>
-  )
-}
 
 // --- Add Route Form ---
 
@@ -232,17 +156,28 @@ function WatchlistItem({
 }: {
   route: SearchDefinition
   onDelete: (id: number) => void
-  onRefresh: (id: number) => void
+  onRefresh: (id: number) => Promise<void> | void
 }) {
   const [expanded, setExpanded] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
+  const [refreshMsg, setRefreshMsg] = useState<string | null>(null)
 
   const handleRefresh = async () => {
     setRefreshing(true)
+    setRefreshMsg(null)
     try {
-      await onRefresh(route.id)
+      const result = await refreshPrices(route.id)
+      if (result.success) {
+        setRefreshMsg(`Found ${result.prices_found} price${result.prices_found !== 1 ? 's' : ''}`)
+      } else {
+        setRefreshMsg(result.error || 'Refresh failed')
+      }
+      onRefresh(route.id)
+    } catch {
+      setRefreshMsg('Refresh failed')
     } finally {
       setRefreshing(false)
+      setTimeout(() => setRefreshMsg(null), 8000)
     }
   }
 
@@ -277,14 +212,14 @@ function WatchlistItem({
       {expanded && (
         <div className="ml-4 mt-2 space-y-3">
           <RouteCard route={route} />
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
             <Button
               variant="secondary"
               size="sm"
               onClick={(e) => { e.stopPropagation(); handleRefresh() }}
               disabled={refreshing}
             >
-              {refreshing ? 'Refreshing...' : 'Refresh prices'}
+              {refreshing ? 'Refreshing... (this may take 20s)' : 'Refresh prices'}
             </Button>
             <Button
               variant="ghost"
@@ -294,6 +229,9 @@ function WatchlistItem({
             >
               Delete
             </Button>
+            {refreshMsg && (
+              <span className="text-xs text-deck-text-secondary ml-auto">{refreshMsg}</span>
+            )}
           </div>
         </div>
       )}
@@ -327,10 +265,8 @@ export default function Watchlist() {
   })
 
   const handleRefresh = (id: number) => {
-    refreshPrices(id).then(() => {
-      queryClient.invalidateQueries({ queryKey: ['stats', id] })
-      queryClient.invalidateQueries({ queryKey: ['prices', id] })
-    })
+    queryClient.invalidateQueries({ queryKey: ['stats', id] })
+    queryClient.invalidateQueries({ queryKey: ['prices', id] })
   }
 
   return (

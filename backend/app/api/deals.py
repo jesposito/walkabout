@@ -121,6 +121,35 @@ async def deals_page(
     )
 
 
+def _serialize_deal(d, preferred_currency: str = "NZD"):
+    """Serialize a deal model to dict with optional currency conversion."""
+    converted = None
+    if d.parsed_price and d.parsed_currency and d.parsed_currency != preferred_currency:
+        converted = CurrencyService.convert_sync(
+            d.parsed_price, d.parsed_currency, preferred_currency
+        )
+
+    return {
+        "id": d.id,
+        "title": d.raw_title,
+        "origin": d.parsed_origin,
+        "destination": d.parsed_destination,
+        "price": d.parsed_price,
+        "currency": d.parsed_currency,
+        "converted_price": converted,
+        "preferred_currency": preferred_currency,
+        "airline": d.parsed_airline,
+        "cabin_class": d.parsed_cabin_class,
+        "source": d.source.value,
+        "link": d.link,
+        "published_at": d.published_at.isoformat() if d.published_at else None,
+        "is_relevant": d.is_relevant,
+        "relevance_reason": d.relevance_reason,
+        "deal_rating": d.deal_rating,
+        "rating_label": d.rating_label,
+    }
+
+
 @router.get("/api/deals")
 async def get_deals_api(
     origin: Optional[str] = Query(None),
@@ -130,28 +159,52 @@ async def get_deals_api(
     db: Session = Depends(get_db),
 ):
     service = FeedService(db)
+    settings = UserSettings.get_or_create(db)
+    preferred_currency = settings.preferred_currency or "NZD"
     deals = service.get_deals(origin=origin, relevant_only=relevant if relevant is not None else False, limit=limit, offset=offset)
-    
+
     return {
-        "deals": [
-            {
-                "id": d.id,
-                "title": d.raw_title,
-                "origin": d.parsed_origin,
-                "destination": d.parsed_destination,
-                "price": d.parsed_price,
-                "currency": d.parsed_currency,
-                "airline": d.parsed_airline,
-                "cabin_class": d.parsed_cabin_class,
-                "source": d.source.value,
-                "link": d.link,
-                "published_at": d.published_at.isoformat() if d.published_at else None,
-                "is_relevant": d.is_relevant,
-                "relevance_reason": d.relevance_reason,
-            }
-            for d in deals
-        ],
+        "deals": [_serialize_deal(d, preferred_currency) for d in deals],
         "count": len(deals),
+    }
+
+
+@router.get("/api/deals/categorized")
+async def get_categorized_deals(
+    limit: int = Query(50, le=200),
+    sort: Optional[str] = Query("date"),
+    db: Session = Depends(get_db),
+):
+    """Return deals split into local, regional, and worldwide categories."""
+    relevance_service = RelevanceService(db)
+    settings = UserSettings.get_or_create(db)
+    preferred_currency = settings.preferred_currency or "NZD"
+
+    local = relevance_service.get_local_deals(limit=limit)
+    regional = relevance_service.get_regional_deals(limit=limit)
+    hub = relevance_service.get_hub_deals(limit=limit)
+
+    def sort_deals(deals, sort_key):
+        if sort_key == "price":
+            return sorted(deals, key=lambda d: d.parsed_price or 999999)
+        elif sort_key == "rating":
+            return sorted(deals, key=lambda d: d.deal_rating or -999, reverse=True)
+        return sorted(deals, key=lambda d: d.published_at or d.created_at, reverse=True)
+
+    local = sort_deals(local, sort)
+    regional = sort_deals(regional, sort)
+    hub = sort_deals(hub, sort)
+
+    return {
+        "local": [_serialize_deal(d, preferred_currency) for d in local],
+        "regional": [_serialize_deal(d, preferred_currency) for d in regional],
+        "worldwide": [_serialize_deal(d, preferred_currency) for d in hub],
+        "counts": {
+            "local": len(local),
+            "regional": len(regional),
+            "worldwide": len(hub),
+        },
+        "preferred_currency": preferred_currency,
     }
 
 

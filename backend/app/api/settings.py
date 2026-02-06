@@ -292,6 +292,18 @@ async def settings_page(request: Request, db: Session = Depends(get_db)):
     )
 
 
+@router.post("/api/notifications/test")
+async def test_notification(db: Session = Depends(get_db)):
+    """Send a test notification via the configured provider."""
+    from app.services.notification import get_global_notifier
+
+    settings = UserSettings.get_or_create(db)
+    notifier = get_global_notifier()
+    success, message = await notifier.send_test_notification(user_settings=settings)
+    provider = settings.notification_provider or "none"
+    return {"success": success, "message": message, "provider": provider}
+
+
 @router.get("/api/airports/search")
 async def search_airports(q: str, limit: int = 10):
     results = AirportService.search(q, limit)

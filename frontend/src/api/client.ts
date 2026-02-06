@@ -58,6 +58,8 @@ export interface Deal {
   destination: string | null
   price: number | null
   currency: string | null
+  converted_price: number | null
+  preferred_currency: string | null
   airline: string | null
   cabin_class: string | null
   source: string
@@ -196,6 +198,24 @@ export async function fetchDeals(params: {
   return data
 }
 
+export interface CategorizedDeals {
+  local: Deal[]
+  regional: Deal[]
+  worldwide: Deal[]
+  counts: { local: number; regional: number; worldwide: number }
+  preferred_currency: string
+}
+
+export async function fetchCategorizedDeals(params: {
+  limit?: number
+  sort?: string
+} = {}): Promise<CategorizedDeals> {
+  const { data } = await api.get('/deals/api/deals/categorized', {
+    params: { limit: 50, ...params },
+  })
+  return data
+}
+
 export async function dismissDeal(id: number): Promise<void> {
   await api.post(`/deals/api/deals/${id}/dismiss`)
 }
@@ -312,7 +332,7 @@ export interface TripPlanMatch {
 
 export async function fetchTripPlans(activeOnly = false): Promise<TripPlan[]> {
   const { data } = await api.get('/trips/api/trips', { params: { active_only: activeOnly } })
-  return data
+  return data.trips || data
 }
 
 export async function fetchTripPlan(id: number): Promise<TripPlan> {
@@ -415,7 +435,7 @@ export async function toggleAwardSearch(id: number): Promise<{ is_active: boolea
   return data
 }
 
-export async function pollAwardSearch(id: number): Promise<{ status: string; changed?: boolean; total_options?: number }> {
+export async function pollAwardSearch(id: number): Promise<{ status: string; message?: string; changed?: boolean; total_options?: number }> {
   const { data } = await api.post(`/awards/api/awards/${id}/poll`)
   return data
 }
