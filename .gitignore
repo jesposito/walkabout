@@ -36,4 +36,7 @@ docs/CI_DETAILS.md
 # Claude Code dev environment
 .claude/
 .agent-skills/
-.devenv/settings.local.json
+.devenv/
+
+# Editor config (personal preference)
+.editorconfig

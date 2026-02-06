@@ -700,6 +700,24 @@ export async function fetchSystemStatus(): Promise<SystemStatus> {
   return data
 }
 
+// --- Version/About ---
+
+export interface VersionInfo {
+  version: string
+  name: string
+  description: string
+}
+
+export async function fetchVersion(): Promise<VersionInfo> {
+  const { data } = await api.get('/about/api/version')
+  return data
+}
+
+export async function fetchChangelog(): Promise<string> {
+  const { data } = await api.get('/about/api/changelog')
+  return data
+}
+
 // --- Legacy compatibility ---
 
 export async function fetchRoutes(): Promise<SearchDefinition[]> {

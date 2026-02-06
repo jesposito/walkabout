@@ -27,6 +27,12 @@ async def get_version_info():
     return VersionResponse(version=get_version())
 
 
+@router.get("/api/changelog")
+async def get_changelog_info():
+    """Return the changelog as plain text."""
+    return get_changelog()
+
+
 @router.get("/legacy", response_class=HTMLResponse)
 async def about_page(request: Request):
     """Render the about page with version and changelog."""

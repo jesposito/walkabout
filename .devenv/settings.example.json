@@ -1,9 +1,0 @@
-{
-  "$schema": "./settings.schema.json",
-  "azureDevOps": {
-    "orgUrl": "https://dev.azure.com/your-org",
-    "project": "Walkabout",
-    "area": "Dev",
-    "defaultIteration": "Walkabout"
-  }
-}

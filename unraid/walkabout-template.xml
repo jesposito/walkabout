@@ -17,18 +17,20 @@
     <Support>https://github.com/jesposito/walkabout/issues</Support>
     <Project>https://github.com/jesposito/walkabout</Project>
     <Overview>
-        Walkabout is a self-hosted flight deal monitoring system that tracks prices from Google Flights and alerts you to exceptional deals. &#xD;
+        Walkabout is a self-hosted flight deal intelligence platform that aggregates deals, tracks prices, monitors award availability, and provides AI-powered insights for your routes. &#xD;
         &#xD;
         NOTE: Walkabout is designed as a personal internal app for your home network. It is not intended to be published to a public domain. &#xD;
         &#xD;
         Features: &#xD;
-        - Monitor routes from your home airports &#xD;
+        - React SPA with dark/light mode and mobile-responsive design &#xD;
+        - Deal aggregation from 15+ RSS sources (Secret Flying, OMAAT, TPG) &#xD;
+        - Multi-source price data (SerpAPI, Amadeus, Google Flights scraper) &#xD;
+        - Award flight tracking via Seats.aero &#xD;
+        - AI-powered deal explanations, trip planning, and award analysis &#xD;
         - Statistical deal detection (z-score analysis) &#xD;
         - Push notifications via ntfy or Discord &#xD;
-        - Trip planning with date flexibility &#xD;
-        - Server-rendered dashboard (no JavaScript required) &#xD;
         &#xD;
-        API keys and notification settings are configured in-app via the Settings page. &#xD;
+        All API keys and settings are configured in-app via the Settings page. &#xD;
         &#xD;
         Also check out Facet - a self-hosted personal profile platform: https://github.com/jesposito/Facet
     </Overview>
@@ -43,14 +45,40 @@
     <DonateText>Buy me a coffee</DonateText>
     <DonateLink>https://buymeacoffee.com/jesposito</DonateLink>
     <Changes>
-        ### 2026-01-30
+        ### v0.4.0 - 2026-02-06
 
+        - WCAG AA color contrast compliance (both modes)
+        - 44px minimum touch targets for all interactive elements
+        - Full keyboard navigation with ARIA combobox pattern
+        - Skip-to-content link and screen reader support
+        - Extracted shared AIActionButton component
+        - Renamed Playwright to Google Flights Scraper
+        - Added in-app About page with version and changelog
+
+        ### v0.3.0 - 2026-02-05
+
+        - SerpAPI integration for Google Flights data
+        - Amadeus GDS integration with price analysis
+        - Seats.aero award tracking with pattern analysis
+        - AI service layer (Claude/Ollama) with cost tracking
+        - AI-powered deal explanations, trip feasibility, award sweet spots
+        - Settings review AI assistant
+
+        ### v0.2.0 - 2026-02-03
+
+        - React SPA frontend (Vite + Tailwind + React Router)
+        - Price extraction rewrite with confidence model
+        - URL construction fix with filter passthrough
+        - Dark/light mode with design system foundation
+        - Mobile-responsive bottom navigation
+
+        ### v0.1.2 - 2026-01-30
+
+        - Granular notification settings
         - Fix ENV to allow SQLite database
-        - Add note about personal/internal use
         - Switch to embedded SQLite (no external database required)
-        - Simplify configuration
 
-        ### 2026-01-30
+        ### v0.1.0 - 2026-01-30
 
         Initial release
     </Changes>

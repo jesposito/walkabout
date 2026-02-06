@@ -18,7 +18,7 @@ Flight deal hunting is fragmented: deals are scattered across dozens of blogs, G
 | **Price Tracker** | Historical context for YOUR routes ("Is $800 AKL→LAX actually good?") |
 | **Award Monitor** | Track points availability via Seats.aero across United, Aeroplan, Qantas, and more |
 
-**Target User:** NZ-based families planning trips from AKL/CHC/WLG with school holiday constraints, comfortable self-hosting on Unraid/Docker.
+**Target User:** Families planning 1-2 international trips per year, comfortable self-hosting on Unraid/Docker.
 
 ## Why Not Just Use Google Flights Alerts?
 
@@ -63,7 +63,7 @@ docker run -d \
   --name walkabout \
   -p 8000:8000 \
   -v /path/to/walkabout/data:/app/data \
-  -e TZ=Pacific/Auckland \
+  -e TZ=America/New_York \
   --restart unless-stopped \
   ghcr.io/jesposito/walkabout:latest
 ```
@@ -72,7 +72,7 @@ docker run -d \
 
 1. Visit `http://your-server:8000`
 2. Go to **Settings** to configure:
-   - Home airports (e.g., AKL, WLG, CHC)
+   - Home airports (e.g., LAX, JFK, ORD)
    - AI provider (optional - Claude or Ollama)
    - API keys (SerpAPI, Amadeus, Seats.aero - all optional)
    - Notification provider (ntfy or Discord)
@@ -103,7 +103,7 @@ Only a few environment variables are needed:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `TZ` | Your timezone | `Pacific/Auckland` |
+| `TZ` | Your timezone | `America/New_York` |
 | `DATABASE_URL` | SQLite path (optional override) | `sqlite:///./data/walkabout.db` |
 
 ## Architecture
@@ -142,7 +142,7 @@ Single container, multi-source stack:
 - Secret Flying - `secretflying.com/feed/`
 - One Mile at a Time - deals RSS
 - The Points Guy - deals section
-- Australian Frequent Flyer - covers NZ routes
+- Australian Frequent Flyer - Asia-Pacific routes
 - Fly4Free, regional sources
 
 ### Price Data

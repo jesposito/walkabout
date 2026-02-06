@@ -16,7 +16,7 @@ docker run -d \
   --name walkabout \
   -p 8000:8000 \
   -v /mnt/user/appdata/walkabout/data:/app/data \
-  -e TZ=Pacific/Auckland \
+  -e TZ=America/New_York \
   --restart unless-stopped \
   ghcr.io/jesposito/walkabout:latest
 
@@ -81,7 +81,7 @@ docker run -d \
   --name walkabout \
   -p 8000:8000 \
   -v /mnt/user/appdata/walkabout/data:/app/data \
-  -e TZ=Pacific/Auckland \
+  -e TZ=America/New_York \
   --restart unless-stopped \
   ghcr.io/jesposito/walkabout:latest
 ```
@@ -95,7 +95,7 @@ docker run -d \
   --name walkabout \
   -p 8002:8000 \  # External port 8002 -> internal 8000
   -v /mnt/user/appdata/walkabout/data:/app/data \
-  -e TZ=Pacific/Auckland \
+  -e TZ=America/New_York \
   --restart unless-stopped \
   ghcr.io/jesposito/walkabout:latest
 ```
@@ -112,7 +112,7 @@ docker run -d \
   --network your-network \
   -p 8000:8000 \
   -v /mnt/user/appdata/walkabout/data:/app/data \
-  -e TZ=Pacific/Auckland \
+  -e TZ=America/New_York \
   --restart unless-stopped \
   ghcr.io/jesposito/walkabout:latest
 ```
@@ -214,7 +214,7 @@ docker run -d \
   --name walkabout \
   -p 8000:8000 \
   -v /mnt/user/appdata/walkabout/data:/app/data \
-  -e TZ=Pacific/Auckland \
+  -e TZ=America/New_York \
   --restart unless-stopped \
   ghcr.io/jesposito/walkabout:latest
 ```
