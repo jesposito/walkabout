@@ -179,11 +179,15 @@ class TripPlanSearchService:
         logger.info(f"Trip Plan {trip_plan_id}: {len(all_results)} total results before budget filter")
 
         # Filter by budget if set
+        # NOTE: Scraped prices are per-person (Google Flights shows per-person prices).
+        # Budget is assumed to be total for all passengers, so we multiply per-person
+        # price by total passengers before comparing.
         if trip.budget_max:
             budget = Decimal(str(trip.budget_max))
+            total_pax = (trip.travelers_adults or 1) + (trip.travelers_children or 0)
             before_count = len(all_results)
-            all_results = [r for r in all_results if Decimal(str(r.price_nzd)) <= budget]
-            logger.info(f"Trip Plan {trip_plan_id}: Budget filter {budget} {trip.budget_currency}: {before_count} -> {len(all_results)} results")
+            all_results = [r for r in all_results if Decimal(str(r.price_nzd)) * total_pax <= budget]
+            logger.info(f"Trip Plan {trip_plan_id}: Budget filter {budget} {trip.budget_currency} / {total_pax} pax: {before_count} -> {len(all_results)} results")
 
         # Filter obviously bogus prices (international flights under $200 NZD are not real)
         if origins and all_results:

@@ -350,7 +350,7 @@ function TripPlanForm({
 
         <div className="grid grid-cols-2 gap-4">
           <Input
-            label="Budget max"
+            label="Budget max (total for all travelers)"
             type="number"
             value={budgetMax}
             onChange={(e) => setBudgetMax(e.target.value)}
@@ -408,7 +408,8 @@ function TripPlanForm({
 
 // --- Match Card ---
 
-function MatchCard({ match }: { match: TripPlanMatch }) {
+function MatchCard({ match, totalTravelers, currency }: { match: TripPlanMatch; totalTravelers: number; currency: string }) {
+  const estimatedTotal = totalTravelers > 1 ? match.price_nzd * totalTravelers : null
   return (
     <a
       href={match.booking_url || '#'}
@@ -434,7 +435,13 @@ function MatchCard({ match }: { match: TripPlanMatch }) {
             <p className="text-xs text-deck-text-muted capitalize">{(match.source || 'unknown').replace(/_/g, ' ')}</p>
           </div>
           <div className="text-right">
-            <PriceDisplay price={match.price_nzd} size="lg" />
+            <PriceDisplay price={match.price_nzd} currency={currency} size="lg" />
+            <span className="text-xs text-deck-text-muted block">per person</span>
+            {estimatedTotal != null && (
+              <span className="text-xs text-deck-text-secondary block">
+                ~<PriceDisplay price={estimatedTotal} currency={currency} size="sm" /> total
+              </span>
+            )}
             {match.booking_url && (
               <span className="text-xs text-accent-primary mt-1 block">
                 View deal &rarr;
@@ -471,7 +478,7 @@ function TripPlanRouteDisplay({ plan }: { plan: TripPlan }) {
       )}
       {plan.budget_max && (
         <span className="text-deck-text-muted ml-2">
-          &middot; Budget: ${plan.budget_max.toLocaleString()} {plan.budget_currency}
+          &middot; Budget: ${plan.budget_max.toLocaleString()} {plan.budget_currency} total
         </span>
       )}
     </p>
@@ -595,7 +602,12 @@ function TripPlanCard({
             <div className="space-y-2">
               <p className="text-xs text-deck-text-muted uppercase tracking-wide">Best Matches</p>
               {matches.slice(0, 5).map((match) => (
-                <MatchCard key={match.id} match={match} />
+                <MatchCard
+                  key={match.id}
+                  match={match}
+                  totalTravelers={(plan.travelers_adults || 1) + (plan.travelers_children || 0)}
+                  currency={plan.budget_currency || 'NZD'}
+                />
               ))}
             </div>
           )}
