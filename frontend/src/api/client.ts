@@ -78,9 +78,59 @@ export interface FeedHealth {
 }
 
 export interface UserSettings {
-  home_airport: string | null
-  notification_enabled: boolean
-  ntfy_topic: string | null
+  // Location
+  home_airport: string
+  home_airports: string[]
+  home_region: string
+  watched_destinations: string[]
+  watched_regions: string[]
+  preferred_currency: string
+  // Notifications
+  notifications_enabled: boolean
+  notification_provider: string
+  notification_ntfy_url: string | null
+  notification_ntfy_topic: string | null
+  notification_discord_webhook: string | null
+  notification_min_discount_percent: number
+  notification_quiet_hours_start: number | null
+  notification_quiet_hours_end: number | null
+  notification_cooldown_minutes: number
+  timezone: string
+  // Granular toggles
+  notify_deals: boolean
+  notify_trip_matches: boolean
+  notify_route_updates: boolean
+  notify_system: boolean
+  // Deal filters
+  deal_notify_min_rating: number
+  deal_notify_categories: string[]
+  deal_notify_cabin_classes: string[]
+  // Frequency
+  deal_cooldown_minutes: number
+  trip_cooldown_hours: number
+  route_cooldown_hours: number
+  // Digest
+  daily_digest_enabled: boolean
+  daily_digest_hour: number
+  // API keys (masked on read)
+  anthropic_api_key: string | null
+  serpapi_key: string | null
+  skyscanner_api_key: string | null
+  amadeus_client_id: string | null
+  amadeus_client_secret: string | null
+  ai_provider: string | null
+  ai_api_key: string | null
+  ai_ollama_url: string | null
+  ai_model: string | null
+}
+
+export interface AirportSearchResult {
+  code: string
+  name: string
+  city: string
+  country: string
+  region: string
+  label: string
 }
 
 // --- Search Definitions (Watchlist) ---
@@ -162,6 +212,21 @@ export async function fetchSettings(): Promise<UserSettings> {
 
 export async function updateSettings(settings: Partial<UserSettings>): Promise<UserSettings> {
   const { data } = await api.put('/settings/api/settings', settings)
+  return data
+}
+
+// --- Airports ---
+
+export async function searchAirports(query: string, limit = 10): Promise<AirportSearchResult[]> {
+  if (query.length < 2) return []
+  const { data } = await api.get('/settings/api/airports/search', { params: { q: query, limit } })
+  return data.results
+}
+
+// --- Notifications ---
+
+export async function testNotification(): Promise<{ success: boolean; message: string; provider: string }> {
+  const { data } = await api.post('/settings/api/notifications/test')
   return data
 }
 
