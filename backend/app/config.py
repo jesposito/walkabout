@@ -26,12 +26,6 @@ class Settings(BaseSettings):
     min_history_for_analysis: int = 10
     price_anomaly_threshold_percent: float = 300.0
     
-    def model_post_init(self, __context):
-        if self.env == "prod" and self.database_url.startswith("sqlite"):
-            raise ValueError(
-                "Production requires explicit DATABASE_URL (not SQLite)"
-            )
-    
     class Config:
         env_file = ".env"
         extra = "ignore"

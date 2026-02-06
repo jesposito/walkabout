@@ -1,8 +1,5 @@
 """
-APScheduler setup for Phase 1a - Simple scheduling without Celery complexity.
-
-Oracle Review: "Consider defer Celery/Redis initially. A single cron/APScheduler 
-can run 2-6 jobs/day safely."
+APScheduler setup for background job scheduling.
 """
 
 import logging
