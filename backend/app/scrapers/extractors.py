@@ -15,6 +15,7 @@ Principles:
 import re
 import logging
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Optional, List, Dict, Any, Tuple
 from decimal import Decimal
 from playwright.async_api import Page, ElementHandle
@@ -44,6 +45,13 @@ class PriceValidator:
 
     # Suspicious prices that are likely UI elements, not flight prices
     SUSPICIOUS_PRICES = {1, 2, 3, 4, 5, 10, 100, 1000, 10000}
+
+    # Years that appear in date text and get misextracted as prices
+    @staticmethod
+    def _get_year_values() -> set:
+        """Generate set of year values that could appear on the page."""
+        current_year = datetime.now().year
+        return {current_year - 1, current_year, current_year + 1}
 
     @classmethod
     def validate(cls, price: int, context: Dict[str, Any] = None) -> ValidationResult:
@@ -79,6 +87,15 @@ class PriceValidator:
                 value=price,
                 confidence=0.1,
                 reason=f"Price {price} is suspiciously round"
+            )
+
+        # Reject values matching current/adjacent years (date text misextraction)
+        if price in cls._get_year_values():
+            return ValidationResult(
+                is_valid=False,
+                value=price,
+                confidence=0.05,
+                reason=f"Price {price} matches a calendar year — likely date text"
             )
 
         # Calculate confidence based on price range
@@ -1191,6 +1208,7 @@ class RowValidator:
         Checks for inconsistencies like:
         - Nonstop flight with very long duration (>24h)
         - 2+ stops with very short duration (<2h)
+        - Price suspiciously close to duration (scraper confused the two)
         """
         penalty = 0.0
 
@@ -1209,6 +1227,16 @@ class RowValidator:
                 logger.debug(
                     f"Cross-validation: {flight.stops} stops but only "
                     f"{flight.duration_minutes}m seems too short, applying penalty"
+                )
+
+        # Price matches duration — almost certainly a misextraction
+        if (flight.price is not None and flight.duration_minutes is not None
+                and flight.duration_minutes > 0):
+            if abs(flight.price - flight.duration_minutes) <= 5:
+                penalty += 0.5
+                logger.debug(
+                    f"Cross-validation: price ${flight.price} matches duration "
+                    f"{flight.duration_minutes}m — likely misextracted"
                 )
 
         return penalty

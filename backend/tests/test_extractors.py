@@ -169,6 +169,58 @@ class TestPriceValidator:
         assert result.confidence < 0.5
 
 
+class TestPriceValidatorYearRejection:
+    """Tests that calendar years are rejected as prices."""
+
+    def test_current_year_rejected(self):
+        from datetime import datetime
+        year = datetime.now().year
+        result = PriceValidator.validate(year)
+        assert result.is_valid is False
+        assert "calendar year" in result.reason
+
+    def test_next_year_rejected(self):
+        from datetime import datetime
+        year = datetime.now().year + 1
+        result = PriceValidator.validate(year)
+        assert result.is_valid is False
+
+    def test_previous_year_rejected(self):
+        from datetime import datetime
+        year = datetime.now().year - 1
+        result = PriceValidator.validate(year)
+        assert result.is_valid is False
+
+    def test_non_year_number_accepted(self):
+        """2500 is not a year value and should be accepted."""
+        result = PriceValidator.validate(2500)
+        assert result.is_valid is True
+
+
+class TestCrossValidatePriceDurationConfusion:
+    """Tests that price==duration confusion is caught by cross_validate."""
+
+    def test_price_equals_duration_penalized(self):
+        flight = FlightData(price=135, duration_minutes=135)
+        penalty = RowValidator.cross_validate(flight)
+        assert penalty >= 0.5
+
+    def test_price_near_duration_penalized(self):
+        flight = FlightData(price=140, duration_minutes=141)
+        penalty = RowValidator.cross_validate(flight)
+        assert penalty >= 0.5
+
+    def test_price_far_from_duration_no_penalty(self):
+        flight = FlightData(price=500, duration_minutes=135)
+        penalty = RowValidator.cross_validate(flight)
+        assert penalty == 0.0
+
+    def test_no_duration_no_penalty(self):
+        flight = FlightData(price=135)
+        penalty = RowValidator.cross_validate(flight)
+        assert penalty == 0.0
+
+
 class TestBareNumberRegexRemoval:
     """Tests verifying bare number regex is no longer in PRICE_PATTERNS."""
 

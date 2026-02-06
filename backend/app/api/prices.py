@@ -198,11 +198,12 @@ async def get_price_history(
     query = db.query(FlightPrice).filter(
         FlightPrice.search_definition_id == search_id,
         FlightPrice.scraped_at >= cutoff,
+        FlightPrice.is_suspicious == False,
     )
-    
+
     if departure_date:
         query = query.filter(FlightPrice.departure_date == departure_date)
-    
+
     return query.order_by(FlightPrice.scraped_at.desc()).limit(500).all()
 
 
@@ -215,9 +216,9 @@ async def get_price_stats(
     definition = db.query(SearchDefinition).filter(SearchDefinition.id == search_id).first()
     if not definition:
         raise HTTPException(status_code=404, detail="Search definition not found")
-    
+
     cutoff = datetime.utcnow() - timedelta(days=days)
-    
+
     stats = db.query(
         func.min(FlightPrice.price_nzd).label("min_price"),
         func.max(FlightPrice.price_nzd).label("max_price"),
@@ -226,10 +227,12 @@ async def get_price_stats(
     ).filter(
         FlightPrice.search_definition_id == search_id,
         FlightPrice.scraped_at >= cutoff,
+        FlightPrice.is_suspicious == False,
     ).first()
     
     latest = db.query(FlightPrice).filter(
         FlightPrice.search_definition_id == search_id,
+        FlightPrice.is_suspicious == False,
     ).order_by(FlightPrice.scraped_at.desc()).first()
     
     trend = None
@@ -264,6 +267,7 @@ async def get_latest_prices(
     
     return db.query(FlightPrice).filter(
         FlightPrice.search_definition_id == search_id,
+        FlightPrice.is_suspicious == False,
     ).order_by(FlightPrice.scraped_at.desc()).limit(limit).all()
 
 
@@ -276,9 +280,10 @@ async def get_flight_options(
     definition = db.query(SearchDefinition).filter(SearchDefinition.id == search_id).first()
     if not definition:
         raise HTTPException(status_code=404, detail="Search definition not found")
-    
+
     prices = db.query(FlightPrice).filter(
         FlightPrice.search_definition_id == search_id,
+        FlightPrice.is_suspicious == False,
     ).order_by(FlightPrice.price_nzd.asc()).limit(limit * 3).all()
     
     seen_dates = set()
