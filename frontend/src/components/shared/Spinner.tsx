@@ -1,6 +1,7 @@
 interface SpinnerProps {
   size?: 'sm' | 'md' | 'lg'
   className?: string
+  label?: string
 }
 
 const sizeClasses = {
@@ -9,9 +10,11 @@ const sizeClasses = {
   lg: 'h-12 w-12 border-3',
 }
 
-export default function Spinner({ size = 'md', className = '' }: SpinnerProps) {
+export default function Spinner({ size = 'md', className = '', label = 'Loading' }: SpinnerProps) {
   return (
     <div
+      role="status"
+      aria-label={label}
       className={`
         animate-spin rounded-full border-deck-border border-t-accent-primary
         ${sizeClasses[size]} ${className}

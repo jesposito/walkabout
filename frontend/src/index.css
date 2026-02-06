@@ -16,7 +16,7 @@
   /* Text */
   --color-deck-text-primary: 15 23 42;     /* #0f172a slate-900 */
   --color-deck-text-secondary: 71 85 105;  /* #475569 slate-600 */
-  --color-deck-text-muted: 148 163 184;    /* #94a3b8 slate-400 */
+  --color-deck-text-muted: 100 116 139;    /* #64748b slate-500  (4.7:1 on white — WCAG AA) */
 
   /* Deal badges */
   --color-deal-hot: 5 150 105;             /* #059669 emerald-600 */
@@ -26,9 +26,16 @@
   --color-deal-above: 220 38 38;           /* #dc2626 red-600 */
 
   /* Accent (cyan — matching original template) */
-  --color-accent-primary: 8 145 178;       /* #0891b2 cyan-600 */
-  --color-accent-primary-dim: 14 116 144;  /* #0e7490 cyan-700 */
+  --color-accent-primary: 14 116 144;      /* #0e7490 cyan-700  (4.6:1 on white — WCAG AA) */
+  --color-accent-primary-dim: 21 94 117;   /* #155e75 cyan-800 */
   --color-accent-secondary: 5 150 105;     /* #059669 emerald-600 */
+
+  /* Danger */
+  --color-danger: 220 38 38;              /* #dc2626 red-600 */
+  --color-danger-dim: 185 28 28;          /* #b91c1c red-700 */
+
+  /* Focus ring */
+  --ring-color: 14 116 144;              /* matches accent-primary */
 
   /* Chart */
   --chart-line: #0891b2;
@@ -67,6 +74,13 @@
   --color-accent-primary: 34 211 238;      /* #22d3ee cyan-400 */
   --color-accent-primary-dim: 6 182 212;   /* #06b6d4 cyan-500 */
   --color-accent-secondary: 52 211 153;    /* #34d399 emerald-400 */
+
+  /* Danger */
+  --color-danger: 248 113 113;            /* #f87171 red-400 */
+  --color-danger-dim: 239 68 68;          /* #ef4444 red-500 */
+
+  /* Focus ring */
+  --ring-color: 34 211 238;              /* matches accent-primary */
 
   /* Chart */
   --chart-line: #22d3ee;

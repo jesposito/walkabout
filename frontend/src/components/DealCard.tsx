@@ -26,14 +26,14 @@ const SOURCE_LABELS: Record<string, string> = {
   beat_that_flight: 'Beat That Flight',
 }
 
-function ratingToBadgeVariant(label: string | null): 'hot' | 'good' | 'decent' | 'normal' | 'above' {
+function ratingToBadgeVariant(label: string | null): 'hot' | 'good' | 'decent' | 'normal' | 'warning' {
   if (!label) return 'normal'
   const lower = label.toLowerCase()
-  if (lower.includes('suspicious')) return 'above'
+  if (lower.includes('suspicious')) return 'warning'
   if (lower.includes('hot')) return 'hot'
   if (lower.includes('good')) return 'good'
   if (lower.includes('decent')) return 'decent'
-  if (lower.includes('above')) return 'above'
+  if (lower.includes('above')) return 'warning'
   return 'normal'
 }
 
@@ -51,12 +51,12 @@ function formatTimeAgo(dateStr: string | null): string {
   return date.toLocaleDateString('en-NZ', { month: 'short', day: 'numeric' })
 }
 
-function verdictToBadgeVariant(verdict: string): 'hot' | 'good' | 'decent' | 'normal' | 'above' {
+function verdictToBadgeVariant(verdict: string): 'hot' | 'good' | 'decent' | 'normal' | 'warning' {
   switch (verdict) {
     case 'great_deal': return 'hot'
     case 'good_deal': return 'good'
     case 'decent': return 'decent'
-    case 'overpriced': return 'above'
+    case 'overpriced': return 'warning'
     default: return 'normal'
   }
 }

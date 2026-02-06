@@ -3,9 +3,10 @@ interface CardProps {
   interactive?: boolean
   className?: string
   onClick?: () => void
+  'aria-expanded'?: boolean
 }
 
-export default function Card({ children, interactive, className = '', onClick }: CardProps) {
+export default function Card({ children, interactive, className = '', onClick, 'aria-expanded': ariaExpanded }: CardProps) {
   return (
     <div
       className={`
@@ -17,6 +18,7 @@ export default function Card({ children, interactive, className = '', onClick }:
         ${className}
       `}
       onClick={onClick}
+      aria-expanded={ariaExpanded}
     >
       {children}
     </div>

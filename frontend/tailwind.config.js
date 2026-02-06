@@ -30,6 +30,13 @@ export default {
           'primary-dim': 'rgb(var(--color-accent-primary-dim) / <alpha-value>)',
           secondary: 'rgb(var(--color-accent-secondary) / <alpha-value>)',
         },
+        danger: {
+          DEFAULT: 'rgb(var(--color-danger) / <alpha-value>)',
+          dim: 'rgb(var(--color-danger-dim) / <alpha-value>)',
+        },
+        ring: {
+          focus: 'rgb(var(--ring-color) / <alpha-value>)',
+        },
       },
       fontFamily: {
         mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
