@@ -6,13 +6,13 @@ from contextlib import asynccontextmanager
 import logging
 import os
 
-from app.api import routes, prices, health, status, notifications, deals, trips, about, awards
+from app.api import routes, prices, health, status, notifications, deals, trips, about, awards, ai
 from app.api import settings as settings_api
 from app.scheduler import start_scheduler, stop_scheduler
 from app.services.notification import get_global_notifier, shutdown_notifier
 from app.config import get_settings
 from app.database import engine, Base, ensure_sqlite_columns
-from app.models import SearchDefinition, ScrapeHealth, FlightPrice, Route, Alert, Deal, FeedHealth, TripPlan, TripPlanMatch
+from app.models import SearchDefinition, ScrapeHealth, FlightPrice, Route, Alert, Deal, FeedHealth, TripPlan, TripPlanMatch, AIUsageLog
 from app.models.route_market_price import RouteMarketPrice
 from app.models.award import TrackedAwardSearch, AwardObservation
 
@@ -97,6 +97,7 @@ app.include_router(prices.router, prefix="/prices", tags=["prices"])
 app.include_router(notifications.router, prefix="/api", tags=["notifications"])
 app.include_router(about.router, prefix="/about", tags=["about"])
 app.include_router(awards.router, prefix="/awards", tags=["awards"])
+app.include_router(ai.router, prefix="/ai", tags=["ai"])
 
 
 # Health check for monitoring/Docker

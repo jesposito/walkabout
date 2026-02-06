@@ -105,6 +105,15 @@ def ensure_sqlite_columns():
         ("flight_prices", "passengers", "INTEGER"),
         ("flight_prices", "trip_type", "VARCHAR(20)"),
         ("flight_prices", "layover_airports", "VARCHAR(200)"),
+        # AI usage tracking (migration 007)
+        ("ai_usage_log", "endpoint", "VARCHAR(100) NOT NULL DEFAULT ''"),
+        ("ai_usage_log", "provider", "VARCHAR(30) NOT NULL DEFAULT ''"),
+        ("ai_usage_log", "model", "VARCHAR(50) NOT NULL DEFAULT ''"),
+        ("ai_usage_log", "input_tokens_est", "INTEGER NOT NULL DEFAULT 0"),
+        ("ai_usage_log", "output_tokens_est", "INTEGER NOT NULL DEFAULT 0"),
+        ("ai_usage_log", "cost_est_usd", "REAL NOT NULL DEFAULT 0.0"),
+        ("ai_usage_log", "cached", "BOOLEAN NOT NULL DEFAULT 0"),
+        ("ai_usage_log", "prompt_hash", "VARCHAR(64) NOT NULL DEFAULT ''"),
     ]
     
     with engine.connect() as conn:

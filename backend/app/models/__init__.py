@@ -9,10 +9,11 @@ from app.models.user_settings import UserSettings
 from app.models.trip_plan import TripPlan
 from app.models.trip_plan_match import TripPlanMatch, MatchSource
 from app.models.award import TrackedAwardSearch, AwardObservation, AwardProgram
+from app.models.ai_usage import AIUsageLog
 
 __all__ = [
     "SearchDefinition",
-    "FlightPrice", 
+    "FlightPrice",
     "ScrapeHealth",
     "Alert",
     "Route",
@@ -23,11 +24,12 @@ __all__ = [
     "UserSettings",
     "TripPlan",
     "TripType",
-    "CabinClass", 
+    "CabinClass",
     "StopsFilter",
     "TripPlanMatch",
     "MatchSource",
     "TrackedAwardSearch",
     "AwardObservation",
     "AwardProgram",
+    "AIUsageLog",
 ]

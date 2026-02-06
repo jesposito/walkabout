@@ -488,11 +488,13 @@ class PlaywrightSource(PriceSource):
 
 class AIAnalyzer:
     def __init__(self, db=None):
-        self.api_key = get_api_key("anthropic_api_key", db) or ""
-    
+        from app.services.ai_service import AIService
+        self._ai_service = AIService
+        self.db = db
+
     def is_available(self) -> bool:
-        return bool(self.api_key)
-    
+        return self._ai_service.is_configured()
+
     async def analyze_prices(
         self,
         prices: List[PriceResult],
@@ -501,12 +503,12 @@ class AIAnalyzer:
     ) -> Optional[dict]:
         if not self.is_available() or not prices:
             return None
-        
+
         try:
             price_list = [float(p.price) for p in prices]
             min_price = min(price_list)
             avg_price = sum(price_list) / len(price_list)
-            
+
             prompt = f"""Analyze these flight prices for {route}:
 Current prices: {price_list[:5]}
 Lowest: ${min_price:.0f}
@@ -515,30 +517,18 @@ Average: ${avg_price:.0f}
 
 Provide a brief 1-2 sentence recommendation: Is this a good deal? Should they book now or wait?"""
 
-            async with httpx.AsyncClient(timeout=15.0) as client:
-                response = await client.post(
-                    "https://api.anthropic.com/v1/messages",
-                    headers={
-                        "x-api-key": self.api_key,
-                        "anthropic-version": "2023-06-01",
-                        "content-type": "application/json",
-                    },
-                    json={
-                        "model": "claude-3-haiku-20240307",
-                        "max_tokens": 150,
-                        "messages": [{"role": "user", "content": prompt}]
-                    }
-                )
-                response.raise_for_status()
-                data = response.json()
-                
-                recommendation = data.get("content", [{}])[0].get("text", "")
-                
-                return {
-                    "recommendation": recommendation,
-                    "is_good_deal": min_price < (historical_avg * 0.85) if historical_avg else None,
-                    "savings_percent": ((historical_avg - min_price) / historical_avg * 100) if historical_avg else None,
-                }
+            recommendation = await self._ai_service.complete(
+                prompt=prompt,
+                max_tokens=150,
+                db=self.db,
+                endpoint="price_analysis",
+            )
+
+            return {
+                "recommendation": recommendation,
+                "is_good_deal": min_price < (historical_avg * 0.85) if historical_avg else None,
+                "savings_percent": ((historical_avg - min_price) / historical_avg * 100) if historical_avg else None,
+            }
         except Exception as e:
             logger.warning(f"AI analysis failed: {e}")
             return None
