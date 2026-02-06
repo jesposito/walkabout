@@ -2,6 +2,7 @@ from typing import Optional
 from dataclasses import dataclass
 from pathlib import Path
 import csv
+import math
 import re
 import logging
 
@@ -15,6 +16,8 @@ class Airport:
     city: str
     country: str
     region: str
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
 
 AIRPORTS: dict[str, Airport] = {}
@@ -66,6 +69,15 @@ def _infer_region(country: str, timezone: str) -> str:
         if timezone.startswith(tz_prefix):
             return region
     return 'Unknown'
+
+
+def _haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Calculate distance in km between two lat/long points."""
+    R = 6371  # Earth radius in km
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = math.sin(dlat / 2) ** 2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2) ** 2
+    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
 
 FALLBACK_AIRPORTS = [
@@ -152,13 +164,23 @@ def _load_airports():
                 timezone = row[11].strip() if len(row) > 11 else ''
                 
                 region = _infer_region(country, timezone)
-                
+
+                lat = None
+                lon = None
+                try:
+                    lat = float(row[6])
+                    lon = float(row[7])
+                except (ValueError, IndexError):
+                    pass
+
                 airport = Airport(
                     code=iata_code,
                     name=name,
                     city=city,
                     country=country,
                     region=region,
+                    latitude=lat,
+                    longitude=lon,
                 )
                 
                 AIRPORTS[iata_code] = airport
@@ -570,6 +592,33 @@ class AirportService:
     def get_by_country(country: str) -> list[Airport]:
         return [a for a in AIRPORTS.values() if a.country.lower() == country.lower()]
     
+    @staticmethod
+    def get_nearby_airports(code: str, radius_km: float = 500) -> list[tuple['Airport', float]]:
+        """Get airports within radius_km of the given airport code.
+        Returns list of (Airport, distance_km) tuples sorted by distance."""
+        origin = AIRPORTS.get(code.upper())
+        if not origin or origin.latitude is None or origin.longitude is None:
+            return []
+
+        results = []
+        for apt in AIRPORTS.values():
+            if apt.code == origin.code:
+                continue
+            if apt.latitude is None or apt.longitude is None:
+                continue
+            dist = _haversine(origin.latitude, origin.longitude, apt.latitude, apt.longitude)
+            if dist <= radius_km:
+                results.append((apt, dist))
+
+        results.sort(key=lambda x: x[1])
+        return results
+
+    @staticmethod
+    def get_country_for_airport(code: str) -> Optional[str]:
+        """Get the country for an airport code."""
+        apt = AIRPORTS.get(code.upper())
+        return apt.country if apt else None
+
     @staticmethod
     def code_for_city(city: str) -> Optional[str]:
         city_lower = city.lower().strip()

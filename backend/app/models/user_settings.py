@@ -8,14 +8,14 @@ class UserSettings(Base):
     
     id = Column(Integer, primary_key=True, default=1)
     
-    home_airport = Column(String(10), default="AKL")  # Legacy - kept for backward compat
+    home_airport = Column(String(10), default="")  # Legacy - kept for backward compat
     home_airports = Column(JSON, default=list)  # New: list of home airport codes
-    home_region = Column(String(50), default="Oceania")
+    home_region = Column(String(50), default="")
     
     watched_destinations = Column(JSON, default=list)
     watched_regions = Column(JSON, default=list)
     
-    preferred_currency = Column(String(3), default="NZD")
+    preferred_currency = Column(String(3), default="USD")
     
     anthropic_api_key = Column(String(200), nullable=True)
     serpapi_key = Column(String(100), nullable=True)
@@ -60,6 +60,9 @@ class UserSettings(Base):
     daily_digest_enabled = Column(Boolean, default=False)  # Send daily summary instead of instant
     daily_digest_hour = Column(Integer, default=8)         # Hour to send digest (0-23)
 
+    # Feed source control (null = auto-select by region)
+    enabled_feed_sources = Column(JSON, nullable=True)
+
     last_notified_deal_id = Column(Integer, nullable=True)
     
     created_at = Column(DateTime, server_default=func.now())
@@ -71,17 +74,17 @@ class UserSettings(Base):
         if not settings:
             settings = cls(
                 id=1,
-                home_airport="AKL",
-                home_airports=["AKL"],
-                home_region="Oceania",
-                watched_destinations=["SYD", "MEL", "NAN", "RAR", "HNL", "TYO", "SIN"],
-                watched_regions=["Pacific", "Asia", "Australia"],
+                home_airport="",
+                home_airports=[],
+                home_region="",
+                watched_destinations=[],
+                watched_regions=[],
             )
             db.add(settings)
             db.commit()
             db.refresh(settings)
-        elif not settings.home_airports:
-            settings.home_airports = [settings.home_airport] if settings.home_airport else ["AKL"]
+        elif not settings.home_airports and settings.home_airport:
+            settings.home_airports = [settings.home_airport]
             db.commit()
             db.refresh(settings)
         return settings

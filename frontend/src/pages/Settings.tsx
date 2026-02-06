@@ -7,6 +7,7 @@ import {
   testNotification,
   aiReviewSettings,
   aiReviewSettingsEstimate,
+  fetchFeedSources,
   UserSettings,
   AirportSearchResult,
   SettingsReviewResult,
@@ -195,14 +196,14 @@ const REGIONS = [
 ]
 
 const CURRENCIES = [
-  { value: 'NZD', label: 'NZD' },
-  { value: 'AUD', label: 'AUD' },
   { value: 'USD', label: 'USD' },
   { value: 'EUR', label: 'EUR' },
   { value: 'GBP', label: 'GBP' },
+  { value: 'CAD', label: 'CAD' },
+  { value: 'AUD', label: 'AUD' },
+  { value: 'NZD', label: 'NZD' },
   { value: 'SGD', label: 'SGD' },
   { value: 'JPY', label: 'JPY' },
-  { value: 'CAD', label: 'CAD' },
 ]
 
 const PROVIDERS = [
@@ -222,14 +223,17 @@ const AI_PROVIDERS = [
 ]
 
 const TIMEZONES = [
-  { value: 'Pacific/Auckland', label: 'Auckland (NZST)' },
-  { value: 'Australia/Sydney', label: 'Sydney (AEST)' },
+  { value: 'America/New_York', label: 'Eastern (ET)' },
+  { value: 'America/Chicago', label: 'Central (CT)' },
+  { value: 'America/Denver', label: 'Mountain (MT)' },
+  { value: 'America/Los_Angeles', label: 'Pacific (PT)' },
+  { value: 'Pacific/Honolulu', label: 'Hawaii (HT)' },
+  { value: 'Europe/London', label: 'London (GMT)' },
+  { value: 'Europe/Berlin', label: 'Berlin (CET)' },
   { value: 'Asia/Tokyo', label: 'Tokyo (JST)' },
   { value: 'Asia/Singapore', label: 'Singapore (SGT)' },
-  { value: 'Europe/London', label: 'London (GMT)' },
-  { value: 'America/New_York', label: 'New York (EST)' },
-  { value: 'America/Los_Angeles', label: 'Los Angeles (PST)' },
-  { value: 'Europe/Berlin', label: 'Berlin (CET)' },
+  { value: 'Australia/Sydney', label: 'Sydney (AEST)' },
+  { value: 'Pacific/Auckland', label: 'Auckland (NZST)' },
 ]
 
 export default function Settings() {
@@ -320,6 +324,9 @@ export default function Settings() {
           </span>
         }
       />
+
+      {/* Setup Status */}
+      <SetupStatus settings={form} />
 
       {/* Location */}
       <Section title="Location & Destinations" icon="📍" defaultOpen>
@@ -439,7 +446,7 @@ export default function Settings() {
             <div className="grid grid-cols-2 gap-4 pt-2">
               <Select
                 label="Timezone"
-                value={form.timezone || 'Pacific/Auckland'}
+                value={form.timezone || 'America/New_York'}
                 onChange={(v) => update('timezone', v)}
                 options={TIMEZONES}
               />
@@ -532,6 +539,12 @@ export default function Settings() {
         </div>
       </Section>
 
+      {/* Feed Sources */}
+      <FeedSourcesSection
+        enabledSources={form.enabled_feed_sources ?? null}
+        onChange={(sources) => update('enabled_feed_sources', sources)}
+      />
+
       {/* API Keys */}
       <Section title="AI & API Keys" icon="🔑">
         <Select
@@ -608,6 +621,202 @@ export default function Settings() {
       {/* AI Settings Review */}
       <SettingsReview />
     </div>
+  )
+}
+
+// --- Setup Status Checklist ---
+
+interface ReadinessItem {
+  label: string
+  configured: boolean
+  required: boolean
+  description: string
+}
+
+function getReadinessItems(settings: Partial<UserSettings>): ReadinessItem[] {
+  const hasHomeAirports = (settings.home_airports || []).length > 0
+  const hasNotifications = (settings.notification_provider || 'none') !== 'none'
+  const hasSerpapi = Boolean(settings.serpapi_key)
+  const hasAmadeus = Boolean(settings.amadeus_client_id)
+  const hasAI = (settings.ai_provider || 'none') !== 'none' && Boolean(settings.ai_api_key || settings.ai_ollama_url)
+  const hasSeatsAero = Boolean(settings.seats_aero_api_key)
+
+  return [
+    {
+      label: 'Home airport(s)',
+      configured: hasHomeAirports,
+      required: true,
+      description: 'Deal filtering, relevance scoring, trip search origins',
+    },
+    {
+      label: 'Notifications',
+      configured: hasNotifications,
+      required: false,
+      description: 'Push alerts for deals, trip matches, and price drops',
+    },
+    {
+      label: 'SerpAPI key',
+      configured: hasSerpapi,
+      required: false,
+      description: 'Fast Google Flights price lookups',
+    },
+    {
+      label: 'Amadeus keys',
+      configured: hasAmadeus,
+      required: false,
+      description: 'GDS price comparison from airlines',
+    },
+    {
+      label: 'AI provider',
+      configured: hasAI,
+      required: false,
+      description: 'Deal explanations, trip intelligence, settings review',
+    },
+    {
+      label: 'Seats.aero key',
+      configured: hasSeatsAero,
+      required: false,
+      description: 'Award flight tracking with points/miles',
+    },
+  ]
+}
+
+function SetupStatus({ settings }: { settings: Partial<UserSettings> }) {
+  const items = getReadinessItems(settings)
+  const configured = items.filter((i) => i.configured).length
+
+  return (
+    <Card className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-medium text-deck-text-secondary uppercase tracking-wide">
+          Setup Status
+        </h3>
+        <span className="text-xs text-deck-text-muted">
+          {configured} of {items.length} configured
+        </span>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        {items.map((item) => (
+          <div key={item.label} className="flex items-start gap-2 p-2 rounded-lg">
+            <span className={`mt-0.5 ${item.configured ? 'text-deal-hot' : 'text-deck-text-muted'}`}>
+              {item.configured ? '\u2713' : '\u2014'}
+            </span>
+            <div className="min-w-0">
+              <p className={`text-sm ${item.configured ? 'text-deck-text-primary' : 'text-deck-text-muted'}`}>
+                {item.label}
+                {item.required && !item.configured && (
+                  <span className="text-[10px] ml-1 text-yellow-500">Required</span>
+                )}
+              </p>
+              {!item.configured && (
+                <p className="text-xs text-deck-text-muted">{item.description}</p>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </Card>
+  )
+}
+
+// --- Feed Source Labels ---
+
+const FEED_SOURCE_LABELS: Record<string, string> = {
+  secret_flying: 'Secret Flying',
+  omaat: 'OMAAT',
+  the_points_guy: 'The Points Guy',
+  the_flight_deal: 'The Flight Deal',
+  fly4free: 'Fly4Free',
+  travel_free: 'Travel Free',
+  holiday_pirates: 'Holiday Pirates',
+  australian_frequent_flyer: 'Aus Frequent Flyer',
+  point_hacks: 'Point Hacks',
+  ozbargain: 'OzBargain',
+  cheapies_nz: 'Cheapies NZ',
+  beat_that_flight: 'Beat That Flight',
+}
+
+const FEED_REGION_COLORS: Record<string, string> = {
+  Global: 'text-accent-primary',
+  US: 'text-blue-400',
+  'AU/NZ': 'text-green-400',
+  AU: 'text-green-400',
+  NZ: 'text-green-400',
+}
+
+function FeedSourcesSection({
+  enabledSources,
+  onChange,
+}: {
+  enabledSources: string[] | null
+  onChange: (sources: string[] | null) => void
+}) {
+  const { data: feedData } = useQuery({
+    queryKey: ['feed-sources'],
+    queryFn: fetchFeedSources,
+  })
+
+  if (!feedData) return null
+
+  const isAuto = enabledSources === null
+  const currentEnabled = isAuto
+    ? new Set(feedData.sources.filter(s => s.enabled).map(s => s.id))
+    : new Set(enabledSources)
+
+  const toggleSource = (id: string) => {
+    const next = new Set(currentEnabled)
+    if (next.has(id)) {
+      next.delete(id)
+    } else {
+      next.add(id)
+    }
+    onChange(Array.from(next))
+  }
+
+  const resetToAuto = () => {
+    onChange(null as unknown as string[])
+  }
+
+  return (
+    <Section title="Feed Sources" icon="📡">
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-xs text-deck-text-muted">
+          {isAuto
+            ? `Auto-selected for ${feedData.user_region || 'your region'}`
+            : `${currentEnabled.size} of ${feedData.sources.length} feeds enabled`}
+        </p>
+        {!isAuto && (
+          <button
+            type="button"
+            onClick={resetToAuto}
+            className="text-xs text-accent-primary hover:underline"
+          >
+            Reset to recommended
+          </button>
+        )}
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        {feedData.sources.map((source) => (
+          <label
+            key={source.id}
+            className="flex items-center gap-2 p-2 rounded-lg hover:bg-deck-surface-hover cursor-pointer"
+          >
+            <input
+              type="checkbox"
+              checked={currentEnabled.has(source.id)}
+              onChange={() => toggleSource(source.id)}
+              className="rounded border-deck-border text-accent-primary focus:ring-accent-primary/50"
+            />
+            <span className="text-sm text-deck-text-primary">
+              {FEED_SOURCE_LABELS[source.id] || source.id}
+            </span>
+            <span className={`text-[10px] ml-auto ${FEED_REGION_COLORS[source.region] || 'text-deck-text-muted'}`}>
+              {source.region}
+            </span>
+          </label>
+        ))}
+      </div>
+    </Section>
   )
 }
 

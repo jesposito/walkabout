@@ -347,11 +347,12 @@ class NotificationService:
         else:
             priority = "default"
 
-        title = f"✈️ ${price.price_nzd} {search_def.origin}→{search_def.destination}"
+        currency = getattr(search_def, 'currency', 'USD') or 'USD'
+        title = f"✈️ ${price.price_nzd} {currency} {search_def.origin}→{search_def.destination}"
 
         message = f"{search_def.display_name}\n"
         message += f"📅 {dep_date} → {ret_date}\n"
-        message += f"💰 ${price.price_nzd} NZD ({savings_msg})\n"
+        message += f"💰 ${price.price_nzd} {currency} ({savings_msg})\n"
         message += f"📊 {analysis.percentile:.0f}th percentile"
 
         airline_val = getattr(price, 'airline', None)
@@ -384,6 +385,98 @@ class NotificationService:
 
         if sent:
             self._record_notification(route_key)
+
+        return sent
+
+    async def send_trip_plan_match_alert(
+        self,
+        trip_plan,
+        matches: list,
+        user_settings=None,
+    ) -> bool:
+        """Send notification when trip plan matches are found or improved."""
+        if user_settings is None:
+            return False
+
+        if not getattr(user_settings, 'notifications_enabled', False):
+            return False
+
+        if not getattr(user_settings, 'notify_trip_matches', True):
+            return False
+
+        # Per-plan toggle
+        if not getattr(trip_plan, 'notify_on_match', True):
+            return False
+
+        # Quiet hours
+        quiet_start = getattr(user_settings, 'notification_quiet_hours_start', None)
+        quiet_end = getattr(user_settings, 'notification_quiet_hours_end', None)
+        user_tz = getattr(user_settings, 'timezone', 'America/New_York')
+
+        if self._is_quiet_hours(quiet_start, quiet_end, user_tz):
+            return False
+
+        # Cooldown per trip plan
+        cooldown_key = f"trip-{trip_plan.id}-{trip_plan.name}"
+        cooldown_hours = getattr(user_settings, 'trip_cooldown_hours', 6) or 6
+
+        if self._is_in_cooldown(cooldown_key, cooldown_hours * 60):
+            logger.debug(f"Skipping trip notification for '{trip_plan.name}' - in cooldown")
+            return False
+
+        if not matches:
+            return False
+
+        # Find the cheapest match
+        cheapest = min(matches, key=lambda m: float(m.price_nzd))
+
+        currency = getattr(user_settings, 'preferred_currency', 'USD') or 'USD'
+        title = f"✈️ Trip Match: {trip_plan.name}"
+
+        dep_date = cheapest.departure_date.strftime("%b %d") if cheapest.departure_date else "Flexible"
+        ret_date = cheapest.return_date.strftime("%b %d") if getattr(cheapest, 'return_date', None) else "One-way"
+
+        message = f"${cheapest.price_nzd} {currency} {cheapest.origin}→{cheapest.destination}\n"
+        message += f"📅 {dep_date} → {ret_date}\n"
+
+        airline = getattr(cheapest, 'airline', None)
+        stops = getattr(cheapest, 'stops', None)
+        if airline:
+            stops_text = "nonstop" if stops == 0 else f"{stops} stop{'s' if stops != 1 else ''}"
+            message += f"✈️ {airline}, {stops_text}\n"
+
+        if len(matches) > 1:
+            message += f"📋 {len(matches)} total matches found"
+
+        click_url = getattr(cheapest, 'booking_url', None) or f"{settings.base_url}/trips"
+
+        tags = ["airplane", "money_with_wings"]
+        priority = "high" if float(cheapest.price_nzd) < (trip_plan.budget_max or float('inf')) * 0.7 else "default"
+
+        sent, provider = await self._send(
+            title=title,
+            message=message,
+            priority=priority,
+            tags=tags,
+            click_url=click_url,
+            user_settings=user_settings,
+        )
+
+        notification = Notification(
+            id=str(uuid.uuid4()),
+            title=title,
+            message=message,
+            priority=priority,
+            timestamp=datetime.now(timezone.utc),
+            type="trip_match",
+            tags=tags,
+            sent=sent,
+            provider=provider,
+        )
+        self.history.add(notification)
+
+        if sent:
+            self._record_notification(cooldown_key)
 
         return sent
 

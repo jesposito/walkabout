@@ -45,7 +45,7 @@ export default function PriceChart({ searchId }: PriceChartProps) {
     .slice()
     .reverse()
     .map((p) => ({
-      date: new Date(p.scraped_at).toLocaleDateString('en-NZ', {
+      date: new Date(p.scraped_at).toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric'
       }),

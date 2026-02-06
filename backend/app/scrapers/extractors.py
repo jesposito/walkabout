@@ -985,6 +985,29 @@ class RowExtractor:
         # that have price-context indicators (ARIA labels, class names)
         return await cls._extract_price_emergency(row)
 
+    # Month names used to detect date context around bare numbers
+    _MONTH_PATTERN = re.compile(
+        r'\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?'
+        r'|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?'
+        r'|Dec(?:ember)?)\b',
+        re.IGNORECASE,
+    )
+
+    @classmethod
+    def _looks_like_year_in_date(cls, number: int, text: str) -> bool:
+        """
+        Return True if `number` appears to be a calendar year inside date text.
+
+        A bare number in the 2020-2035 range is likely a year when the
+        surrounding text contains month names (e.g. "Mar 15, 2026").
+        Legitimate prices at $2026 would have been caught earlier by
+        currency-symbol patterns ($, NZ$, etc.) and never reach the
+        emergency fallback.
+        """
+        if not (2020 <= number <= 2035):
+            return False
+        return bool(cls._MONTH_PATTERN.search(text))
+
     @classmethod
     async def _extract_price_emergency(cls, row: ElementHandle) -> Optional[ExtractionResult]:
         """
@@ -1007,12 +1030,22 @@ class RowExtractor:
                 for element in elements[:5]:
                     text = await element.inner_text() or ""
                     aria = await element.get_attribute("aria-label") or ""
-                    combined = f"{text} {aria}".replace(',', '')
+                    combined = f"{text} {aria}"
+                    combined_clean = combined.replace(',', '')
 
-                    match = re.search(pattern, combined)
+                    match = re.search(pattern, combined_clean)
                     if match:
                         try:
                             price = int(match.group(1))
+
+                            # Skip bare numbers that look like years in date text
+                            if cls._looks_like_year_in_date(price, combined):
+                                logger.debug(
+                                    f"Emergency fallback: skipping {price} — "
+                                    f"looks like year in date context: {combined[:80]}"
+                                )
+                                continue
+
                             validation = PriceValidator.validate(price)
                             if validation.is_valid:
                                 return ExtractionResult(
@@ -1191,6 +1224,7 @@ class RowValidator:
         Checks for inconsistencies like:
         - Nonstop flight with very long duration (>24h)
         - 2+ stops with very short duration (<2h)
+        - Price suspiciously close to duration (scraper confused the two)
         """
         penalty = 0.0
 
@@ -1209,6 +1243,16 @@ class RowValidator:
                 logger.debug(
                     f"Cross-validation: {flight.stops} stops but only "
                     f"{flight.duration_minutes}m seems too short, applying penalty"
+                )
+
+        # Price matches duration — almost certainly a misextraction
+        if (flight.price is not None and flight.duration_minutes is not None
+                and flight.duration_minutes > 0):
+            if abs(flight.price - flight.duration_minutes) <= 5:
+                penalty += 0.5
+                logger.debug(
+                    f"Cross-validation: price ${flight.price} matches duration "
+                    f"{flight.duration_minutes}m — likely misextracted"
                 )
 
         return penalty
@@ -1284,43 +1328,55 @@ class UnifiedExtractor:
         Strategy 2 (fallback): Page-level extraction - extract flat lists and
         zip by index. Low correlation confidence (the old buggy approach).
 
-        During initial deployment, runs both strategies and logs comparison
-        metrics before returning per-row results.
+        Results are deduplicated by (price, stops, duration) to handle
+        Google Flights rendering the same flights in multiple DOM sections.
         """
         # Strategy 1: Per-row extraction
         per_row_flights = await cls._extract_per_row(page)
 
-        # Strategy 2: Page-level fallback (always run for comparison logging)
-        page_level_flights = await cls._extract_page_level(page)
+        # Strategy 2: Page-level fallback (only if per-row found nothing)
+        if not per_row_flights:
+            page_level_flights = await cls._extract_page_level(page)
 
-        # Log comparison between strategies
-        if per_row_flights and page_level_flights:
-            per_row_prices = sorted(f.price for f in per_row_flights if f.price)
-            page_level_prices = sorted(f.price for f in page_level_flights if f.price)
+            if page_level_flights:
+                logger.warning(
+                    f"Per-row extraction returned no results, falling back to page-level: "
+                    f"{len(page_level_flights)} flights"
+                )
+                return cls._deduplicate(page_level_flights)
+
+            logger.warning("No flights extracted by any strategy")
+            return []
+
+        logger.info(
+            f"Using per-row extraction: {len(per_row_flights)} flights "
+            f"(avg confidence {sum(f.overall_confidence for f in per_row_flights) / len(per_row_flights):.2f})"
+        )
+        return cls._deduplicate(per_row_flights)
+
+    @staticmethod
+    def _deduplicate(flights: List[FlightData]) -> List[FlightData]:
+        """Remove duplicate flights based on (price, stops, duration).
+
+        Google Flights renders the same flight cards in multiple DOM sections
+        (e.g. 'Best flights' and 'Other departing flights', or hidden tabs).
+        The row locator picks up all of them, causing exact duplicates.
+        Keeps the first occurrence (typically higher confidence).
+        """
+        seen = set()
+        unique = []
+        for flight in flights:
+            key = (flight.price, flight.stops, flight.duration_minutes)
+            if key not in seen:
+                seen.add(key)
+                unique.append(flight)
+
+        if len(unique) < len(flights):
             logger.info(
-                f"Extraction comparison - Per-row: {len(per_row_flights)} flights "
-                f"(prices: {per_row_prices[:5]}), "
-                f"Page-level: {len(page_level_flights)} flights "
-                f"(prices: {page_level_prices[:5]})"
+                f"Deduplicated {len(flights)} flights to {len(unique)} unique entries"
             )
 
-        # Use per-row results if available, otherwise fall back to page-level
-        if per_row_flights:
-            logger.info(
-                f"Using per-row extraction: {len(per_row_flights)} flights "
-                f"(avg confidence {sum(f.overall_confidence for f in per_row_flights) / len(per_row_flights):.2f})"
-            )
-            return per_row_flights
-
-        if page_level_flights:
-            logger.warning(
-                f"Per-row extraction returned no results, falling back to page-level: "
-                f"{len(page_level_flights)} flights"
-            )
-            return page_level_flights
-
-        logger.warning("No flights extracted by any strategy")
-        return []
+        return unique
 
     @classmethod
     async def _extract_per_row(cls, page: Page) -> List[FlightData]:

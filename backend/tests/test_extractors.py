@@ -169,6 +169,107 @@ class TestPriceValidator:
         assert result.confidence < 0.5
 
 
+class TestYearInDateDetection:
+    """Tests that bare numbers matching years are rejected when in date context."""
+
+    def test_year_with_month_name_detected(self):
+        from app.scrapers.extractors import RowExtractor
+        assert RowExtractor._looks_like_year_in_date(2026, "Departs Mar 15, 2026") is True
+
+    def test_year_with_full_month_detected(self):
+        from app.scrapers.extractors import RowExtractor
+        assert RowExtractor._looks_like_year_in_date(2026, "January 2026") is True
+
+    def test_year_without_month_not_detected(self):
+        """Bare '2026' without date context could be a price."""
+        from app.scrapers.extractors import RowExtractor
+        assert RowExtractor._looks_like_year_in_date(2026, "Total: 2026") is False
+
+    def test_non_year_number_not_detected(self):
+        from app.scrapers.extractors import RowExtractor
+        assert RowExtractor._looks_like_year_in_date(500, "Mar 15, 500") is False
+
+    def test_price_2026_accepted_by_validator(self):
+        """$2026 is a valid price — the year check is contextual, not in PriceValidator."""
+        result = PriceValidator.validate(2026)
+        assert result.is_valid is True
+
+
+class TestCrossValidatePriceDurationConfusion:
+    """Tests that price==duration confusion is caught by cross_validate."""
+
+    def test_price_equals_duration_penalized(self):
+        flight = FlightData(price=135, duration_minutes=135)
+        penalty = RowValidator.cross_validate(flight)
+        assert penalty >= 0.5
+
+    def test_price_near_duration_penalized(self):
+        flight = FlightData(price=140, duration_minutes=141)
+        penalty = RowValidator.cross_validate(flight)
+        assert penalty >= 0.5
+
+    def test_price_far_from_duration_no_penalty(self):
+        flight = FlightData(price=500, duration_minutes=135)
+        penalty = RowValidator.cross_validate(flight)
+        assert penalty == 0.0
+
+    def test_no_duration_no_penalty(self):
+        flight = FlightData(price=135)
+        penalty = RowValidator.cross_validate(flight)
+        assert penalty == 0.0
+
+
+class TestDeduplication:
+    """Tests for UnifiedExtractor._deduplicate()."""
+
+    def test_exact_duplicates_removed(self):
+        """Identical flights should be deduplicated to one."""
+        from app.scrapers.extractors import UnifiedExtractor
+        flights = [
+            FlightData(price=500, stops=1, duration_minutes=600),
+            FlightData(price=500, stops=1, duration_minutes=600),
+        ]
+        result = UnifiedExtractor._deduplicate(flights)
+        assert len(result) == 1
+        assert result[0].price == 500
+
+    def test_different_prices_kept(self):
+        """Flights with different prices should all be kept."""
+        from app.scrapers.extractors import UnifiedExtractor
+        flights = [
+            FlightData(price=500, stops=1, duration_minutes=600),
+            FlightData(price=600, stops=1, duration_minutes=600),
+            FlightData(price=700, stops=0, duration_minutes=400),
+        ]
+        result = UnifiedExtractor._deduplicate(flights)
+        assert len(result) == 3
+
+    def test_same_price_different_duration_kept(self):
+        """Same price but different duration = different flight."""
+        from app.scrapers.extractors import UnifiedExtractor
+        flights = [
+            FlightData(price=500, stops=0, duration_minutes=225),
+            FlightData(price=500, stops=0, duration_minutes=215),
+        ]
+        result = UnifiedExtractor._deduplicate(flights)
+        assert len(result) == 2
+
+    def test_full_batch_dedup(self):
+        """Simulates Google Flights double-rendering: exact 2x batch."""
+        from app.scrapers.extractors import UnifiedExtractor
+        batch = [
+            FlightData(price=1260, stops=0, duration_minutes=225),
+            FlightData(price=1288, stops=0, duration_minutes=225),
+            FlightData(price=1300, stops=0, duration_minutes=230),
+        ]
+        duplicated = batch + [
+            FlightData(price=f.price, stops=f.stops, duration_minutes=f.duration_minutes)
+            for f in batch
+        ]
+        result = UnifiedExtractor._deduplicate(duplicated)
+        assert len(result) == 3
+
+
 class TestBareNumberRegexRemoval:
     """Tests verifying bare number regex is no longer in PRICE_PATTERNS."""
 

@@ -87,7 +87,7 @@ class ScrapingService:
                 infants_on_lap=getattr(search_def, 'infants_on_lap', 0) or 0,
                 cabin_class=search_def.cabin_class.value if search_def.cabin_class else "economy",
                 stops_filter=search_def.stops_filter.value if search_def.stops_filter else "any",
-                currency=getattr(search_def, 'currency', 'NZD') or 'NZD',
+                currency=getattr(search_def, 'currency', 'USD') or 'USD',
                 carry_on_bags=getattr(search_def, 'carry_on_bags', 0) or 0,
                 checked_bags=getattr(search_def, 'checked_bags', 0) or 0,
             )

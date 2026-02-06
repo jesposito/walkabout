@@ -222,11 +222,14 @@ async def check_scrape_health():
 async def rate_deals_job():
     """Rate unrated deals by fetching market prices."""
     logger.info("Starting scheduled deal rating job")
-    
+
     db = SessionLocal()
-    
+
     try:
-        rated_count = await rate_unrated_deals(db, limit=10)
+        from app.models.user_settings import UserSettings
+        settings = UserSettings.get_or_create(db)
+        currency = settings.preferred_currency or "USD"
+        rated_count = await rate_unrated_deals(db, limit=10, preferred_currency=currency)
         logger.info(f"Deal rating complete: {rated_count} deals rated")
     except Exception as e:
         logger.error(f"Error in deal rating job: {e}")

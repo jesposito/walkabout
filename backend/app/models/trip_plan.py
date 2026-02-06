@@ -23,7 +23,7 @@ class TripPlan(Base):
     trip_duration_max = Column(Integer, default=14)
     
     budget_max = Column(Integer, nullable=True)
-    budget_currency = Column(String(3), default="NZD")
+    budget_currency = Column(String(3), default="USD")
     
     travelers_adults = Column(Integer, default=2)
     travelers_children = Column(Integer, default=0)

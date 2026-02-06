@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-02-06
+
+### Added
+- USD as default currency for new installs (all NZD defaults replaced)
+- Trip plan match push notifications via ntfy and Discord
+- Feed source control: enable/disable individual RSS feeds with region-aware defaults
+- Proximity-based relevance engine using haversine distance (replaces hardcoded NZ/AU sets)
+- History page with price charts, stats panels, and cheapest flight options
+- Settings readiness checklist showing configuration status and feature descriptions
+- Airport lat/long data support from airports.dat
+- `get_nearby_airports()` for proximity-based airport lookups
+- `/api/feed-sources` endpoint with region metadata
+- Major US hub airports added to relevance (ATL, DFW, DEN, EWR, IAH, PHX, MSP, DTW, CLT, MCO)
+
+### Changed
+- Default currency: NZD → USD across all models and services
+- Default locale: en-NZ → en-US for Intl formatting and Playwright
+- Default home airport: AKL → empty (forces user configuration)
+- Default home region: Oceania → empty
+- Deal rating now uses user's preferred_currency for market price comparison (was hardcoded NZD)
+- Notification prices now display in search definition's currency
+- Trip plan searches use user's preferred_currency
+- Feed ingestion filtered by user's enabled feed sources
+- Relevance tiers: local → nearby (500km) → domestic (same country) → hub → other
+- Settings page: currencies and timezones reordered for US users first
+- PriceChart locale changed from en-NZ to en-US
+
+### Fixed
+- Deal rating bug: hardcoded `market_currency = "NZD"` caused incorrect price comparisons for non-NZD users
+- Trip plan matches were stored silently with no push notification
+- US airports (outside major hubs) had no relevance scoring
+
 ## [0.5.0] - 2026-02-06
 
 ### Added
@@ -137,7 +169,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - SQLite foreign key constraints now enabled (fixes trip plan match contamination)
 
-[Unreleased]: https://github.com/jesposito/walkabout/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/jesposito/walkabout/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/jesposito/walkabout/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/jesposito/walkabout/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/jesposito/walkabout/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/jesposito/walkabout/compare/v0.2.0...v0.3.0

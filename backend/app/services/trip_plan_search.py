@@ -146,7 +146,7 @@ class TripPlanSearchService:
                     adults=trip.travelers_adults or 2,
                     children=trip.travelers_children or 0,
                     cabin_class=getattr(trip, 'cabin_class', 'economy') or 'economy',
-                    currency=getattr(trip, 'currency', 'NZD') or 'NZD',
+                    currency=settings.preferred_currency or 'USD',
                 )
                 
                 if result.is_success and result.prices:
@@ -189,7 +189,7 @@ class TripPlanSearchService:
             all_results = [r for r in all_results if Decimal(str(r.price_nzd)) * total_pax <= budget]
             logger.info(f"Trip Plan {trip_plan_id}: Budget filter {budget} {trip.budget_currency} / {total_pax} pax: {before_count} -> {len(all_results)} results")
 
-        # Filter obviously bogus prices (international flights under $200 NZD are not real)
+        # Filter obviously bogus prices (international flights under $200 are not real)
         if origins and all_results:
             before_sanity = len(all_results)
             all_results = [r for r in all_results if self._passes_sanity_check(r)]
@@ -199,8 +199,21 @@ class TripPlanSearchService:
         top_results = self._keep_top_per_destination(all_results, top_n=3)
         logger.info(f"Trip Plan {trip_plan_id}: {len(top_results)} results after top-per-destination filter")
 
-        self._persist_matches(trip, top_results, max_matches=10)
-        
+        total, added, updated = self._persist_matches(trip, top_results, max_matches=10)
+
+        # Send push notification when new matches found or prices improved
+        if added > 0 or updated > 0:
+            try:
+                from app.services.notification import get_global_notifier
+                notifier = get_global_notifier()
+                await notifier.send_trip_plan_match_alert(
+                    trip_plan=trip,
+                    matches=top_results,
+                    user_settings=settings,
+                )
+            except Exception as e:
+                logger.warning(f"Trip {trip_plan_id}: Failed to send notification: {e}")
+
         duration_ms = int((datetime.utcnow() - start_time).total_seconds() * 1000)
         
         return TripPlanSearchSummary(
@@ -344,7 +357,7 @@ class TripPlanSearchService:
         price = float(result.price_nzd)
         if price <= 0:
             return False
-        # International flights under $200 NZD are almost certainly extraction errors
+        # International flights under $200 are almost certainly extraction errors
         if result.origin[:1] != result.destination[:1] and price < 200:
             return False
         # Nonstop with 0 duration is bogus
@@ -395,13 +408,14 @@ class TripPlanSearchService:
         trip: TripPlan,
         results: list[TripPlanSearchResult],
         max_matches: int = 10
-    ) -> int:
+    ) -> tuple[int, int, int]:
+        """Persist matches. Returns (total, added, updated) counts."""
         today = date.today()
         logger.info(f"Trip {trip.id}: Persisting {len(results)} results (max_matches={max_matches})")
 
         if not results:
             logger.info(f"Trip {trip.id}: No results to persist")
-            return 0
+            return (0, 0, 0)
 
         try:
             expired = self.db.query(TripPlanMatch).filter(
@@ -481,11 +495,11 @@ class TripPlanSearchService:
 
             self.db.commit()
             logger.info(f"Trip {trip.id}: Scored and kept {flight_count} matches")
-            return flight_count
+            return (flight_count, added, updated)
         except Exception as e:
             logger.error(f"Trip {trip.id}: Failed to persist matches: {e}", exc_info=True)
             self.db.rollback()
-            return 0
+            return (0, 0, 0)
     
     async def close(self):
         await self.scraper.close()

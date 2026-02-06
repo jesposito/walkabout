@@ -127,6 +127,8 @@ export interface UserSettings {
   amadeus_client_id: string | null
   amadeus_client_secret: string | null
   seats_aero_api_key: string | null
+  // Feed sources
+  enabled_feed_sources: string[] | null
   ai_provider: string | null
   ai_api_key: string | null
   ai_ollama_url: string | null
@@ -231,6 +233,24 @@ export async function fetchFeedHealth(): Promise<FeedHealth[]> {
 }
 
 // --- Settings ---
+
+export interface FeedSource {
+  id: string
+  region: string
+  enabled: boolean
+  is_default: boolean
+}
+
+export interface FeedSourcesResponse {
+  sources: FeedSource[]
+  auto_mode: boolean
+  user_region: string
+}
+
+export async function fetchFeedSources(): Promise<FeedSourcesResponse> {
+  const { data } = await api.get('/settings/api/feed-sources')
+  return data
+}
 
 export async function fetchSettings(): Promise<UserSettings> {
   const { data } = await api.get('/settings/api/settings')

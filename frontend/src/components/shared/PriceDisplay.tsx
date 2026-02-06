@@ -26,12 +26,12 @@ const trendColors = {
 
 export default function PriceDisplay({
   price,
-  currency = 'NZD',
+  currency = 'USD',
   size = 'md',
   trend,
   className = '',
 }: PriceDisplayProps) {
-  const formatted = new Intl.NumberFormat('en-NZ', {
+  const formatted = new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency,
     minimumFractionDigits: 0,
