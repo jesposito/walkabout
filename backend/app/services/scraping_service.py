@@ -232,24 +232,11 @@ class ScrapingService:
         threshold_pct = settings.price_anomaly_threshold_percent
 
         # Store flights that pass the storage threshold
-        from datetime import datetime as _dt
-        _year_values = {_dt.now().year - 1, _dt.now().year, _dt.now().year + 1}
-
         for flight_result, confidence, method in storable:
             # Determine if this price is suspicious
-            price_val = float(flight_result.price_nzd)
             is_suspicious = False
-
-            # Absolute guard: year values are never valid prices
-            if int(price_val) in _year_values:
-                is_suspicious = True
-                logger.warning(
-                    f"Anomaly guard: ${price_val:.0f} matches calendar year "
-                    f"for {search_def.display_name}"
-                )
-
-            # Relative guard: compare against historical median
-            if not is_suspicious and median_price is not None:
+            if median_price is not None:
+                price_val = float(flight_result.price_nzd)
                 if price_val > median_price * (1 + threshold_pct / 100):
                     is_suspicious = True
                     logger.warning(

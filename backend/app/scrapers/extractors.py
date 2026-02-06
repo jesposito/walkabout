@@ -46,13 +46,6 @@ class PriceValidator:
     # Suspicious prices that are likely UI elements, not flight prices
     SUSPICIOUS_PRICES = {1, 2, 3, 4, 5, 10, 100, 1000, 10000}
 
-    # Years that appear in date text and get misextracted as prices
-    @staticmethod
-    def _get_year_values() -> set:
-        """Generate set of year values that could appear on the page."""
-        current_year = datetime.now().year
-        return {current_year - 1, current_year, current_year + 1}
-
     @classmethod
     def validate(cls, price: int, context: Dict[str, Any] = None) -> ValidationResult:
         """
@@ -87,15 +80,6 @@ class PriceValidator:
                 value=price,
                 confidence=0.1,
                 reason=f"Price {price} is suspiciously round"
-            )
-
-        # Reject values matching current/adjacent years (date text misextraction)
-        if price in cls._get_year_values():
-            return ValidationResult(
-                is_valid=False,
-                value=price,
-                confidence=0.05,
-                reason=f"Price {price} matches a calendar year — likely date text"
             )
 
         # Calculate confidence based on price range
@@ -1002,6 +986,29 @@ class RowExtractor:
         # that have price-context indicators (ARIA labels, class names)
         return await cls._extract_price_emergency(row)
 
+    # Month names used to detect date context around bare numbers
+    _MONTH_PATTERN = re.compile(
+        r'\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?'
+        r'|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?'
+        r'|Dec(?:ember)?)\b',
+        re.IGNORECASE,
+    )
+
+    @classmethod
+    def _looks_like_year_in_date(cls, number: int, text: str) -> bool:
+        """
+        Return True if `number` appears to be a calendar year inside date text.
+
+        A bare number in the 2020-2035 range is likely a year when the
+        surrounding text contains month names (e.g. "Mar 15, 2026").
+        Legitimate prices at $2026 would have been caught earlier by
+        currency-symbol patterns ($, NZ$, etc.) and never reach the
+        emergency fallback.
+        """
+        if not (2020 <= number <= 2035):
+            return False
+        return bool(cls._MONTH_PATTERN.search(text))
+
     @classmethod
     async def _extract_price_emergency(cls, row: ElementHandle) -> Optional[ExtractionResult]:
         """
@@ -1024,12 +1031,22 @@ class RowExtractor:
                 for element in elements[:5]:
                     text = await element.inner_text() or ""
                     aria = await element.get_attribute("aria-label") or ""
-                    combined = f"{text} {aria}".replace(',', '')
+                    combined = f"{text} {aria}"
+                    combined_clean = combined.replace(',', '')
 
-                    match = re.search(pattern, combined)
+                    match = re.search(pattern, combined_clean)
                     if match:
                         try:
                             price = int(match.group(1))
+
+                            # Skip bare numbers that look like years in date text
+                            if cls._looks_like_year_in_date(price, combined):
+                                logger.debug(
+                                    f"Emergency fallback: skipping {price} — "
+                                    f"looks like year in date context: {combined[:80]}"
+                                )
+                                continue
+
                             validation = PriceValidator.validate(price)
                             if validation.is_valid:
                                 return ExtractionResult(

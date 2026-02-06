@@ -169,31 +169,29 @@ class TestPriceValidator:
         assert result.confidence < 0.5
 
 
-class TestPriceValidatorYearRejection:
-    """Tests that calendar years are rejected as prices."""
+class TestYearInDateDetection:
+    """Tests that bare numbers matching years are rejected when in date context."""
 
-    def test_current_year_rejected(self):
-        from datetime import datetime
-        year = datetime.now().year
-        result = PriceValidator.validate(year)
-        assert result.is_valid is False
-        assert "calendar year" in result.reason
+    def test_year_with_month_name_detected(self):
+        from app.scrapers.extractors import RowExtractor
+        assert RowExtractor._looks_like_year_in_date(2026, "Departs Mar 15, 2026") is True
 
-    def test_next_year_rejected(self):
-        from datetime import datetime
-        year = datetime.now().year + 1
-        result = PriceValidator.validate(year)
-        assert result.is_valid is False
+    def test_year_with_full_month_detected(self):
+        from app.scrapers.extractors import RowExtractor
+        assert RowExtractor._looks_like_year_in_date(2026, "January 2026") is True
 
-    def test_previous_year_rejected(self):
-        from datetime import datetime
-        year = datetime.now().year - 1
-        result = PriceValidator.validate(year)
-        assert result.is_valid is False
+    def test_year_without_month_not_detected(self):
+        """Bare '2026' without date context could be a price."""
+        from app.scrapers.extractors import RowExtractor
+        assert RowExtractor._looks_like_year_in_date(2026, "Total: 2026") is False
 
-    def test_non_year_number_accepted(self):
-        """2500 is not a year value and should be accepted."""
-        result = PriceValidator.validate(2500)
+    def test_non_year_number_not_detected(self):
+        from app.scrapers.extractors import RowExtractor
+        assert RowExtractor._looks_like_year_in_date(500, "Mar 15, 500") is False
+
+    def test_price_2026_accepted_by_validator(self):
+        """$2026 is a valid price — the year check is contextual, not in PriceValidator."""
+        result = PriceValidator.validate(2026)
         assert result.is_valid is True
 
 
