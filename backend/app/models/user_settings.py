@@ -22,6 +22,7 @@ class UserSettings(Base):
     skyscanner_api_key = Column(String(100), nullable=True)
     amadeus_client_id = Column(String(100), nullable=True)
     amadeus_client_secret = Column(String(100), nullable=True)
+    seats_aero_api_key = Column(String(200), nullable=True)
     
     ai_provider = Column(String(20), default="none")
     ai_api_key = Column(String(200), nullable=True)

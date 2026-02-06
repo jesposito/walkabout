@@ -95,6 +95,8 @@ def ensure_sqlite_columns():
         ("user_settings", "route_cooldown_hours", "INTEGER DEFAULT 24"),
         ("user_settings", "daily_digest_enabled", "BOOLEAN DEFAULT 0"),
         ("user_settings", "daily_digest_hour", "INTEGER DEFAULT 8"),
+        # Seats.aero API key
+        ("user_settings", "seats_aero_api_key", "VARCHAR(200)"),
         # Price anomaly guard (migration 005)
         ("flight_prices", "confidence", "REAL"),
         ("flight_prices", "is_suspicious", "BOOLEAN DEFAULT 0"),

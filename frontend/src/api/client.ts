@@ -126,6 +126,7 @@ export interface UserSettings {
   skyscanner_api_key: string | null
   amadeus_client_id: string | null
   amadeus_client_secret: string | null
+  seats_aero_api_key: string | null
   ai_provider: string | null
   ai_api_key: string | null
   ai_ollama_url: string | null

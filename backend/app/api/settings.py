@@ -64,6 +64,7 @@ class SettingsUpdate(BaseModel):
     skyscanner_api_key: Optional[str] = None
     amadeus_client_id: Optional[str] = None
     amadeus_client_secret: Optional[str] = None
+    seats_aero_api_key: Optional[str] = None
     ai_provider: Optional[str] = None
     ai_api_key: Optional[str] = None
     ai_ollama_url: Optional[str] = None
@@ -109,6 +110,7 @@ class SettingsResponse(BaseModel):
     skyscanner_api_key: Optional[str] = None
     amadeus_client_id: Optional[str] = None
     amadeus_client_secret: Optional[str] = None
+    seats_aero_api_key: Optional[str] = None
     ai_provider: Optional[str] = None
     ai_api_key: Optional[str] = None
     ai_ollama_url: Optional[str] = None
@@ -162,6 +164,7 @@ def build_settings_response(settings: UserSettings) -> SettingsResponse:
         skyscanner_api_key=mask_api_key(settings.skyscanner_api_key),
         amadeus_client_id=mask_api_key(settings.amadeus_client_id),
         amadeus_client_secret=mask_api_key(settings.amadeus_client_secret),
+        seats_aero_api_key=mask_api_key(settings.seats_aero_api_key),
         ai_provider=settings.ai_provider or "none",
         ai_api_key=mask_api_key(settings.ai_api_key),
         ai_ollama_url=settings.ai_ollama_url,
@@ -228,7 +231,9 @@ async def update_settings(
         settings.amadeus_client_id = updates.amadeus_client_id.strip() if updates.amadeus_client_id else None
     if updates.amadeus_client_secret is not None and not updates.amadeus_client_secret.startswith("*"):
         settings.amadeus_client_secret = updates.amadeus_client_secret.strip() if updates.amadeus_client_secret else None
-    
+    if updates.seats_aero_api_key is not None and not updates.seats_aero_api_key.startswith("*"):
+        settings.seats_aero_api_key = updates.seats_aero_api_key.strip() if updates.seats_aero_api_key else None
+
     if updates.ai_provider is not None:
         settings.ai_provider = updates.ai_provider.lower().strip()
     if updates.ai_api_key is not None and not updates.ai_api_key.startswith("*"):

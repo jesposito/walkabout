@@ -570,6 +570,13 @@ export default function Settings() {
         <div className="border-t border-deck-border pt-4 space-y-4">
           <p className="text-xs text-deck-text-muted uppercase tracking-wide">Data source API keys</p>
           <Input
+            label="Seats.aero API Key (Award Flights)"
+            type="password"
+            value={form.seats_aero_api_key || ''}
+            onChange={(e) => update('seats_aero_api_key', e.target.value)}
+            placeholder="Partner API key"
+          />
+          <Input
             label="SerpAPI Key (Google Flights)"
             type="password"
             value={form.serpapi_key || ''}
@@ -582,6 +589,20 @@ export default function Settings() {
             value={form.skyscanner_api_key || ''}
             onChange={(e) => update('skyscanner_api_key', e.target.value)}
             placeholder="API key"
+          />
+          <Input
+            label="Amadeus Client ID"
+            type="password"
+            value={form.amadeus_client_id || ''}
+            onChange={(e) => update('amadeus_client_id', e.target.value)}
+            placeholder="Client ID"
+          />
+          <Input
+            label="Amadeus Client Secret"
+            type="password"
+            value={form.amadeus_client_secret || ''}
+            onChange={(e) => update('amadeus_client_secret', e.target.value)}
+            placeholder="Client secret"
           />
         </div>
       </Section>

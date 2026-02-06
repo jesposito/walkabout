@@ -183,8 +183,9 @@ class AwardPoller:
 
     @staticmethod
     def _get_api_key(settings: UserSettings) -> Optional[str]:
-        """Get Seats.aero API key from settings. Could be stored as a dedicated field or via ai_api_key."""
-        # Check for dedicated seats_aero key in settings (future)
-        # For now, check if there's a key in the settings or environment
-        import os
-        return os.environ.get("SEATS_AERO_API_KEY")
+        """Get Seats.aero API key from settings, with env var fallback."""
+        if settings.seats_aero_api_key:
+            return settings.seats_aero_api_key
+        from app.config import get_settings
+        key = get_settings().seats_aero_api_key
+        return key if key else None
