@@ -36,7 +36,10 @@ class TripPlan(Base):
     check_frequency_hours = Column(Integer, default=12)
     
     notes = Column(Text, nullable=True)
-    
+
+    # Multi-city legs: [{origin, destination, date_start, date_end, order}]
+    legs = Column(JSON, default=list)
+
     match_count = Column(Integer, default=0)
     last_match_at = Column(DateTime, nullable=True)
     

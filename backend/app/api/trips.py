@@ -29,11 +29,20 @@ template_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templat
 templates = Jinja2Templates(directory=template_dir)
 
 
+class TripLegSchema(BaseModel):
+    origin: str
+    destination: str
+    date_start: Optional[str] = None
+    date_end: Optional[str] = None
+    order: int = 0
+
+
 class TripPlanCreate(BaseModel):
     name: str
     origins: list[str] = []
     destinations: list[str] = []
     destination_types: list[str] = []
+    legs: list[TripLegSchema] = []
     available_from: Optional[datetime] = None
     available_to: Optional[datetime] = None
     trip_duration_min: int = 3
@@ -70,8 +79,9 @@ class TripPlanResponse(BaseModel):
     last_match_at: Optional[datetime]
     notes: Optional[str]
     created_at: datetime
+    legs: list[dict] = []
     search_in_progress: bool = False
-    
+
     class Config:
         from_attributes = True
 
@@ -142,11 +152,18 @@ async def create_trip(
     if invalid_dests:
         raise HTTPException(status_code=400, detail=f"Invalid destination(s): {'; '.join(invalid_dests)}")
     
+    legs_data = [
+        {"origin": leg.origin.upper(), "destination": leg.destination.upper(),
+         "date_start": leg.date_start, "date_end": leg.date_end, "order": leg.order}
+        for leg in trip.legs
+    ]
+
     new_trip = TripPlan(
         name=trip.name,
         origins=[o.upper() for o in trip.origins],
         destinations=[d.upper() for d in trip.destinations],
         destination_types=trip.destination_types,
+        legs=legs_data,
         available_from=trip.available_from,
         available_to=trip.available_to,
         trip_duration_min=trip.trip_duration_min,
@@ -320,6 +337,11 @@ async def update_trip(trip_id: int, trip_data: TripPlanCreate, db: Session = Dep
     trip.origins = [o.upper() for o in trip_data.origins]
     trip.destinations = [d.upper() for d in trip_data.destinations]
     trip.destination_types = trip_data.destination_types
+    trip.legs = [
+        {"origin": leg.origin.upper(), "destination": leg.destination.upper(),
+         "date_start": leg.date_start, "date_end": leg.date_end, "order": leg.order}
+        for leg in trip_data.legs
+    ]
     trip.available_from = trip_data.available_from
     trip.available_to = trip_data.available_to
     trip.trip_duration_min = trip_data.trip_duration_min

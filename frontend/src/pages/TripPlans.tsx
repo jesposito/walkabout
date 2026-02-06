@@ -11,6 +11,7 @@ import {
   TripPlan,
   TripPlanCreate,
   TripPlanMatch,
+  TripLeg,
   AirportSearchResult,
 } from '../api/client'
 import { PageHeader, Card, Button, Input, EmptyState, Spinner, Badge, PriceDisplay } from '../components/shared'
@@ -114,6 +115,8 @@ function AddTripPlanForm({
   const [name, setName] = useState('')
   const [origins, setOrigins] = useState<string[]>([])
   const [destinations, setDestinations] = useState<string[]>([])
+  const [legs, setLegs] = useState<TripLeg[]>([])
+  const [showLegs, setShowLegs] = useState(false)
   const [budgetMax, setBudgetMax] = useState('')
   const [budgetCurrency, setBudgetCurrency] = useState('NZD')
   const [adults, setAdults] = useState(2)
@@ -124,7 +127,24 @@ function AddTripPlanForm({
   const [availableTo, setAvailableTo] = useState('')
   const [notes, setNotes] = useState('')
 
-  const canSubmit = name.trim().length > 0 && (origins.length > 0 || destinations.length > 0)
+  const addLeg = () => {
+    setLegs([...legs, { origin: '', destination: '', date_start: null, date_end: null, order: legs.length }])
+  }
+  const updateLeg = (idx: number, field: keyof TripLeg, value: string | null) => {
+    setLegs(legs.map((l, i) => i === idx ? { ...l, [field]: value } : l))
+  }
+  const removeLeg = (idx: number) => {
+    setLegs(legs.filter((_, i) => i !== idx).map((l, i) => ({ ...l, order: i })))
+  }
+  const moveLeg = (idx: number, dir: -1 | 1) => {
+    const newLegs = [...legs]
+    const swapIdx = idx + dir
+    if (swapIdx < 0 || swapIdx >= newLegs.length) return
+    ;[newLegs[idx], newLegs[swapIdx]] = [newLegs[swapIdx], newLegs[idx]]
+    setLegs(newLegs.map((l, i) => ({ ...l, order: i })))
+  }
+
+  const canSubmit = name.trim().length > 0 && (origins.length > 0 || destinations.length > 0 || legs.length > 0)
 
   return (
     <Card>
@@ -139,10 +159,78 @@ function AddTripPlanForm({
           placeholder="e.g. Japan Cherry Blossom 2026"
         />
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <MultiAirportPicker label="From (origins)" selected={origins} onChange={setOrigins} />
-          <MultiAirportPicker label="To (destinations)" selected={destinations} onChange={setDestinations} />
-        </div>
+        {!showLegs ? (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <MultiAirportPicker label="From (origins)" selected={origins} onChange={setOrigins} />
+              <MultiAirportPicker label="To (destinations)" selected={destinations} onChange={setDestinations} />
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowLegs(true)}
+              className="text-xs text-accent-primary hover:underline"
+            >
+              + Add multi-city legs instead
+            </button>
+          </>
+        ) : (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="block text-sm text-deck-text-secondary">Multi-City Legs</label>
+              <button
+                type="button"
+                onClick={() => { setShowLegs(false); setLegs([]) }}
+                className="text-xs text-deck-text-muted hover:text-deck-text-secondary"
+              >
+                Switch to simple mode
+              </button>
+            </div>
+            {legs.map((leg, idx) => (
+              <div key={idx} className="flex items-start gap-2 p-3 rounded-lg bg-deck-bg border border-deck-border">
+                <span className="text-xs text-deck-text-muted mt-2.5 w-5 shrink-0">{idx + 1}.</span>
+                <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <input
+                    type="text"
+                    value={leg.origin}
+                    onChange={(e) => updateLeg(idx, 'origin', e.target.value.toUpperCase())}
+                    placeholder="From"
+                    maxLength={3}
+                    className="px-2 py-1.5 text-sm rounded bg-deck-surface border border-deck-border text-deck-text-primary font-mono focus:outline-none focus:ring-1 focus:ring-accent-primary/50"
+                  />
+                  <input
+                    type="text"
+                    value={leg.destination}
+                    onChange={(e) => updateLeg(idx, 'destination', e.target.value.toUpperCase())}
+                    placeholder="To"
+                    maxLength={3}
+                    className="px-2 py-1.5 text-sm rounded bg-deck-surface border border-deck-border text-deck-text-primary font-mono focus:outline-none focus:ring-1 focus:ring-accent-primary/50"
+                  />
+                  <input
+                    type="date"
+                    value={leg.date_start || ''}
+                    onChange={(e) => updateLeg(idx, 'date_start', e.target.value || null)}
+                    className="px-2 py-1.5 text-xs rounded bg-deck-surface border border-deck-border text-deck-text-primary focus:outline-none focus:ring-1 focus:ring-accent-primary/50"
+                  />
+                  <input
+                    type="date"
+                    value={leg.date_end || ''}
+                    onChange={(e) => updateLeg(idx, 'date_end', e.target.value || null)}
+                    className="px-2 py-1.5 text-xs rounded bg-deck-surface border border-deck-border text-deck-text-primary focus:outline-none focus:ring-1 focus:ring-accent-primary/50"
+                  />
+                </div>
+                <div className="flex flex-col gap-0.5 shrink-0">
+                  <button type="button" onClick={() => moveLeg(idx, -1)} disabled={idx === 0}
+                    className="text-xs text-deck-text-muted hover:text-deck-text-primary disabled:opacity-30">&uarr;</button>
+                  <button type="button" onClick={() => moveLeg(idx, 1)} disabled={idx === legs.length - 1}
+                    className="text-xs text-deck-text-muted hover:text-deck-text-primary disabled:opacity-30">&darr;</button>
+                </div>
+                <button type="button" onClick={() => removeLeg(idx)}
+                  className="text-xs text-deal-above hover:text-deal-above mt-1.5 shrink-0">&times;</button>
+              </div>
+            ))}
+            <Button variant="secondary" size="sm" onClick={addLeg}>+ Add leg</Button>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div>
@@ -227,8 +315,9 @@ function AddTripPlanForm({
           <Button
             onClick={() => onSubmit({
               name: name.trim(),
-              origins,
-              destinations,
+              origins: showLegs ? [] : origins,
+              destinations: showLegs ? [] : destinations,
+              legs: showLegs ? legs.filter((l) => l.origin && l.destination) : [],
               travelers_adults: adults,
               travelers_children: children,
               trip_duration_min: durationMin,
@@ -314,9 +403,9 @@ function TripPlanCard({
     enabled: expanded,
   })
 
-  const handleSearch = async () => {
+  const handleSearch = () => {
     setSearching(true)
-    await onSearch(plan.id)
+    onSearch(plan.id)
     setTimeout(() => setSearching(false), 3000)
   }
 
@@ -387,6 +476,32 @@ function TripPlanCard({
               </div>
             )}
           </div>
+
+          {/* Multi-city Legs */}
+          {plan.legs && plan.legs.length > 0 && (
+            <div>
+              <p className="text-xs text-deck-text-muted uppercase tracking-wide mb-1">Legs</p>
+              <div className="space-y-1">
+                {plan.legs
+                  .sort((a, b) => a.order - b.order)
+                  .map((leg, i) => (
+                    <div key={i} className="flex items-center gap-2 text-sm">
+                      <span className="text-deck-text-muted text-xs w-4">{i + 1}.</span>
+                      <span className="font-mono text-deck-text-primary">{leg.origin}</span>
+                      <span className="text-deck-text-muted">&rarr;</span>
+                      <span className="font-mono text-deck-text-primary">{leg.destination}</span>
+                      {(leg.date_start || leg.date_end) && (
+                        <span className="text-deck-text-muted text-xs ml-1">
+                          {leg.date_start && new Date(leg.date_start).toLocaleDateString('en-NZ', { month: 'short', day: 'numeric' })}
+                          {leg.date_start && leg.date_end && ' - '}
+                          {leg.date_end && new Date(leg.date_end).toLocaleDateString('en-NZ', { month: 'short', day: 'numeric' })}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
 
           {/* Matches */}
           {matches && matches.length > 0 && (

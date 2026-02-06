@@ -232,12 +232,21 @@ export async function testNotification(): Promise<{ success: boolean; message: s
 
 // --- Trip Plans ---
 
+export interface TripLeg {
+  origin: string
+  destination: string
+  date_start: string | null
+  date_end: string | null
+  order: number
+}
+
 export interface TripPlan {
   id: number
   name: string
   origins: string[]
   destinations: string[]
   destination_types: string[]
+  legs: TripLeg[]
   available_from: string | null
   available_to: string | null
   trip_duration_min: number
@@ -262,6 +271,7 @@ export interface TripPlanCreate {
   origins?: string[]
   destinations?: string[]
   destination_types?: string[]
+  legs?: TripLeg[]
   available_from?: string | null
   available_to?: string | null
   trip_duration_min?: number

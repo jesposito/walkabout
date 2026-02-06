@@ -59,6 +59,7 @@ def ensure_sqlite_columns():
         ("deals", "rating_label", "VARCHAR(20)"),
         ("deals", "market_price_source", "VARCHAR(50)"),
         ("deals", "market_price_checked_at", "DATETIME"),
+        ("trip_plans", "legs", "TEXT DEFAULT '[]'"),
         ("trip_plans", "search_in_progress", "BOOLEAN DEFAULT 0"),
         ("trip_plans", "search_started_at", "DATETIME"),
         ("trip_plans", "last_search_at", "DATETIME"),
