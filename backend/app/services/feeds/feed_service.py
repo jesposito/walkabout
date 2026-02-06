@@ -17,6 +17,43 @@ from app.config import get_settings
 
 logger = logging.getLogger(__name__)
 
+# Region metadata for each feed source
+FEED_REGIONS: dict[str, str] = {
+    "secret_flying": "Global",
+    "omaat": "Global",
+    "the_points_guy": "US",
+    "the_flight_deal": "US",
+    "fly4free": "Global",
+    "travel_free": "Global",
+    "holiday_pirates": "Global",
+    "australian_frequent_flyer": "AU/NZ",
+    "point_hacks": "AU/NZ",
+    "ozbargain": "AU",
+    "cheapies_nz": "NZ",
+    "beat_that_flight": "AU",
+}
+
+# Default feeds by user region
+REGION_DEFAULT_FEEDS: dict[str, list[str]] = {
+    "North America": [
+        "secret_flying", "omaat", "the_points_guy", "the_flight_deal",
+        "fly4free", "travel_free", "holiday_pirates",
+    ],
+    "Oceania": [
+        "secret_flying", "omaat", "australian_frequent_flyer", "point_hacks",
+        "ozbargain", "cheapies_nz", "beat_that_flight",
+        "fly4free", "travel_free",
+    ],
+}
+
+
+def get_default_feeds_for_region(region: str) -> list[str]:
+    """Get default feed source values for a user's region."""
+    if region in REGION_DEFAULT_FEEDS:
+        return REGION_DEFAULT_FEEDS[region]
+    # For unknown/unset regions, enable all feeds
+    return list(FEED_REGIONS.keys())
+
 
 class FeedService:
     
@@ -40,9 +77,20 @@ class FeedService:
         return None
     
     def get_enabled_sources(self) -> list[DealSource]:
-        custom = list(self.CUSTOM_PARSERS.keys())
-        generic = list(FEED_CONFIGS.keys())
-        return custom + generic
+        """Get feed sources filtered by user's enabled_feed_sources setting."""
+        all_sources = list(self.CUSTOM_PARSERS.keys()) + list(FEED_CONFIGS.keys())
+
+        user_settings = UserSettings.get_or_create(self.db)
+        enabled = user_settings.enabled_feed_sources
+
+        if enabled is None:
+            # Auto-select by region
+            region = user_settings.home_region or ""
+            defaults = get_default_feeds_for_region(region)
+            return [s for s in all_sources if s.value in defaults]
+
+        # User has explicitly chosen feeds
+        return [s for s in all_sources if s.value in enabled]
     
     async def ingest_all_feeds(self) -> dict[str, dict]:
         results = {}

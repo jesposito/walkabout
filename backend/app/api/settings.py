@@ -58,6 +58,8 @@ class SettingsUpdate(BaseModel):
     # Daily digest
     daily_digest_enabled: Optional[bool] = None
     daily_digest_hour: Optional[int] = None
+    # Feed source control
+    enabled_feed_sources: Optional[list[str]] = None
     # API keys
     anthropic_api_key: Optional[str] = None
     serpapi_key: Optional[str] = None
@@ -104,6 +106,8 @@ class SettingsResponse(BaseModel):
     # Daily digest
     daily_digest_enabled: bool = False
     daily_digest_hour: int = 8
+    # Feed source control
+    enabled_feed_sources: Optional[list[str]] = None
     # API keys
     anthropic_api_key: Optional[str] = None
     serpapi_key: Optional[str] = None
@@ -158,6 +162,8 @@ def build_settings_response(settings: UserSettings) -> SettingsResponse:
         # Daily digest
         daily_digest_enabled=settings.daily_digest_enabled if settings.daily_digest_enabled is not None else False,
         daily_digest_hour=settings.daily_digest_hour or 8,
+        # Feed source control
+        enabled_feed_sources=settings.enabled_feed_sources,
         # API keys
         anthropic_api_key=mask_api_key(settings.anthropic_api_key),
         serpapi_key=mask_api_key(settings.serpapi_key),
@@ -275,6 +281,11 @@ async def update_settings(
     if updates.daily_digest_hour is not None:
         settings.daily_digest_hour = max(0, min(23, updates.daily_digest_hour))
 
+    # Feed source control
+    if updates.enabled_feed_sources is not None:
+        # Empty list means "reset to auto" (null), non-empty means explicit selection
+        settings.enabled_feed_sources = updates.enabled_feed_sources if updates.enabled_feed_sources else None
+
     db.commit()
     db.refresh(settings)
 
@@ -340,6 +351,33 @@ async def test_notification(db: Session = Depends(get_db)):
     success, message = await notifier.send_test_notification(user_settings=settings)
     provider = settings.notification_provider or "none"
     return {"success": success, "message": message, "provider": provider}
+
+
+@router.get("/api/feed-sources")
+async def get_feed_sources(db: Session = Depends(get_db)):
+    """Get all available feed sources with region metadata and enabled status."""
+    from app.services.feeds.feed_service import FEED_REGIONS, get_default_feeds_for_region
+    from app.services.feeds.feed_service import FeedService
+
+    settings = UserSettings.get_or_create(db)
+    svc = FeedService(db)
+    enabled_sources = {s.value for s in svc.get_enabled_sources()}
+    region = settings.home_region or ""
+    defaults = get_default_feeds_for_region(region)
+
+    sources = []
+    for source_value, feed_region in FEED_REGIONS.items():
+        sources.append({
+            "id": source_value,
+            "region": feed_region,
+            "enabled": source_value in enabled_sources,
+            "is_default": source_value in defaults,
+        })
+    return {
+        "sources": sources,
+        "auto_mode": settings.enabled_feed_sources is None,
+        "user_region": region,
+    }
 
 
 @router.get("/api/airports/search")

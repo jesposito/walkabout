@@ -7,6 +7,7 @@ import {
   testNotification,
   aiReviewSettings,
   aiReviewSettingsEstimate,
+  fetchFeedSources,
   UserSettings,
   AirportSearchResult,
   SettingsReviewResult,
@@ -535,6 +536,12 @@ export default function Settings() {
         </div>
       </Section>
 
+      {/* Feed Sources */}
+      <FeedSourcesSection
+        enabledSources={form.enabled_feed_sources ?? null}
+        onChange={(sources) => update('enabled_feed_sources', sources)}
+      />
+
       {/* API Keys */}
       <Section title="AI & API Keys" icon="🔑">
         <Select
@@ -611,6 +618,107 @@ export default function Settings() {
       {/* AI Settings Review */}
       <SettingsReview />
     </div>
+  )
+}
+
+// --- Feed Source Labels ---
+
+const FEED_SOURCE_LABELS: Record<string, string> = {
+  secret_flying: 'Secret Flying',
+  omaat: 'OMAAT',
+  the_points_guy: 'The Points Guy',
+  the_flight_deal: 'The Flight Deal',
+  fly4free: 'Fly4Free',
+  travel_free: 'Travel Free',
+  holiday_pirates: 'Holiday Pirates',
+  australian_frequent_flyer: 'Aus Frequent Flyer',
+  point_hacks: 'Point Hacks',
+  ozbargain: 'OzBargain',
+  cheapies_nz: 'Cheapies NZ',
+  beat_that_flight: 'Beat That Flight',
+}
+
+const FEED_REGION_COLORS: Record<string, string> = {
+  Global: 'text-accent-primary',
+  US: 'text-blue-400',
+  'AU/NZ': 'text-green-400',
+  AU: 'text-green-400',
+  NZ: 'text-green-400',
+}
+
+function FeedSourcesSection({
+  enabledSources,
+  onChange,
+}: {
+  enabledSources: string[] | null
+  onChange: (sources: string[] | null) => void
+}) {
+  const { data: feedData } = useQuery({
+    queryKey: ['feed-sources'],
+    queryFn: fetchFeedSources,
+  })
+
+  if (!feedData) return null
+
+  const isAuto = enabledSources === null
+  const currentEnabled = isAuto
+    ? new Set(feedData.sources.filter(s => s.enabled).map(s => s.id))
+    : new Set(enabledSources)
+
+  const toggleSource = (id: string) => {
+    const next = new Set(currentEnabled)
+    if (next.has(id)) {
+      next.delete(id)
+    } else {
+      next.add(id)
+    }
+    onChange(Array.from(next))
+  }
+
+  const resetToAuto = () => {
+    onChange(null as unknown as string[])
+  }
+
+  return (
+    <Section title="Feed Sources" icon="📡">
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-xs text-deck-text-muted">
+          {isAuto
+            ? `Auto-selected for ${feedData.user_region || 'your region'}`
+            : `${currentEnabled.size} of ${feedData.sources.length} feeds enabled`}
+        </p>
+        {!isAuto && (
+          <button
+            type="button"
+            onClick={resetToAuto}
+            className="text-xs text-accent-primary hover:underline"
+          >
+            Reset to recommended
+          </button>
+        )}
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        {feedData.sources.map((source) => (
+          <label
+            key={source.id}
+            className="flex items-center gap-2 p-2 rounded-lg hover:bg-deck-surface-hover cursor-pointer"
+          >
+            <input
+              type="checkbox"
+              checked={currentEnabled.has(source.id)}
+              onChange={() => toggleSource(source.id)}
+              className="rounded border-deck-border text-accent-primary focus:ring-accent-primary/50"
+            />
+            <span className="text-sm text-deck-text-primary">
+              {FEED_SOURCE_LABELS[source.id] || source.id}
+            </span>
+            <span className={`text-[10px] ml-auto ${FEED_REGION_COLORS[source.region] || 'text-deck-text-muted'}`}>
+              {source.region}
+            </span>
+          </label>
+        ))}
+      </div>
+    </Section>
   )
 }
 

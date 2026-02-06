@@ -60,6 +60,9 @@ class UserSettings(Base):
     daily_digest_enabled = Column(Boolean, default=False)  # Send daily summary instead of instant
     daily_digest_hour = Column(Integer, default=8)         # Hour to send digest (0-23)
 
+    # Feed source control (null = auto-select by region)
+    enabled_feed_sources = Column(JSON, nullable=True)
+
     last_notified_deal_id = Column(Integer, nullable=True)
     
     created_at = Column(DateTime, server_default=func.now())
