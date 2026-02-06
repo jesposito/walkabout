@@ -450,6 +450,34 @@ export async function fetchLatestAwardResults(id: number): Promise<{ observation
   return data
 }
 
+// --- System Status ---
+
+export interface DataSourceInfo {
+  available: boolean
+  type: string
+}
+
+export interface SystemStatus {
+  data_sources: Record<string, DataSourceInfo>
+  ai_enabled: boolean
+  total_sources_available: number
+  scheduler: {
+    running: boolean
+    next_run: string | null
+    job_count: number
+  }
+  stats: {
+    active_monitors: number
+    recent_prices_7d: number
+    last_scrape_at: string | null
+  }
+}
+
+export async function fetchSystemStatus(): Promise<SystemStatus> {
+  const { data } = await api.get('/api/status/sources')
+  return data
+}
+
 // --- Legacy compatibility ---
 
 export async function fetchRoutes(): Promise<SearchDefinition[]> {

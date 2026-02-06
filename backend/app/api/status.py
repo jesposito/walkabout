@@ -224,6 +224,50 @@ async def health_check(db: Session = Depends(get_db)):
         raise HTTPException(status_code=503, detail=f"Health check failed: {str(e)}")
 
 
+@router.get("/api/status/sources")
+async def data_sources_status(db: Session = Depends(get_db)):
+    """Return data source availability, scheduler status, and feed health for the dashboard."""
+    from app.services.flight_price_fetcher import FlightPriceFetcher
+
+    # Data sources
+    fetcher = FlightPriceFetcher()
+    sources = fetcher.get_status()
+
+    # Scheduler
+    scheduler = get_scheduler_status()
+
+    # Last scrape time (most recent price across all definitions)
+    last_price = db.query(FlightPrice.scraped_at).order_by(
+        FlightPrice.scraped_at.desc()
+    ).first()
+
+    # Active monitors count
+    active_monitors = db.query(SearchDefinition).filter(
+        SearchDefinition.is_active == True
+    ).count()
+
+    # Total prices in last 7 days
+    recent_prices = db.query(FlightPrice).filter(
+        FlightPrice.scraped_at >= datetime.utcnow() - timedelta(days=7)
+    ).count()
+
+    return {
+        "data_sources": sources["sources"],
+        "ai_enabled": sources["ai_enabled"],
+        "total_sources_available": sources["total_available"],
+        "scheduler": {
+            "running": scheduler["running"],
+            "next_run": scheduler["next_run"],
+            "job_count": len(scheduler["jobs"]),
+        },
+        "stats": {
+            "active_monitors": active_monitors,
+            "recent_prices_7d": recent_prices,
+            "last_scrape_at": last_price[0].isoformat() if last_price else None,
+        },
+    }
+
+
 @router.get("/search/{search_definition_id}/prices")
 async def view_prices(search_definition_id: int, db: Session = Depends(get_db)):
     """Simple JSON view of recent prices for a search definition."""

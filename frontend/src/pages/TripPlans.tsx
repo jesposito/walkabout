@@ -361,7 +361,7 @@ function MatchCard({ match }: { match: TripPlanMatch }) {
           {match.airline && (
             <p className="text-xs text-deck-text-muted">{match.airline} &middot; {match.stops === 0 ? 'Nonstop' : `${match.stops} stop${match.stops > 1 ? 's' : ''}`}</p>
           )}
-          <p className="text-xs text-deck-text-muted capitalize">{match.source.replace(/_/g, ' ')}</p>
+          <p className="text-xs text-deck-text-muted capitalize">{(match.source || 'unknown').replace(/_/g, ' ')}</p>
         </div>
         <div className="text-right">
           <PriceDisplay price={match.price_nzd} size="lg" />

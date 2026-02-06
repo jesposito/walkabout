@@ -53,13 +53,11 @@ function ThemeToggle({ isDark, onToggle }: { isDark: boolean; onToggle: () => vo
       title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
     >
       {isDark ? (
-        // Sun icon
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
         </svg>
       ) : (
-        // Moon icon
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
         </svg>
       )}
@@ -72,11 +70,11 @@ export default function AppShell() {
 
   return (
     <div className="min-h-screen bg-deck-bg flex flex-col md:flex-row">
-      {/* Desktop sidebar */}
-      <aside className="hidden md:flex md:flex-col md:w-56 bg-deck-surface border-r border-deck-border">
+      {/* Desktop sidebar - frosted glass */}
+      <aside className="hidden md:flex md:flex-col md:w-56 bg-deck-surface/80 backdrop-blur-md border-r border-deck-border">
         <div className="p-4 border-b border-deck-border flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-semibold text-accent-primary font-mono tracking-wide">
+            <h1 className="text-lg font-bold font-mono tracking-wide bg-gradient-to-r from-cyan-500 to-blue-600 bg-clip-text text-transparent">
               Walkabout
             </h1>
             <p className="text-xs text-deck-text-muted mt-0.5">Flight Deal Monitor</p>
@@ -91,9 +89,9 @@ export default function AppShell() {
               to={item.to}
               end={item.to === '/'}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-150 ${
                   isActive
-                    ? 'bg-accent-primary/10 text-accent-primary'
+                    ? 'bg-accent-primary/10 text-accent-primary shadow-sm shadow-accent-primary/10'
                     : 'text-deck-text-secondary hover:text-deck-text-primary hover:bg-deck-surface-hover'
                 }`
               }
@@ -112,8 +110,8 @@ export default function AppShell() {
         </div>
       </main>
 
-      {/* Mobile bottom tab bar */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 bg-deck-surface border-t border-deck-border z-50">
+      {/* Mobile bottom tab bar - frosted glass */}
+      <nav className="md:hidden fixed bottom-0 inset-x-0 bg-deck-surface/80 backdrop-blur-md border-t border-deck-border z-50">
         <div className="flex justify-around">
           {navItems.slice(0, 5).map((item) => (
             <NavLink
@@ -132,7 +130,6 @@ export default function AppShell() {
               <span className="text-[10px] mt-0.5">{item.label}</span>
             </NavLink>
           ))}
-          {/* More menu for remaining items on mobile */}
           <NavLink
             to="/settings"
             className={({ isActive }) =>

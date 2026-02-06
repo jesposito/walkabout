@@ -1,9 +1,9 @@
+/* Font imports - must precede @tailwind directives */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* Font imports */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 /* ===== Light Theme (default) ===== */
 :root {
@@ -25,23 +25,27 @@
   --color-deal-normal: 107 114 128;        /* #6b7280 gray-500 */
   --color-deal-above: 220 38 38;           /* #dc2626 red-600 */
 
-  /* Accent */
-  --color-accent-primary: 5 150 105;       /* #059669 emerald-600 */
-  --color-accent-primary-dim: 4 120 87;    /* #047857 emerald-700 */
-  --color-accent-secondary: 8 145 178;     /* #0891b2 cyan-600 */
+  /* Accent (cyan — matching original template) */
+  --color-accent-primary: 8 145 178;       /* #0891b2 cyan-600 */
+  --color-accent-primary-dim: 14 116 144;  /* #0e7490 cyan-700 */
+  --color-accent-secondary: 5 150 105;     /* #059669 emerald-600 */
 
-  /* Chart (for inline JS usage) */
-  --chart-line: #059669;
+  /* Chart */
+  --chart-line: #0891b2;
   --chart-grid: #e2e8f0;
   --chart-tick: #64748b;
   --chart-tooltip-bg: #ffffff;
   --chart-tooltip-border: #e2e8f0;
   --chart-tooltip-text: #0f172a;
+
+  /* Card shadows */
+  --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.08), 0 1px 2px -1px rgba(0, 0, 0, 0.08);
+  --card-shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.08);
 }
 
 /* ===== Dark Theme ===== */
 .dark {
-  /* Surfaces (slate-based, matching old Jinja2 template) */
+  /* Surfaces (slate-based, matching original Jinja2 template) */
   --color-deck-bg: 15 23 42;              /* #0f172a slate-900 */
   --color-deck-surface: 30 41 59;          /* #1e293b slate-800 */
   --color-deck-surface-hover: 51 65 85;    /* #334155 slate-700 */
@@ -59,24 +63,33 @@
   --color-deal-normal: 148 163 184;        /* #94a3b8 slate-400 */
   --color-deal-above: 248 113 113;         /* #f87171 red-400 */
 
-  /* Accent */
-  --color-accent-primary: 52 211 153;      /* #34d399 emerald-400 */
-  --color-accent-primary-dim: 16 185 129;  /* #10b981 emerald-500 */
-  --color-accent-secondary: 34 211 238;    /* #22d3ee cyan-400 */
+  /* Accent (cyan — matching original template) */
+  --color-accent-primary: 34 211 238;      /* #22d3ee cyan-400 */
+  --color-accent-primary-dim: 6 182 212;   /* #06b6d4 cyan-500 */
+  --color-accent-secondary: 52 211 153;    /* #34d399 emerald-400 */
 
   /* Chart */
-  --chart-line: #34d399;
+  --chart-line: #22d3ee;
   --chart-grid: #334155;
   --chart-tick: #94a3b8;
   --chart-tooltip-bg: #1e293b;
   --chart-tooltip-border: #334155;
   --chart-tooltip-text: #f1f5f9;
+
+  /* Card shadows (more prominent on dark) */
+  --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px -1px rgba(0, 0, 0, 0.3);
+  --card-shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.2);
 }
 
 /* Base body */
 body {
   @apply bg-deck-bg text-deck-text-primary font-sans antialiased;
   transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Selection colors */
+::selection {
+  background: rgb(var(--color-accent-primary) / 0.3);
 }
 
 /* Scrollbar styling */
