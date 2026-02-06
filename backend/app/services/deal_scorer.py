@@ -55,13 +55,26 @@ class DealScorer:
     def _score_value(self, deal: Deal) -> float:
         if not deal.parsed_price:
             return 10.0
-        
+
         price = deal.parsed_price
         cabin = (deal.parsed_cabin_class or "ECONOMY").upper()
-        
+
+        # Suspiciously cheap prices get penalized, not rewarded.
+        # No real flight costs under $50 regardless of route.
+        if price < 50:
+            return 0.0
+
+        # International flights under $100 are almost certainly extraction errors
+        if price < 100 and deal.parsed_origin and deal.parsed_destination:
+            from app.services.airports import AIRPORTS
+            orig = AIRPORTS.get(deal.parsed_origin)
+            dest = AIRPORTS.get(deal.parsed_destination)
+            if orig and dest and orig.country != dest.country:
+                return 0.0
+
         if cabin == "ECONOMY":
             if price < 200:
-                return 30.0
+                return 20.0  # Cheap but plausible for domestic/short-haul
             elif price < 400:
                 return 25.0
             elif price < 600:
@@ -69,7 +82,7 @@ class DealScorer:
             elif price < 1000:
                 return 15.0
             return 10.0
-        
+
         elif cabin == "BUSINESS":
             if price < 1500:
                 return 30.0
@@ -78,14 +91,14 @@ class DealScorer:
             elif price < 4000:
                 return 20.0
             return 15.0
-        
+
         elif cabin == "FIRST":
             if price < 3000:
                 return 30.0
             elif price < 5000:
                 return 25.0
             return 20.0
-        
+
         return 15.0
     
     def _score_recency(self, deal: Deal) -> float:

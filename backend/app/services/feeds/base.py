@@ -63,18 +63,36 @@ class ParsedDeal:
 
 
 class ConfidenceScorer:
-    
+
     REQUIRED_FIELDS = ['origin', 'destination']
-    PRICE_BOUNDS = (20, 15000)
+    PRICE_BOUNDS = (50, 15000)  # $50 minimum — no real flight costs less
     VALID_CURRENCIES = {'USD', 'EUR', 'GBP', 'NZD', 'AUD', 'CAD', 'SGD', 'JPY'}
     VALID_CABINS = {'economy', 'premium_economy', 'business', 'first', None}
-    
+
+    # Country prefix groups for domestic detection (first letter of IATA code is NOT reliable,
+    # but same-country heuristic uses known domestic pairs)
+    DOMESTIC_PRICE_MIN = 30   # Absolute floor even for domestic
+    INTERNATIONAL_PRICE_MIN = 100  # International flights are never this cheap
+
+    @classmethod
+    def _is_likely_international(cls, origin: str, destination: str) -> bool:
+        """Heuristic: different country if airports are in different IATA regions."""
+        if not origin or not destination:
+            return True
+        # Check if both are in same country using airport data
+        from app.services.airports import AIRPORTS
+        orig_info = AIRPORTS.get(origin)
+        dest_info = AIRPORTS.get(destination)
+        if orig_info and dest_info:
+            return orig_info.country != dest_info.country
+        return True  # Assume international if unknown
+
     @classmethod
     def score(cls, result: ParseResult) -> tuple[float, list[str]]:
         score = 0.0
         max_score = 0.0
         reasons = []
-        
+
         max_score += 0.3
         if result.origin and result.destination:
             if result.origin != result.destination:
@@ -83,37 +101,43 @@ class ConfidenceScorer:
                 reasons.append("origin equals destination")
         else:
             reasons.append("missing origin or destination")
-        
+
         max_score += 0.25
         if result.price:
             if cls.PRICE_BOUNDS[0] <= result.price <= cls.PRICE_BOUNDS[1]:
-                score += 0.25
+                # Additional check: international flights under $100 are almost always errors
+                is_intl = cls._is_likely_international(result.origin, result.destination) if result.origin and result.destination else True
+                if is_intl and result.price < cls.INTERNATIONAL_PRICE_MIN:
+                    score += 0.05  # Heavy penalty — likely a parsing error
+                    reasons.append(f"price {result.price} suspiciously low for international route")
+                else:
+                    score += 0.25
             else:
-                reasons.append(f"price {result.price} outside bounds")
+                reasons.append(f"price {result.price} outside bounds ({cls.PRICE_BOUNDS[0]}-{cls.PRICE_BOUNDS[1]})")
         else:
             reasons.append("no price extracted")
-        
+
         max_score += 0.15
         if result.currency:
             if result.currency.upper() in cls.VALID_CURRENCIES:
                 score += 0.15
             else:
                 reasons.append(f"unknown currency {result.currency}")
-        
+
         max_score += 0.1
         if result.cabin_class in cls.VALID_CABINS:
             score += 0.1
-        
+
         max_score += 0.1
         if result.airline:
             score += 0.1
-        
+
         max_score += 0.1
         if result.origin and len(result.origin) == 3 and result.origin.isupper():
             score += 0.05
         if result.destination and len(result.destination) == 3 and result.destination.isupper():
             score += 0.05
-        
+
         confidence = score / max_score if max_score > 0 else 0.0
         return (confidence, reasons)
 

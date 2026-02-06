@@ -18,12 +18,17 @@ RATING_THRESHOLDS = {
     "decent": 5,
 }
 
+# Savings above this threshold are almost certainly extraction errors, not real deals.
+# A genuine 80%+ discount on flights is extraordinarily rare.
+SUSPICIOUS_SAVINGS_THRESHOLD = 80
+
 RATING_LABELS = {
     "hot": "🔥 Hot Deal",
     "good": "✨ Good Deal",
     "decent": "👍 Decent",
     "normal": "Normal",
     "above": "⚠️ Above Market",
+    "suspicious": "⚠️ Suspicious Price",
 }
 
 MARKET_PRICE_MAX_AGE_DAYS = 7
@@ -32,9 +37,13 @@ MARKET_PRICE_MAX_AGE_DAYS = 7
 def calculate_rating(deal_price: float, market_price: float) -> Tuple[float, str]:
     if market_price <= 0:
         return 0.0, RATING_LABELS["normal"]
-    
+
     savings_percent = ((market_price - deal_price) / market_price) * 100
-    
+
+    # Flag unrealistically large savings as suspicious (likely extraction error)
+    if savings_percent >= SUSPICIOUS_SAVINGS_THRESHOLD:
+        return savings_percent, RATING_LABELS["suspicious"]
+
     if savings_percent >= RATING_THRESHOLDS["hot"]:
         return savings_percent, RATING_LABELS["hot"]
     elif savings_percent >= RATING_THRESHOLDS["good"]:

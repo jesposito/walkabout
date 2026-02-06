@@ -370,6 +370,11 @@ async def update_trip(trip_id: int, trip_data: TripPlanCreate, db: Session = Dep
     if invalid_dests:
         raise HTTPException(status_code=400, detail=f"Invalid destination(s): {'; '.join(invalid_dests)}")
     
+    # Capture old criteria to detect changes that invalidate matches
+    old_origins = set(trip.origins or [])
+    old_destinations = set(trip.destinations or [])
+    old_dest_types = set(trip.destination_types or [])
+
     trip.name = trip_data.name
     trip.origins = [o.upper() for o in trip_data.origins]
     trip.destinations = [d.upper() for d in trip_data.destinations]
@@ -388,13 +393,54 @@ async def update_trip(trip_id: int, trip_data: TripPlanCreate, db: Session = Dep
     trip.travelers_adults = trip_data.travelers_adults
     trip.travelers_children = trip_data.travelers_children
     trip.check_frequency_hours = trip_data.check_frequency_hours
-    
+
+    # Clear stale flight matches when origins/destinations/types change
+    new_origins = set(trip.origins or [])
+    new_destinations = set(trip.destinations or [])
+    new_dest_types = set(trip.destination_types or [])
+
+    criteria_changed = (
+        old_origins != new_origins
+        or old_destinations != new_destinations
+        or old_dest_types != new_dest_types
+    )
+
+    if criteria_changed:
+        # Expand destination types to airport codes for valid match check
+        from app.services.destination_types import DestinationTypeService
+        valid_destinations = set(new_destinations)
+        if new_dest_types:
+            valid_destinations.update(
+                DestinationTypeService.get_airports_for_types(list(new_dest_types))
+            )
+
+        # Delete matches with origins/destinations no longer in the plan
+        stale = db.query(TripPlanMatch).filter(
+            TripPlanMatch.trip_plan_id == trip.id,
+        ).all()
+
+        removed = 0
+        for match in stale:
+            if match.origin not in new_origins or match.destination not in valid_destinations:
+                db.delete(match)
+                removed += 1
+
+        if removed:
+            logger = logging.getLogger(__name__)
+            logger.info(f"Trip {trip.id}: Cleared {removed} stale matches after criteria change")
+
+        # Update match count
+        remaining = db.query(TripPlanMatch).filter(
+            TripPlanMatch.trip_plan_id == trip.id
+        ).count()
+        trip.match_count = remaining
+
     db.commit()
     db.refresh(trip)
-    
+
     matcher = TripMatcher(db)
     matcher.update_plan_matches(trip)
-    
+
     return TripPlanResponse.model_validate(trip)
 
 

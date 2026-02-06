@@ -28,6 +28,7 @@ const SOURCE_LABELS: Record<string, string> = {
 function ratingToBadgeVariant(label: string | null): 'hot' | 'good' | 'decent' | 'normal' | 'above' {
   if (!label) return 'normal'
   const lower = label.toLowerCase()
+  if (lower.includes('suspicious')) return 'above'
   if (lower.includes('hot')) return 'hot'
   if (lower.includes('good')) return 'good'
   if (lower.includes('decent')) return 'decent'
