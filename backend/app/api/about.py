@@ -27,7 +27,7 @@ async def get_version_info():
     return VersionResponse(version=get_version())
 
 
-@router.get("/", response_class=HTMLResponse)
+@router.get("/legacy", response_class=HTMLResponse)
 async def about_page(request: Request):
     """Render the about page with version and changelog."""
     version = get_version()

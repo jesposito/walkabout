@@ -21,7 +21,7 @@ template_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templat
 templates = Jinja2Templates(directory=template_dir)
 
 
-@router.get("/", response_class=HTMLResponse)
+@router.get("/legacy", response_class=HTMLResponse)
 async def deals_page(
     request: Request,
     source: Optional[str] = Query(None),

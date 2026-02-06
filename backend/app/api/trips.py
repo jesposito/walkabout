@@ -86,7 +86,7 @@ class TripPlanResponse(BaseModel):
         from_attributes = True
 
 
-@router.get("/", response_class=HTMLResponse)
+@router.get("/legacy", response_class=HTMLResponse)
 async def trips_page(request: Request, db: Session = Depends(get_db)):
     trips = db.query(TripPlan).order_by(TripPlan.created_at.desc()).all()
     settings = UserSettings.get_or_create(db)

@@ -279,7 +279,7 @@ async def update_settings(
     return build_settings_response(settings)
 
 
-@router.get("/", response_class=HTMLResponse)
+@router.get("/legacy", response_class=HTMLResponse)
 async def settings_page(request: Request, db: Session = Depends(get_db)):
     settings = UserSettings.get_or_create(db)
     return templates.TemplateResponse(

@@ -87,7 +87,7 @@ class SearchDefinitionCreate(BaseModel):
     trip_duration_days_max: Optional[int] = 14
 
 
-@router.get("/", response_class=HTMLResponse)
+@router.get("/legacy", response_class=HTMLResponse)
 async def prices_page(request: Request, db: Session = Depends(get_db)):
     from app.services.flight_price_fetcher import FlightPriceFetcher
     

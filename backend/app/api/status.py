@@ -19,7 +19,7 @@ router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 
 
-@router.get("/", response_class=HTMLResponse)
+@router.get("/legacy", response_class=HTMLResponse)
 async def status_page(request: Request, db: Session = Depends(get_db)):
     """
     Main status page for Phase 1a - server-rendered HTML.
