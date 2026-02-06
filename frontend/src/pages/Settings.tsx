@@ -589,13 +589,6 @@ export default function Settings() {
             placeholder="API key"
           />
           <Input
-            label="Skyscanner RapidAPI Key"
-            type="password"
-            value={form.skyscanner_api_key || ''}
-            onChange={(e) => update('skyscanner_api_key', e.target.value)}
-            placeholder="API key"
-          />
-          <Input
             label="Amadeus Client ID"
             type="password"
             value={form.amadeus_client_id || ''}

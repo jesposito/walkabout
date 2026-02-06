@@ -11,7 +11,7 @@ from app.api import settings as settings_api
 from app.scheduler import start_scheduler, stop_scheduler
 from app.services.notification import get_global_notifier, shutdown_notifier
 from app.config import get_settings
-from app.database import engine, Base, ensure_sqlite_columns
+from app.database import engine, Base, ensure_sqlite_columns, SessionLocal
 from app.models import SearchDefinition, ScrapeHealth, FlightPrice, Route, Alert, Deal, FeedHealth, TripPlan, TripPlanMatch, AIUsageLog
 from app.models.route_market_price import RouteMarketPrice
 from app.models.award import TrackedAwardSearch, AwardObservation
@@ -35,6 +35,20 @@ async def lifespan(app: FastAPI):
         Base.metadata.create_all(bind=engine)
         ensure_sqlite_columns()
     
+    # Configure AI from DB settings
+    try:
+        from app.services.ai_service import configure_ai_from_settings
+        from app.models.user_settings import UserSettings
+        db = SessionLocal()
+        user_settings = UserSettings.get_or_create(db)
+        if configure_ai_from_settings(user_settings):
+            logger.info("✅ AI service configured from settings")
+        else:
+            logger.info("ℹ️ AI service not configured (no provider/key set)")
+        db.close()
+    except Exception as e:
+        logger.warning(f"⚠️ AI configuration failed: {e}")
+
     try:
         # Start the scheduler
         start_scheduler()
