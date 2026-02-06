@@ -9,6 +9,7 @@ import {
   AirportSearchResult,
 } from '../api/client'
 import { PageHeader, Card, Button, Input, Spinner, ToggleSwitch } from '../components/shared'
+import { useAirports, formatAirport } from '../hooks/useAirports'
 
 // --- Collapsible Section ---
 
@@ -62,6 +63,7 @@ function AirportSelect({
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<AirportSearchResult[]>([])
   const [showDropdown, setShowDropdown] = useState(false)
+  useAirports(selected)
 
   const search = useCallback(
     async (q: string) => {
@@ -91,7 +93,7 @@ function AirportSelect({
               key={code}
               className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-mono bg-accent-primary/20 text-accent-primary border border-accent-primary/30"
             >
-              {code}
+              {formatAirport(code)}
               <button
                 type="button"
                 onClick={() => onChange(selected.filter((c) => c !== code))}
@@ -451,6 +453,78 @@ export default function Settings() {
             </div>
           </>
         )}
+      </Section>
+
+      {/* Monitoring */}
+      <Section title="Monitoring & Frequency" icon="🔄">
+        <p className="text-xs text-deck-text-muted">
+          Control how often Walkabout checks for deals and price updates. These apply to notification cooldowns &mdash; how long to wait after sending a notification before sending another for the same category.
+        </p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Select
+            label="Deal alert cooldown"
+            value={String(form.deal_cooldown_minutes ?? 60)}
+            onChange={(v) => update('deal_cooldown_minutes', Number(v))}
+            options={[
+              { value: '15', label: '15 minutes' },
+              { value: '30', label: '30 minutes' },
+              { value: '60', label: '1 hour' },
+              { value: '120', label: '2 hours' },
+              { value: '360', label: '6 hours' },
+              { value: '720', label: '12 hours' },
+            ]}
+          />
+          <Select
+            label="Trip match cooldown"
+            value={String(form.trip_cooldown_hours ?? 6)}
+            onChange={(v) => update('trip_cooldown_hours', Number(v))}
+            options={[
+              { value: '1', label: '1 hour' },
+              { value: '3', label: '3 hours' },
+              { value: '6', label: '6 hours' },
+              { value: '12', label: '12 hours' },
+              { value: '24', label: '24 hours' },
+            ]}
+          />
+          <Select
+            label="Route update cooldown"
+            value={String(form.route_cooldown_hours ?? 24)}
+            onChange={(v) => update('route_cooldown_hours', Number(v))}
+            options={[
+              { value: '6', label: '6 hours' },
+              { value: '12', label: '12 hours' },
+              { value: '24', label: '24 hours' },
+              { value: '48', label: '2 days' },
+              { value: '168', label: '1 week' },
+            ]}
+          />
+        </div>
+
+        <div className="border-t border-deck-border pt-4 space-y-3">
+          <ToggleSwitch
+            checked={form.daily_digest_enabled ?? false}
+            onChange={(v) => update('daily_digest_enabled', v)}
+            label="Daily digest"
+            description="Receive a summary of deals and price changes once a day instead of instant alerts"
+          />
+          {form.daily_digest_enabled && (
+            <Select
+              label="Send digest at"
+              value={String(form.daily_digest_hour ?? 8)}
+              onChange={(v) => update('daily_digest_hour', Number(v))}
+              options={[
+                { value: '6', label: '6:00 AM' },
+                { value: '7', label: '7:00 AM' },
+                { value: '8', label: '8:00 AM' },
+                { value: '9', label: '9:00 AM' },
+                { value: '12', label: '12:00 PM' },
+                { value: '18', label: '6:00 PM' },
+                { value: '20', label: '8:00 PM' },
+              ]}
+            />
+          )}
+        </div>
       </Section>
 
       {/* API Keys */}

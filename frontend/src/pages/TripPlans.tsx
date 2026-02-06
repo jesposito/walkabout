@@ -18,7 +18,8 @@ import {
   AirportSearchResult,
   DestinationType,
 } from '../api/client'
-import { PageHeader, Card, Button, Input, EmptyState, Spinner, Badge, PriceDisplay } from '../components/shared'
+import { PageHeader, Card, Button, Input, EmptyState, Spinner, Badge, PriceDisplay, AirportRoute } from '../components/shared'
+import { useAirports, formatAirport } from '../hooks/useAirports'
 
 // --- Multi-Airport Picker ---
 
@@ -34,6 +35,7 @@ function MultiAirportPicker({
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<AirportSearchResult[]>([])
   const [showDropdown, setShowDropdown] = useState(false)
+  useAirports(selected)
 
   const search = useCallback(
     async (q: string) => {
@@ -59,7 +61,7 @@ function MultiAirportPicker({
               key={code}
               className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-mono bg-accent-primary/20 text-accent-primary border border-accent-primary/30"
             >
-              {code}
+              {formatAirport(code)}
               <button
                 type="button"
                 onClick={() => onChange(selected.filter((c) => c !== code))}
@@ -416,9 +418,7 @@ function MatchCard({ match }: { match: TripPlanMatch }) {
     >
       <Card interactive>
         <div className="flex items-center justify-between mb-2">
-          <div className="font-mono text-sm font-semibold text-deck-text-primary">
-            {match.origin} &rarr; {match.destination}
-          </div>
+          <AirportRoute origin={match.origin} destination={match.destination} />
           <Badge variant={match.match_score >= 70 ? 'hot' : match.match_score >= 40 ? 'good' : 'decent'}>
             {Math.round(match.match_score)}% match
           </Badge>
@@ -444,6 +444,37 @@ function MatchCard({ match }: { match: TripPlanMatch }) {
         </div>
       </Card>
     </a>
+  )
+}
+
+// --- Trip Plan Route Display ---
+
+function TripPlanRouteDisplay({ plan }: { plan: TripPlan }) {
+  const codes = [...plan.origins, ...plan.destinations]
+  useAirports(codes)
+  return (
+    <p className="text-sm text-deck-text-secondary mt-1">
+      {plan.origins.length > 0 && (
+        <span className="font-mono">{plan.origins.map((c) => formatAirport(c)).join(', ')}</span>
+      )}
+      {plan.origins.length > 0 && (plan.destinations.length > 0 || plan.destination_types.length > 0) && (
+        <span className="text-deck-text-muted mx-1">&rarr;</span>
+      )}
+      {plan.destinations.length > 0 && (
+        <span className="font-mono">{plan.destinations.map((c) => formatAirport(c)).join(', ')}</span>
+      )}
+      {plan.destination_types.length > 0 && (
+        <span className="text-deck-text-muted">
+          {plan.destinations.length > 0 ? ' + ' : ''}
+          {plan.destination_types.map((t) => t.replace(/_/g, ' ')).join(', ')}
+        </span>
+      )}
+      {plan.budget_max && (
+        <span className="text-deck-text-muted ml-2">
+          &middot; Budget: ${plan.budget_max.toLocaleString()} {plan.budget_currency}
+        </span>
+      )}
+    </p>
   )
 }
 
@@ -496,28 +527,7 @@ function TripPlanCard({
                 <Badge variant="hot">{plan.match_count} matches</Badge>
               )}
             </div>
-            <p className="text-sm text-deck-text-secondary mt-1">
-              {plan.origins.length > 0 && (
-                <span className="font-mono">{plan.origins.join(', ')}</span>
-              )}
-              {plan.origins.length > 0 && (plan.destinations.length > 0 || plan.destination_types.length > 0) && (
-                <span className="text-deck-text-muted mx-1">&rarr;</span>
-              )}
-              {plan.destinations.length > 0 && (
-                <span className="font-mono">{plan.destinations.join(', ')}</span>
-              )}
-              {plan.destination_types.length > 0 && (
-                <span className="text-deck-text-muted">
-                  {plan.destinations.length > 0 ? ' + ' : ''}
-                  {plan.destination_types.map((t) => t.replace(/_/g, ' ')).join(', ')}
-                </span>
-              )}
-              {plan.budget_max && (
-                <span className="text-deck-text-muted ml-2">
-                  &middot; Budget: {plan.budget_currency} {plan.budget_max.toLocaleString()}
-                </span>
-              )}
-            </p>
+            <TripPlanRouteDisplay plan={plan} />
           </div>
           <span className={`text-deck-text-muted transition-transform ${expanded ? 'rotate-180' : ''}`}>
             &#9662;
@@ -566,9 +576,7 @@ function TripPlanCard({
                   .map((leg, i) => (
                     <div key={i} className="flex items-center gap-2 text-sm">
                       <span className="text-deck-text-muted text-xs w-4">{i + 1}.</span>
-                      <span className="font-mono text-deck-text-primary">{leg.origin}</span>
-                      <span className="text-deck-text-muted">&rarr;</span>
-                      <span className="font-mono text-deck-text-primary">{leg.destination}</span>
+                      <AirportRoute origin={leg.origin} destination={leg.destination} />
                       {(leg.date_start || leg.date_end) && (
                         <span className="text-deck-text-muted text-xs ml-1">
                           {leg.date_start && new Date(leg.date_start).toLocaleDateString('en-NZ', { month: 'short', day: 'numeric' })}

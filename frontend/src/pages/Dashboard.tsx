@@ -7,9 +7,10 @@ import {
   fetchSearchDefinitions,
   fetchAwardSearches,
 } from '../api/client'
-import type { SystemStatus, Deal } from '../api/client'
-import { PageHeader, Spinner, Badge, PriceDisplay } from '../components/shared'
+import type { SystemStatus, Deal, TripPlan } from '../api/client'
+import { PageHeader, Spinner, Badge, PriceDisplay, AirportRoute } from '../components/shared'
 import Card from '../components/shared/Card'
+import { useAirports, formatAirport } from '../hooks/useAirports'
 
 function SourceDot({ available }: { available: boolean }) {
   return (
@@ -27,6 +28,25 @@ function timeAgo(iso: string | null): string {
   if (hours < 24) return `${hours}h ago`
   const days = Math.floor(hours / 24)
   return `${days}d ago`
+}
+
+function TripPlanRoute({ plan }: { plan: TripPlan }) {
+  const codes = [...plan.origins, ...plan.destinations]
+  useAirports(codes)
+  return (
+    <p className="text-xs text-deck-text-muted mt-0.5">
+      {plan.origins.length > 0 && (
+        <span className="font-mono">{plan.origins.map((c) => formatAirport(c)).join(', ')}</span>
+      )}
+      {plan.origins.length > 0 && (plan.destinations.length > 0 || plan.destination_types.length > 0) && ' \u2192 '}
+      {plan.destinations.length > 0 && (
+        <span className="font-mono">{plan.destinations.map((c) => formatAirport(c)).join(', ')}</span>
+      )}
+      {plan.destination_types.length > 0 && (
+        <span>{plan.destinations.length > 0 ? ' + ' : ''}{plan.destination_types.map((t) => t.replace(/_/g, ' ')).join(', ')}</span>
+      )}
+    </p>
+  )
 }
 
 function StatusBar({ status }: { status: SystemStatus }) {
@@ -94,6 +114,8 @@ function StatCard({ label, value, to }: { label: string; value: string | number;
 function CompactDeal({ deal }: { deal: Deal }) {
   const price = deal.converted_price ?? deal.price
   const currency = deal.converted_price != null ? (deal.preferred_currency || 'NZD') : (deal.currency || 'USD')
+  const codes = [deal.origin, deal.destination].filter(Boolean) as string[]
+  useAirports(codes)
 
   return (
     <a
@@ -105,9 +127,7 @@ function CompactDeal({ deal }: { deal: Deal }) {
       <div className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-deck-surface-hover transition-colors group">
         <div className="flex items-center gap-3 min-w-0">
           {deal.origin && deal.destination ? (
-            <span className="font-mono text-sm font-semibold text-deck-text-primary shrink-0">
-              {deal.origin} &rarr; {deal.destination}
-            </span>
+            <AirportRoute origin={deal.origin} destination={deal.destination} />
           ) : (
             <span className="text-sm text-deck-text-primary truncate max-w-[200px]">
               {deal.title.slice(0, 60)}
@@ -220,18 +240,7 @@ export default function Dashboard() {
                     <div className="flex items-center justify-between">
                       <div className="min-w-0">
                         <p className="text-sm font-semibold text-deck-text-primary truncate">{plan.name}</p>
-                        <p className="text-xs text-deck-text-muted mt-0.5">
-                          {plan.origins.length > 0 && (
-                            <span className="font-mono">{plan.origins.join(', ')}</span>
-                          )}
-                          {plan.origins.length > 0 && (plan.destinations.length > 0 || plan.destination_types.length > 0) && ' \u2192 '}
-                          {plan.destinations.length > 0 && (
-                            <span className="font-mono">{plan.destinations.join(', ')}</span>
-                          )}
-                          {plan.destination_types.length > 0 && (
-                            <span>{plan.destinations.length > 0 ? ' + ' : ''}{plan.destination_types.map((t) => t.replace(/_/g, ' ')).join(', ')}</span>
-                          )}
-                        </p>
+                        <TripPlanRoute plan={plan} />
                       </div>
                       {plan.match_count > 0 && (
                         <Badge variant="hot">{plan.match_count} matches</Badge>
@@ -264,9 +273,7 @@ export default function Dashboard() {
                   <Card interactive>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-sm font-semibold text-deck-text-primary">
-                          {route.origin} &rarr; {route.destination}
-                        </span>
+                        <AirportRoute origin={route.origin} destination={route.destination} />
                         <span className="text-xs text-deck-text-muted capitalize">
                           {route.cabin_class} &middot; {route.stops_filter === 'any' ? 'any stops' : route.stops_filter}
                         </span>

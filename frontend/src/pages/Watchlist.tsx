@@ -7,7 +7,7 @@ import {
   refreshPrices,
   SearchDefinition,
 } from '../api/client'
-import { PageHeader, Card, Button, Input, EmptyState, Spinner, Badge, AirportInput } from '../components/shared'
+import { PageHeader, Card, Button, Input, EmptyState, Spinner, Badge, AirportInput, AirportRoute } from '../components/shared'
 import RouteCard from '../components/RouteCard'
 
 // --- Add Route Form ---
@@ -186,11 +186,7 @@ function WatchlistItem({
       <Card interactive onClick={() => setExpanded(!expanded)}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="text-lg font-mono font-semibold text-deck-text-primary">
-              {route.origin}
-              <span className="text-deck-text-muted mx-1">&rarr;</span>
-              {route.destination}
-            </div>
+            <AirportRoute origin={route.origin} destination={route.destination} className="!text-base" />
             <Badge variant={route.is_active ? 'info' : 'normal'}>
               {route.is_active ? 'Active' : 'Paused'}
             </Badge>

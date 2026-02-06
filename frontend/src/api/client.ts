@@ -249,6 +249,12 @@ export async function searchAirports(query: string, limit = 10): Promise<Airport
   return data.results
 }
 
+export async function lookupAirports(codes: string[]): Promise<Record<string, { city: string; country: string }>> {
+  if (codes.length === 0) return {}
+  const { data } = await api.get('/settings/api/airports/bulk', { params: { codes: codes.join(',') } })
+  return data
+}
+
 // --- Notifications ---
 
 export async function testNotification(): Promise<{ success: boolean; message: string; provider: string }> {

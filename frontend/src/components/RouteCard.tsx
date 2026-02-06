@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { SearchDefinition, fetchPriceStats } from '../api/client'
-import { Card, Badge, PriceDisplay } from './shared'
+import { Card, Badge, PriceDisplay, AirportRoute } from './shared'
 import PriceChart from './PriceChart'
 
 interface RouteCardProps {
@@ -27,7 +27,8 @@ export default function RouteCard({ route }: RouteCardProps) {
       </div>
 
       <p className="text-sm text-deck-text-secondary mb-4">
-        {route.origin} → {route.destination} · {route.cabin_class} · {route.stops_filter}
+        <AirportRoute origin={route.origin} destination={route.destination} />
+        <span className="ml-2">&middot; {route.cabin_class} &middot; {route.stops_filter}</span>
       </p>
 
       {stats && (

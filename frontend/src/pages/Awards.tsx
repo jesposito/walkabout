@@ -11,7 +11,8 @@ import {
   type AwardSearch,
   type AwardSearchCreate,
 } from '../api/client'
-import { PageHeader, Card, Button, Input, Badge, EmptyState, Spinner, AirportInput } from '../components/shared'
+import { PageHeader, Card, Button, Input, Badge, EmptyState, Spinner, AirportInput, AirportRoute } from '../components/shared'
+import { useAirports, formatAirport } from '../hooks/useAirports'
 
 const CABIN_OPTIONS = [
   { value: 'economy', label: 'Economy' },
@@ -202,6 +203,15 @@ function AwardResultsList({ searchId }: { searchId: number }) {
   )
 }
 
+function AwardSearchTitle({ search }: { search: AwardSearch }) {
+  useAirports([search.origin, search.destination])
+  return (
+    <h3 className="text-base font-semibold text-deck-text-primary truncate">
+      {search.name || `${formatAirport(search.origin)} \u2192 ${formatAirport(search.destination)}`}
+    </h3>
+  )
+}
+
 function AwardSearchCard({
   search,
   onDelete,
@@ -242,18 +252,14 @@ function AwardSearchCard({
         <div className="flex items-center justify-between">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <h3 className="text-base font-semibold text-deck-text-primary truncate">
-                {search.name || `${search.origin} → ${search.destination}`}
-              </h3>
+              <AwardSearchTitle search={search} />
               <Badge variant={search.is_active ? 'info' : 'normal'}>
                 {search.is_active ? 'Active' : 'Paused'}
               </Badge>
               <Badge variant="normal">{search.cabin_class}</Badge>
             </div>
             <p className="text-sm text-deck-text-secondary mt-1">
-              <span className="font-mono">{search.origin}</span>
-              <span className="text-deck-text-muted mx-1">&rarr;</span>
-              <span className="font-mono">{search.destination}</span>
+              <AirportRoute origin={search.origin} destination={search.destination} />
               {search.program && (
                 <span className="text-deck-text-muted ml-2">&middot; {search.program}</span>
               )}

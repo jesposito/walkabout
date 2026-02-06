@@ -1,5 +1,5 @@
 import { Deal } from '../api/client'
-import { Card, Badge, PriceDisplay, Button } from './shared'
+import { Card, Badge, PriceDisplay, Button, AirportCode } from './shared'
 
 interface DealCardProps {
   deal: Deal
@@ -71,17 +71,13 @@ export default function DealCard({ deal, onDismiss, onRestore }: DealCardProps) 
       {/* Route */}
       <div className="flex items-baseline gap-2">
         {deal.origin && (
-          <span className="font-mono text-sm font-semibold text-deck-text-primary">
-            {deal.origin}
-          </span>
+          <AirportCode code={deal.origin} className="text-sm font-semibold text-deck-text-primary" />
         )}
         {deal.origin && deal.destination && (
           <span className="text-deck-text-muted text-xs">&rarr;</span>
         )}
         {deal.destination && (
-          <span className="font-mono text-sm font-semibold text-deck-text-primary">
-            {deal.destination}
-          </span>
+          <AirportCode code={deal.destination} className="text-sm font-semibold text-deck-text-primary" />
         )}
         {deal.airline && (
           <span className="text-xs text-deck-text-secondary ml-auto">

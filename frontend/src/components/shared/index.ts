@@ -1,4 +1,6 @@
+export { default as AirportCode } from './AirportCode'
 export { default as AirportInput } from './AirportInput'
+export { default as AirportRoute } from './AirportRoute'
 export { default as Badge } from './Badge'
 export { default as Button } from './Button'
 export { default as Card } from './Card'

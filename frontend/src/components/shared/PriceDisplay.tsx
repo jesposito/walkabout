@@ -41,6 +41,7 @@ export default function PriceDisplay({
   return (
     <span className={`font-mono ${sizeClasses[size]} ${className}`}>
       <span className="text-deck-text-primary">{formatted}</span>
+      <span className="text-deck-text-muted ml-1 text-xs">{currency}</span>
       {trend && (
         <span className={`ml-1 text-sm ${trendColors[trend]}`}>
           {trendIcons[trend]}

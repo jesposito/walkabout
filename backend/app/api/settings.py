@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, Query
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -320,6 +320,18 @@ async def search_airports(q: str, limit: int = 10):
             for a in results
         ]
     }
+
+
+@router.get("/api/airports/bulk")
+async def bulk_lookup_airports(codes: str = Query("")):
+    """Lookup multiple airports by comma-separated codes. Returns {code: {city, country}} map."""
+    code_list = [c.strip().upper() for c in codes.split(",") if c.strip()]
+    result = {}
+    for code in code_list[:100]:  # Cap at 100 codes
+        airport = AirportService.get(code)
+        if airport:
+            result[code] = {"city": airport.city, "country": airport.country}
+    return result
 
 
 @router.get("/api/airports/{code}")
