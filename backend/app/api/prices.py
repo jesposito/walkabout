@@ -95,7 +95,7 @@ async def prices_page(request: Request, db: Session = Depends(get_db)):
         SearchDefinition.is_active == True
     ).order_by(SearchDefinition.created_at.desc()).all()
     
-    fetcher = FlightPriceFetcher()
+    fetcher = FlightPriceFetcher(db=db)
     source_status = fetcher.get_status()
     
     return templates.TemplateResponse(
@@ -377,8 +377,8 @@ async def refresh_search_prices(
     if not definition:
         raise HTTPException(status_code=404, detail="Search definition not found")
     
-    fetcher = FlightPriceFetcher()
-    
+    fetcher = FlightPriceFetcher(db=db)
+
     departure_date = date.today() + timedelta(days=60)
     return_date = departure_date + timedelta(days=7) if definition.trip_type.value == "round_trip" else None
     

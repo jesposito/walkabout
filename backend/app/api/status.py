@@ -230,7 +230,7 @@ async def data_sources_status(db: Session = Depends(get_db)):
     from app.services.flight_price_fetcher import FlightPriceFetcher
 
     # Data sources
-    fetcher = FlightPriceFetcher()
+    fetcher = FlightPriceFetcher(db=db)
     sources = fetcher.get_status()
 
     # Scheduler

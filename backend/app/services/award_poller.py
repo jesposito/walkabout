@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.models.award import TrackedAwardSearch, AwardObservation
 from app.models.user_settings import UserSettings
+from app.services.api_keys import get_api_key
 from app.services.seats_aero import SeatsAeroClient, hash_results, AwardResult
 
 logger = logging.getLogger(__name__)
@@ -181,11 +182,6 @@ class AwardPoller:
             return None
         return min(r.miles for r in cabin_results)
 
-    @staticmethod
-    def _get_api_key(settings: UserSettings) -> Optional[str]:
-        """Get Seats.aero API key from settings, with env var fallback."""
-        if settings.seats_aero_api_key:
-            return settings.seats_aero_api_key
-        from app.config import get_settings
-        key = get_settings().seats_aero_api_key
-        return key if key else None
+    def _get_api_key(self, settings: UserSettings) -> Optional[str]:
+        """Get Seats.aero API key using centralized resolution."""
+        return get_api_key("seats_aero_api_key", self.db)

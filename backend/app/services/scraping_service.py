@@ -34,7 +34,7 @@ class ScrapingService:
     def __init__(self, db: Session):
         self.db = db
         self.scraper = GoogleFlightsScraper()
-        self.api_fetcher = FlightPriceFetcher()
+        self.api_fetcher = FlightPriceFetcher(db=db)
         self.price_analyzer = PriceAnalyzer(db)
         self.notifier = NtfyNotifier()
     

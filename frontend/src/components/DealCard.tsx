@@ -93,20 +93,27 @@ export default function DealCard({ deal, onDismiss, onRestore }: DealCardProps) 
       </p>
 
       {/* Price + cabin */}
-      <div className="flex items-center gap-3">
-        {deal.converted_price != null && deal.preferred_currency ? (
-          <PriceDisplay
-            price={deal.converted_price}
-            currency={deal.preferred_currency}
-            size="lg"
-          />
-        ) : deal.price != null ? (
-          <PriceDisplay
-            price={deal.price}
-            currency={deal.currency || 'USD'}
-            size="lg"
-          />
-        ) : null}
+      <div className="flex items-center gap-3 flex-wrap overflow-hidden">
+        <div className="flex items-center gap-2 min-w-0">
+          {deal.converted_price != null && deal.preferred_currency ? (
+            <PriceDisplay
+              price={deal.converted_price}
+              currency={deal.preferred_currency}
+              size="lg"
+            />
+          ) : deal.price != null ? (
+            <PriceDisplay
+              price={deal.price}
+              currency={deal.currency || 'USD'}
+              size="lg"
+            />
+          ) : null}
+          {deal.deal_rating != null && deal.deal_rating > 0 && (
+            <span className="text-xs text-deal-hot font-medium whitespace-nowrap">
+              -{Math.round(deal.deal_rating)}%
+            </span>
+          )}
+        </div>
         {deal.converted_price != null && deal.price != null && deal.currency && deal.currency !== deal.preferred_currency && (
           <span className="text-xs text-deck-text-muted">
             ({deal.currency} {deal.price.toLocaleString()})
@@ -116,11 +123,6 @@ export default function DealCard({ deal, onDismiss, onRestore }: DealCardProps) 
           <Badge variant="info">
             {deal.cabin_class.replace('_', ' ').toLowerCase()}
           </Badge>
-        )}
-        {deal.deal_rating != null && deal.deal_rating > 0 && (
-          <span className="text-xs text-deal-hot font-medium ml-auto">
-            -{Math.round(deal.deal_rating)}%
-          </span>
         )}
       </div>
 

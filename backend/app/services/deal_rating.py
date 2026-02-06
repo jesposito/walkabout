@@ -132,8 +132,9 @@ async def fetch_market_price(
     cabin_class: str = "economy",
     currency: str = "NZD",
     travel_date: Optional[date] = None,
+    db=None,
 ) -> Optional[FetchResult]:
-    fetcher = FlightPriceFetcher()
+    fetcher = FlightPriceFetcher(db=db)
     
     available = fetcher.get_available_sources()
     logger.info(f"Available price sources: {available}")
@@ -197,6 +198,7 @@ async def rate_deal(db: Session, deal: Deal) -> bool:
             deal.parsed_destination,
             cabin_class,
             market_currency,
+            db=db,
         )
         
         if not result or not result.success or not result.prices:

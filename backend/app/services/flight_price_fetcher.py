@@ -9,6 +9,7 @@ from decimal import Decimal
 from typing import List, Optional, Literal
 
 from app.config import get_settings
+from app.services.api_keys import get_api_key
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -121,8 +122,8 @@ class SerpAPISource(PriceSource):
 
     STOPS_MAP = {"any": 0, "nonstop": 1, "one_stop": 2, "two_plus": 3}
 
-    def __init__(self):
-        self.api_key = getattr(settings, 'serpapi_key', None) or ""
+    def __init__(self, db=None):
+        self.api_key = get_api_key("serpapi_key", db) or ""
 
     def is_available(self) -> bool:
         return bool(self.api_key)
@@ -220,8 +221,8 @@ class SerpAPISource(PriceSource):
 class SkyscannerSource(PriceSource):
     name = "skyscanner"
 
-    def __init__(self):
-        self.api_key = getattr(settings, 'skyscanner_api_key', None) or ""
+    def __init__(self, db=None):
+        self.api_key = get_api_key("skyscanner_api_key", db) or ""
         self.api_host = "skyscanner44.p.rapidapi.com"
 
     def is_available(self) -> bool:
@@ -305,9 +306,9 @@ class SkyscannerSource(PriceSource):
 class AmadeusSource(PriceSource):
     name = "amadeus"
     
-    def __init__(self):
-        self.client_id = getattr(settings, 'amadeus_client_id', None) or ""
-        self.client_secret = getattr(settings, 'amadeus_client_secret', None) or ""
+    def __init__(self, db=None):
+        self.client_id = get_api_key("amadeus_client_id", db) or ""
+        self.client_secret = get_api_key("amadeus_client_secret", db) or ""
         self._token: Optional[str] = None
         self._token_expires: Optional[datetime] = None
     
@@ -486,8 +487,8 @@ class PlaywrightSource(PriceSource):
 
 
 class AIAnalyzer:
-    def __init__(self):
-        self.api_key = getattr(settings, 'anthropic_api_key', None) or ""
+    def __init__(self, db=None):
+        self.api_key = get_api_key("anthropic_api_key", db) or ""
     
     def is_available(self) -> bool:
         return bool(self.api_key)
@@ -544,14 +545,14 @@ Provide a brief 1-2 sentence recommendation: Is this a good deal? Should they bo
 
 
 class FlightPriceFetcher:
-    def __init__(self):
+    def __init__(self, db=None):
         self.sources: List[PriceSource] = [
-            SerpAPISource(),
-            SkyscannerSource(),
-            AmadeusSource(),
+            SerpAPISource(db=db),
+            SkyscannerSource(db=db),
+            AmadeusSource(db=db),
             PlaywrightSource(),
         ]
-        self.ai_analyzer = AIAnalyzer()
+        self.ai_analyzer = AIAnalyzer(db=db)
     
     def get_available_sources(self) -> List[str]:
         return [s.name for s in self.sources if s.is_available()]
