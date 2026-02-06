@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 
 const navItems = [
@@ -24,16 +25,63 @@ function NavIcon({ path }: { path: string }) {
   )
 }
 
+function useTheme() {
+  const [isDark, setIsDark] = useState(() =>
+    document.documentElement.classList.contains('dark')
+  )
+
+  const toggle = () => {
+    const next = !isDark
+    setIsDark(next)
+    if (next) {
+      document.documentElement.classList.add('dark')
+      localStorage.setItem('theme', 'dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+      localStorage.setItem('theme', 'light')
+    }
+  }
+
+  return { isDark, toggle }
+}
+
+function ThemeToggle({ isDark, onToggle }: { isDark: boolean; onToggle: () => void }) {
+  return (
+    <button
+      onClick={onToggle}
+      className="p-2 rounded-lg text-deck-text-secondary hover:text-deck-text-primary hover:bg-deck-surface-hover transition-colors"
+      title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+    >
+      {isDark ? (
+        // Sun icon
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
+        </svg>
+      ) : (
+        // Moon icon
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
+        </svg>
+      )}
+    </button>
+  )
+}
+
 export default function AppShell() {
+  const { isDark, toggle } = useTheme()
+
   return (
     <div className="min-h-screen bg-deck-bg flex flex-col md:flex-row">
       {/* Desktop sidebar */}
       <aside className="hidden md:flex md:flex-col md:w-56 bg-deck-surface border-r border-deck-border">
-        <div className="p-4 border-b border-deck-border">
-          <h1 className="text-lg font-semibold text-accent-primary font-mono tracking-wide">
-            Walkabout
-          </h1>
-          <p className="text-xs text-deck-text-muted mt-0.5">Flight Deal Monitor</p>
+        <div className="p-4 border-b border-deck-border flex items-center justify-between">
+          <div>
+            <h1 className="text-lg font-semibold text-accent-primary font-mono tracking-wide">
+              Walkabout
+            </h1>
+            <p className="text-xs text-deck-text-muted mt-0.5">Flight Deal Monitor</p>
+          </div>
+          <ThemeToggle isDark={isDark} onToggle={toggle} />
         </div>
 
         <nav className="flex-1 p-3 space-y-1">
@@ -67,7 +115,7 @@ export default function AppShell() {
       {/* Mobile bottom tab bar */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 bg-deck-surface border-t border-deck-border z-50">
         <div className="flex justify-around">
-          {navItems.map((item) => (
+          {navItems.slice(0, 5).map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -84,6 +132,20 @@ export default function AppShell() {
               <span className="text-[10px] mt-0.5">{item.label}</span>
             </NavLink>
           ))}
+          {/* More menu for remaining items on mobile */}
+          <NavLink
+            to="/settings"
+            className={({ isActive }) =>
+              `flex flex-col items-center py-2 px-3 min-h-touch min-w-touch transition-colors ${
+                isActive ? 'text-accent-primary' : 'text-deck-text-muted'
+              }`
+            }
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM18.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
+            </svg>
+            <span className="text-[10px] mt-0.5">More</span>
+          </NavLink>
         </div>
       </nav>
     </div>

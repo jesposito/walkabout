@@ -7,6 +7,18 @@ interface PriceChartProps {
   searchId: number
 }
 
+function getChartColors() {
+  const style = getComputedStyle(document.documentElement)
+  return {
+    line: style.getPropertyValue('--chart-line').trim() || '#34d399',
+    grid: style.getPropertyValue('--chart-grid').trim() || '#334155',
+    tick: style.getPropertyValue('--chart-tick').trim() || '#94a3b8',
+    tooltipBg: style.getPropertyValue('--chart-tooltip-bg').trim() || '#1e293b',
+    tooltipBorder: style.getPropertyValue('--chart-tooltip-border').trim() || '#334155',
+    tooltipText: style.getPropertyValue('--chart-tooltip-text').trim() || '#f1f5f9',
+  }
+}
+
 export default function PriceChart({ searchId }: PriceChartProps) {
   const { data: prices, isLoading } = useQuery({
     queryKey: ['prices', searchId],
@@ -40,35 +52,37 @@ export default function PriceChart({ searchId }: PriceChartProps) {
       price: Number(p.price_nzd),
     }))
 
+  const colors = getChartColors()
+
   return (
     <div className="h-40">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={chartData}>
           <XAxis
             dataKey="date"
-            tick={{ fontSize: 10, fill: '#94a3b8' }}
-            stroke="#334155"
+            tick={{ fontSize: 10, fill: colors.tick }}
+            stroke={colors.grid}
             interval="preserveStartEnd"
           />
           <YAxis
-            tick={{ fontSize: 10, fill: '#94a3b8' }}
-            stroke="#334155"
+            tick={{ fontSize: 10, fill: colors.tick }}
+            stroke={colors.grid}
             domain={['dataMin - 100', 'dataMax + 100']}
             tickFormatter={(v) => `$${v}`}
           />
           <Tooltip
             contentStyle={{
-              backgroundColor: '#252525',
-              border: '1px solid #333333',
+              backgroundColor: colors.tooltipBg,
+              border: `1px solid ${colors.tooltipBorder}`,
               borderRadius: '8px',
-              color: '#e2e8f0',
+              color: colors.tooltipText,
             }}
             formatter={(value: number) => [`$${value.toLocaleString()}`, 'Price']}
           />
           <Line
             type="monotone"
             dataKey="price"
-            stroke="#34d399"
+            stroke={colors.line}
             strokeWidth={2}
             dot={false}
           />

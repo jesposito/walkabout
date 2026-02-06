@@ -8,27 +8,27 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Calm Flight Deck palette
+        // Semantic tokens via CSS custom properties (light/dark aware)
         deck: {
-          bg: '#1a1a1a',
-          surface: '#252525',
-          'surface-hover': '#2d2d2d',
-          border: '#333333',
-          'text-primary': '#e5e5e5',
-          'text-secondary': '#999999',
-          'text-muted': '#666666',
+          bg: 'rgb(var(--color-deck-bg) / <alpha-value>)',
+          surface: 'rgb(var(--color-deck-surface) / <alpha-value>)',
+          'surface-hover': 'rgb(var(--color-deck-surface-hover) / <alpha-value>)',
+          border: 'rgb(var(--color-deck-border) / <alpha-value>)',
+          'text-primary': 'rgb(var(--color-deck-text-primary) / <alpha-value>)',
+          'text-secondary': 'rgb(var(--color-deck-text-secondary) / <alpha-value>)',
+          'text-muted': 'rgb(var(--color-deck-text-muted) / <alpha-value>)',
         },
         deal: {
-          hot: '#00ff88',
-          good: '#22d3ee',
-          decent: '#a78bfa',
-          normal: '#999999',
-          above: '#ef4444',
+          hot: 'rgb(var(--color-deal-hot) / <alpha-value>)',
+          good: 'rgb(var(--color-deal-good) / <alpha-value>)',
+          decent: 'rgb(var(--color-deal-decent) / <alpha-value>)',
+          normal: 'rgb(var(--color-deal-normal) / <alpha-value>)',
+          above: 'rgb(var(--color-deal-above) / <alpha-value>)',
         },
         accent: {
-          primary: '#00ff88',
-          'primary-dim': '#00cc6e',
-          secondary: '#22d3ee',
+          primary: 'rgb(var(--color-accent-primary) / <alpha-value>)',
+          'primary-dim': 'rgb(var(--color-accent-primary-dim) / <alpha-value>)',
+          secondary: 'rgb(var(--color-accent-secondary) / <alpha-value>)',
         },
       },
       fontFamily: {
@@ -42,7 +42,7 @@ export default {
         'code-sm': ['0.8125rem', { lineHeight: '1.5' }],
       },
       spacing: {
-        'touch': '44px', // minimum touch target
+        'touch': '44px',
       },
       borderRadius: {
         'card': '12px',

@@ -5,9 +5,78 @@
 /* Font imports */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
-/* Dark mode defaults */
+/* ===== Light Theme (default) ===== */
+:root {
+  /* Surfaces */
+  --color-deck-bg: 241 245 249;           /* #f1f5f9 slate-100 */
+  --color-deck-surface: 255 255 255;       /* #ffffff white */
+  --color-deck-surface-hover: 248 250 252; /* #f8fafc slate-50 */
+  --color-deck-border: 226 232 240;        /* #e2e8f0 slate-200 */
+
+  /* Text */
+  --color-deck-text-primary: 15 23 42;     /* #0f172a slate-900 */
+  --color-deck-text-secondary: 71 85 105;  /* #475569 slate-600 */
+  --color-deck-text-muted: 148 163 184;    /* #94a3b8 slate-400 */
+
+  /* Deal badges */
+  --color-deal-hot: 5 150 105;             /* #059669 emerald-600 */
+  --color-deal-good: 8 145 178;            /* #0891b2 cyan-600 */
+  --color-deal-decent: 124 58 237;         /* #7c3aed violet-600 */
+  --color-deal-normal: 107 114 128;        /* #6b7280 gray-500 */
+  --color-deal-above: 220 38 38;           /* #dc2626 red-600 */
+
+  /* Accent */
+  --color-accent-primary: 5 150 105;       /* #059669 emerald-600 */
+  --color-accent-primary-dim: 4 120 87;    /* #047857 emerald-700 */
+  --color-accent-secondary: 8 145 178;     /* #0891b2 cyan-600 */
+
+  /* Chart (for inline JS usage) */
+  --chart-line: #059669;
+  --chart-grid: #e2e8f0;
+  --chart-tick: #64748b;
+  --chart-tooltip-bg: #ffffff;
+  --chart-tooltip-border: #e2e8f0;
+  --chart-tooltip-text: #0f172a;
+}
+
+/* ===== Dark Theme ===== */
+.dark {
+  /* Surfaces (slate-based, matching old Jinja2 template) */
+  --color-deck-bg: 15 23 42;              /* #0f172a slate-900 */
+  --color-deck-surface: 30 41 59;          /* #1e293b slate-800 */
+  --color-deck-surface-hover: 51 65 85;    /* #334155 slate-700 */
+  --color-deck-border: 51 65 85;           /* #334155 slate-700 */
+
+  /* Text */
+  --color-deck-text-primary: 241 245 249;  /* #f1f5f9 slate-100 */
+  --color-deck-text-secondary: 148 163 184;/* #94a3b8 slate-400 */
+  --color-deck-text-muted: 100 116 139;    /* #64748b slate-500 */
+
+  /* Deal badges (brighter for dark bg) */
+  --color-deal-hot: 52 211 153;            /* #34d399 emerald-400 */
+  --color-deal-good: 34 211 238;           /* #22d3ee cyan-400 */
+  --color-deal-decent: 167 139 250;        /* #a78bfa violet-400 */
+  --color-deal-normal: 148 163 184;        /* #94a3b8 slate-400 */
+  --color-deal-above: 248 113 113;         /* #f87171 red-400 */
+
+  /* Accent */
+  --color-accent-primary: 52 211 153;      /* #34d399 emerald-400 */
+  --color-accent-primary-dim: 16 185 129;  /* #10b981 emerald-500 */
+  --color-accent-secondary: 34 211 238;    /* #22d3ee cyan-400 */
+
+  /* Chart */
+  --chart-line: #34d399;
+  --chart-grid: #334155;
+  --chart-tick: #94a3b8;
+  --chart-tooltip-bg: #1e293b;
+  --chart-tooltip-border: #334155;
+  --chart-tooltip-text: #f1f5f9;
+}
+
+/* Base body */
 body {
   @apply bg-deck-bg text-deck-text-primary font-sans antialiased;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 /* Scrollbar styling */
