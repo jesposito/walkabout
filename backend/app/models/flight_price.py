@@ -1,4 +1,4 @@
-from sqlalchemy import Column, BigInteger, Integer, String, Date, DateTime, Numeric, ForeignKey, JSON
+from sqlalchemy import Column, BigInteger, Boolean, Integer, String, Date, DateTime, Numeric, ForeignKey, JSON
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.database import Base
@@ -42,7 +42,11 @@ class FlightPrice(Base):
     
     # Raw data for debugging/reprocessing
     raw_data = Column(JSON, nullable=True)
-    
+
+    # Data quality (anomaly guard)
+    confidence = Column(Numeric(5, 4), nullable=True)
+    is_suspicious = Column(Boolean, default=False, server_default='0', nullable=False)
+
     # Relationships
     search_definition = relationship("SearchDefinition", back_populates="prices")
     

@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     
     deal_threshold_z_score: float = -1.5
     min_history_for_analysis: int = 10
+    price_anomaly_threshold_percent: float = 300.0
     
     def model_post_init(self, __context):
         if self.env == "prod" and self.database_url.startswith("sqlite"):
