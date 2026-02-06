@@ -297,6 +297,35 @@ async def settings_page(request: Request, db: Session = Depends(get_db)):
     )
 
 
+@router.post("/api/review")
+async def ai_review_settings(db: Session = Depends(get_db)):
+    """AI-powered review and optimization of user settings."""
+    from app.services.ai_service import AIService
+    from fastapi import HTTPException
+    if not AIService.is_configured():
+        raise HTTPException(status_code=503, detail="AI service is not configured")
+
+    settings = UserSettings.get_or_create(db)
+
+    from app.services.ai_deals import review_settings
+    result = await review_settings(settings, db=db)
+    return result
+
+
+@router.get("/api/review/estimate")
+async def ai_review_settings_estimate(db: Session = Depends(get_db)):
+    """Return token/cost estimate for a settings review without running the AI."""
+    from app.services.ai_service import AIService
+    from fastapi import HTTPException
+    if not AIService.is_configured():
+        raise HTTPException(status_code=503, detail="AI service is not configured")
+
+    settings = UserSettings.get_or_create(db)
+
+    from app.services.ai_deals import estimate_settings_review
+    return estimate_settings_review(settings)
+
+
 @router.post("/api/notifications/test")
 async def test_notification(db: Session = Depends(get_db)):
     """Send a test notification via the configured provider."""

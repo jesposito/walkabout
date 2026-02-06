@@ -428,6 +428,62 @@ export interface DestinationSuggestRequest {
   travelers_children?: number
 }
 
+// --- Deal AI Intelligence ---
+
+export interface DealDigestResult {
+  summary: string
+  highlights: string[]
+  estimate: TokenEstimate | null
+}
+
+export interface DealExplanationResult {
+  explanation: string
+  verdict: 'great_deal' | 'good_deal' | 'decent' | 'not_sure' | 'overpriced'
+  estimate: TokenEstimate
+}
+
+export interface SettingsReviewSuggestion {
+  title: string
+  description: string
+}
+
+export interface SettingsReviewResult {
+  assessment: string
+  suggestions: SettingsReviewSuggestion[]
+  score: number
+  estimate: TokenEstimate
+}
+
+export async function aiDealDigest(): Promise<DealDigestResult> {
+  const { data } = await api.post('/deals/api/digest')
+  return data
+}
+
+export async function aiDealDigestEstimate(): Promise<TokenEstimate> {
+  const { data } = await api.get('/deals/api/digest/estimate')
+  return data
+}
+
+export async function aiExplainDeal(dealId: number): Promise<DealExplanationResult> {
+  const { data } = await api.post(`/deals/api/${dealId}/explain`)
+  return data
+}
+
+export async function aiExplainDealEstimate(dealId: number): Promise<TokenEstimate> {
+  const { data } = await api.get(`/deals/api/${dealId}/explain/estimate`)
+  return data
+}
+
+export async function aiReviewSettings(): Promise<SettingsReviewResult> {
+  const { data } = await api.post('/settings/api/review')
+  return data
+}
+
+export async function aiReviewSettingsEstimate(): Promise<TokenEstimate> {
+  const { data } = await api.get('/settings/api/review/estimate')
+  return data
+}
+
 export async function aiNameTrip(id: number): Promise<TripNameResult> {
   const { data } = await api.post(`/trips/api/trips/${id}/name`)
   return data
@@ -560,6 +616,59 @@ export async function fetchAwardObservations(id: number, limit = 20): Promise<{ 
 
 export async function fetchLatestAwardResults(id: number): Promise<{ observation: AwardObservation | null; results: unknown[] }> {
   const { data } = await api.get(`/awards/api/awards/${id}/latest`)
+  return data
+}
+
+// --- Award AI Intelligence ---
+
+export interface AwardSweetSpot {
+  program: string
+  insight: string
+}
+
+export interface AwardPatternResult {
+  sweet_spots: AwardSweetSpot[]
+  timing: string
+  trend: 'improving' | 'declining' | 'stable' | 'insufficient_data'
+  recommendation: string
+  best_value_program: string | null
+  estimate: TokenEstimate
+}
+
+export interface MileValueRequest {
+  origin: string
+  destination: string
+  miles: number
+  program: string
+  cabin?: string
+  cash_price?: number | null
+}
+
+export interface MileValueResult {
+  cents_per_mile: number
+  rating: 'excellent' | 'good' | 'fair' | 'poor'
+  reasoning: string
+  benchmark: string
+  estimate: TokenEstimate
+}
+
+export async function aiFindPatterns(searchId: number): Promise<AwardPatternResult> {
+  const { data } = await api.post(`/awards/api/searches/${searchId}/patterns`)
+  return data
+}
+
+export async function aiPatternsEstimate(searchId: number): Promise<TokenEstimate> {
+  const { data } = await api.get(`/awards/api/searches/${searchId}/patterns/estimate`)
+  return data
+}
+
+export async function aiMileValue(request: MileValueRequest): Promise<MileValueResult> {
+  const { data } = await api.post('/awards/api/mile-value', request)
+  return data
+}
+
+export async function aiMileValueEstimate(request: MileValueRequest): Promise<TokenEstimate> {
+  const { data } = await api.post('/awards/api/mile-value/estimate', request)
   return data
 }
 

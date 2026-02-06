@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import {
@@ -6,11 +7,14 @@ import {
   fetchTripPlans,
   fetchSearchDefinitions,
   fetchAwardSearches,
+  aiDealDigest,
+  aiDealDigestEstimate,
 } from '../api/client'
-import type { SystemStatus, Deal, TripPlan } from '../api/client'
-import { PageHeader, Spinner, Badge, PriceDisplay, AirportRoute } from '../components/shared'
+import type { SystemStatus, Deal, TripPlan, DealDigestResult, TokenEstimate } from '../api/client'
+import { PageHeader, Spinner, Badge, PriceDisplay, AirportRoute, Button } from '../components/shared'
 import Card from '../components/shared/Card'
 import { useAirports, formatAirport } from '../hooks/useAirports'
+import { useAIAction } from '../hooks/useAIAction'
 
 function SourceDot({ available }: { available: boolean }) {
   return (
@@ -152,6 +156,91 @@ function CompactDeal({ deal }: { deal: Deal }) {
       </div>
     </a>
   )
+}
+
+function DealDigest() {
+  const ai = useAIAction<DealDigestResult>({
+    action: aiDealDigest,
+    fetchEstimate: aiDealDigestEstimate,
+  })
+
+  useEffect(() => {
+    if (!ai.estimate && !ai.estimateLoading) {
+      ai.loadEstimate()
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-3">
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => ai.execute()}
+          disabled={ai.loading}
+        >
+          {ai.loading ? (
+            <span className="flex items-center gap-1.5">
+              <Spinner size="sm" />
+              Summarizing...
+            </span>
+          ) : (
+            'Summarize deals'
+          )}
+        </Button>
+        {ai.estimate && !ai.result && !ai.loading && (
+          <span className="text-xs text-deck-text-muted">
+            {formatEstimate(ai.estimate)}
+          </span>
+        )}
+      </div>
+
+      {ai.error && (
+        <p className="text-xs text-deal-above">{ai.error}</p>
+      )}
+
+      {ai.result && (
+        <Card className="space-y-2">
+          <p className="text-sm text-deck-text-primary">{ai.result.summary}</p>
+          {ai.result.highlights.length > 0 && (
+            <ul className="space-y-1">
+              {ai.result.highlights.map((h, i) => (
+                <li key={i} className="text-xs text-deck-text-secondary flex items-start gap-1.5">
+                  <span className="text-accent-primary mt-0.5">--</span>
+                  {h}
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => ai.execute()}
+              className="text-xs text-accent-primary hover:underline"
+              disabled={ai.loading}
+            >
+              Refresh
+            </button>
+            <button
+              type="button"
+              onClick={() => ai.clear()}
+              className="text-xs text-deck-text-muted hover:text-deck-text-secondary"
+            >
+              Hide
+            </button>
+          </div>
+        </Card>
+      )}
+    </div>
+  )
+}
+
+function formatEstimate(estimate: TokenEstimate | null): string {
+  if (!estimate) return ''
+  const totalTokens = estimate.input_tokens_est + estimate.output_tokens_est
+  const cost = estimate.cost_est_usd
+  if (cost < 0.001) return `~${totalTokens} tokens`
+  return `~${totalTokens} tokens (~$${cost.toFixed(3)})`
 }
 
 export default function Dashboard() {
@@ -297,7 +386,10 @@ export default function Dashboard() {
       <div>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-medium text-deck-text-muted uppercase tracking-wide">Recent Deals</h2>
-          <Link to="/deals" className="text-xs text-accent-primary hover:underline">View all</Link>
+          <div className="flex items-center gap-3">
+            <DealDigest />
+            <Link to="/deals" className="text-xs text-accent-primary hover:underline">View all</Link>
+          </div>
         </div>
         {dealsLoading ? (
           <div className="flex justify-center py-8">

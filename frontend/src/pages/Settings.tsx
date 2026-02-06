@@ -5,11 +5,16 @@ import {
   updateSettings,
   searchAirports,
   testNotification,
+  aiReviewSettings,
+  aiReviewSettingsEstimate,
   UserSettings,
   AirportSearchResult,
+  SettingsReviewResult,
+  TokenEstimate,
 } from '../api/client'
-import { PageHeader, Card, Button, Input, Spinner, ToggleSwitch } from '../components/shared'
+import { PageHeader, Card, Button, Input, Spinner, ToggleSwitch, Badge } from '../components/shared'
 import { useAirports, formatAirport } from '../hooks/useAirports'
+import { useAIAction } from '../hooks/useAIAction'
 
 // --- Collapsible Section ---
 
@@ -606,6 +611,113 @@ export default function Settings() {
           />
         </div>
       </Section>
+
+      {/* AI Settings Review */}
+      <SettingsReview />
     </div>
+  )
+}
+
+function formatEstimate(estimate: TokenEstimate | null): string {
+  if (!estimate) return ''
+  const totalTokens = estimate.input_tokens_est + estimate.output_tokens_est
+  const cost = estimate.cost_est_usd
+  if (cost < 0.001) return `~${totalTokens} tokens`
+  return `~${totalTokens} tokens (~$${cost.toFixed(3)})`
+}
+
+function scoreToVariant(score: number): 'hot' | 'good' | 'decent' | 'normal' {
+  if (score >= 8) return 'hot'
+  if (score >= 6) return 'good'
+  if (score >= 4) return 'decent'
+  return 'normal'
+}
+
+function SettingsReview() {
+  const ai = useAIAction<SettingsReviewResult>({
+    action: aiReviewSettings,
+    fetchEstimate: aiReviewSettingsEstimate,
+  })
+
+  useEffect(() => {
+    if (!ai.estimate && !ai.estimateLoading) {
+      ai.loadEstimate()
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <Card className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-medium text-deck-text-secondary uppercase tracking-wide">
+          AI Configuration Review
+        </h3>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => ai.execute()}
+            disabled={ai.loading}
+          >
+            {ai.loading ? (
+              <span className="flex items-center gap-1.5">
+                <Spinner size="sm" />
+                Reviewing...
+              </span>
+            ) : (
+              'Review my setup'
+            )}
+          </Button>
+          {ai.estimate && !ai.result && !ai.loading && (
+            <span className="text-xs text-deck-text-muted">
+              {formatEstimate(ai.estimate)}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {ai.error && (
+        <p className="text-xs text-deal-above">{ai.error}</p>
+      )}
+
+      {ai.result && (
+        <div className="space-y-3 pt-2 border-t border-deck-border">
+          <div className="flex items-center gap-2">
+            <Badge variant={scoreToVariant(ai.result.score)}>
+              Score: {ai.result.score}/10
+            </Badge>
+            <p className="text-sm text-deck-text-primary">{ai.result.assessment}</p>
+          </div>
+
+          {ai.result.suggestions.length > 0 && (
+            <div className="space-y-2">
+              {ai.result.suggestions.map((s, i) => (
+                <div key={i} className="p-2 rounded bg-deck-bg">
+                  <p className="text-sm font-medium text-deck-text-primary">{s.title}</p>
+                  <p className="text-xs text-deck-text-secondary mt-0.5">{s.description}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => ai.execute()}
+              className="text-xs text-accent-primary hover:underline"
+              disabled={ai.loading}
+            >
+              Refresh
+            </button>
+            <button
+              type="button"
+              onClick={() => ai.clear()}
+              className="text-xs text-deck-text-muted hover:text-deck-text-secondary"
+            >
+              Hide
+            </button>
+          </div>
+        </div>
+      )}
+    </Card>
   )
 }

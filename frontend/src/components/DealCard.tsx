@@ -1,5 +1,6 @@
-import { Deal } from '../api/client'
-import { Card, Badge, PriceDisplay, Button, AirportCode } from './shared'
+import { Deal, aiExplainDeal, DealExplanationResult } from '../api/client'
+import { Card, Badge, PriceDisplay, Button, AirportCode, Spinner } from './shared'
+import { useAIAction } from '../hooks/useAIAction'
 
 interface DealCardProps {
   deal: Deal
@@ -50,9 +51,33 @@ function formatTimeAgo(dateStr: string | null): string {
   return date.toLocaleDateString('en-NZ', { month: 'short', day: 'numeric' })
 }
 
+function verdictToBadgeVariant(verdict: string): 'hot' | 'good' | 'decent' | 'normal' | 'above' {
+  switch (verdict) {
+    case 'great_deal': return 'hot'
+    case 'good_deal': return 'good'
+    case 'decent': return 'decent'
+    case 'overpriced': return 'above'
+    default: return 'normal'
+  }
+}
+
+function verdictLabel(verdict: string): string {
+  switch (verdict) {
+    case 'great_deal': return 'Great Deal'
+    case 'good_deal': return 'Good Deal'
+    case 'decent': return 'Decent'
+    case 'overpriced': return 'Overpriced'
+    default: return 'Not Sure'
+  }
+}
+
 export default function DealCard({ deal, onDismiss, onRestore }: DealCardProps) {
   const sourceName = SOURCE_LABELS[deal.source] || deal.source
   const variant = ratingToBadgeVariant(deal.rating_label)
+
+  const ai = useAIAction<DealExplanationResult>({
+    action: () => aiExplainDeal(deal.id),
+  })
 
   return (
     <Card className="space-y-3">
@@ -139,6 +164,21 @@ export default function DealCard({ deal, onDismiss, onRestore }: DealCardProps) 
             <span className="text-xs">&#8599;</span>
           </a>
         )}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => ai.execute()}
+          disabled={ai.loading}
+        >
+          {ai.loading ? (
+            <span className="flex items-center gap-1.5">
+              <Spinner size="sm" />
+              ...
+            </span>
+          ) : (
+            'Why?'
+          )}
+        </Button>
         {deal.is_relevant && onDismiss && (
           <Button variant="ghost" size="sm" onClick={() => onDismiss(deal.id)}>
             Dismiss
@@ -155,6 +195,39 @@ export default function DealCard({ deal, onDismiss, onRestore }: DealCardProps) 
           </span>
         )}
       </div>
+
+      {/* AI Explanation */}
+      {ai.error && (
+        <p className="text-xs text-deal-above">{ai.error}</p>
+      )}
+
+      {ai.result && (
+        <div className="p-3 rounded-lg bg-deck-bg border border-deck-border space-y-2">
+          <div className="flex items-center gap-2">
+            <Badge variant={verdictToBadgeVariant(ai.result.verdict)}>
+              {verdictLabel(ai.result.verdict)}
+            </Badge>
+          </div>
+          <p className="text-sm text-deck-text-secondary">{ai.result.explanation}</p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => ai.execute()}
+              className="text-xs text-accent-primary hover:underline"
+              disabled={ai.loading}
+            >
+              Refresh
+            </button>
+            <button
+              type="button"
+              onClick={() => ai.clear()}
+              className="text-xs text-deck-text-muted hover:text-deck-text-secondary"
+            >
+              Hide
+            </button>
+          </div>
+        </div>
+      )}
     </Card>
   )
 }

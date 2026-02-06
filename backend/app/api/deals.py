@@ -403,6 +403,87 @@ async def ai_reparse_deals(
     }
 
 
+@router.post("/api/digest")
+async def ai_deal_digest(db: Session = Depends(get_db)):
+    """Generate an AI-powered morning briefing of recent deals."""
+    from app.services.ai_service import AIService
+    from fastapi import HTTPException
+    if not AIService.is_configured():
+        raise HTTPException(status_code=503, detail="AI service is not configured")
+
+    from app.models.deal import Deal
+    deals = (
+        db.query(Deal)
+        .filter(Deal.is_relevant == True)
+        .order_by(Deal.published_at.desc())
+        .limit(20)
+        .all()
+    )
+
+    if not deals:
+        return {"summary": "No recent deals to summarize.", "highlights": [], "estimate": None}
+
+    from app.services.ai_deals import generate_digest
+    result = await generate_digest(deals, db=db)
+    return result
+
+
+@router.get("/api/digest/estimate")
+async def ai_deal_digest_estimate(db: Session = Depends(get_db)):
+    """Return token/cost estimate for a deal digest without running the AI."""
+    from app.services.ai_service import AIService
+    from fastapi import HTTPException
+    if not AIService.is_configured():
+        raise HTTPException(status_code=503, detail="AI service is not configured")
+
+    from app.models.deal import Deal
+    deals = (
+        db.query(Deal)
+        .filter(Deal.is_relevant == True)
+        .order_by(Deal.published_at.desc())
+        .limit(20)
+        .all()
+    )
+
+    from app.services.ai_deals import estimate_digest
+    return estimate_digest(deals)
+
+
+@router.post("/api/{deal_id}/explain")
+async def ai_explain_deal(deal_id: int, db: Session = Depends(get_db)):
+    """AI-powered explanation of why a deal is notable."""
+    from app.services.ai_service import AIService
+    from fastapi import HTTPException
+    if not AIService.is_configured():
+        raise HTTPException(status_code=503, detail="AI service is not configured")
+
+    from app.models.deal import Deal
+    deal = db.query(Deal).filter(Deal.id == deal_id).first()
+    if not deal:
+        raise HTTPException(status_code=404, detail="Deal not found")
+
+    from app.services.ai_deals import explain_deal
+    result = await explain_deal(deal, db=db)
+    return result
+
+
+@router.get("/api/{deal_id}/explain/estimate")
+async def ai_explain_deal_estimate(deal_id: int, db: Session = Depends(get_db)):
+    """Return token/cost estimate for a deal explanation without running the AI."""
+    from app.services.ai_service import AIService
+    from fastapi import HTTPException
+    if not AIService.is_configured():
+        raise HTTPException(status_code=503, detail="AI service is not configured")
+
+    from app.models.deal import Deal
+    deal = db.query(Deal).filter(Deal.id == deal_id).first()
+    if not deal:
+        raise HTTPException(status_code=404, detail="Deal not found")
+
+    from app.services.ai_deals import estimate_explain
+    return estimate_explain(deal)
+
+
 @router.get("/api/insights")
 async def get_insights(
     home_airport: str = Query("AKL"),
