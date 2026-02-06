@@ -131,7 +131,7 @@ def build_settings_response(settings: UserSettings) -> SettingsResponse:
         home_region=settings.home_region,
         watched_destinations=settings.watched_destinations or [],
         watched_regions=settings.watched_regions or [],
-        preferred_currency=settings.preferred_currency or "NZD",
+        preferred_currency=settings.preferred_currency or "USD",
         notifications_enabled=settings.notifications_enabled,
         notification_provider=settings.notification_provider or "none",
         notification_ntfy_url=settings.notification_ntfy_url,

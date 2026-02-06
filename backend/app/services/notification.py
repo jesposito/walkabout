@@ -347,11 +347,12 @@ class NotificationService:
         else:
             priority = "default"
 
-        title = f"✈️ ${price.price_nzd} {search_def.origin}→{search_def.destination}"
+        currency = getattr(search_def, 'currency', 'USD') or 'USD'
+        title = f"✈️ ${price.price_nzd} {currency} {search_def.origin}→{search_def.destination}"
 
         message = f"{search_def.display_name}\n"
         message += f"📅 {dep_date} → {ret_date}\n"
-        message += f"💰 ${price.price_nzd} NZD ({savings_msg})\n"
+        message += f"💰 ${price.price_nzd} {currency} ({savings_msg})\n"
         message += f"📊 {analysis.percentile:.0f}th percentile"
 
         airline_val = getattr(price, 'airline', None)

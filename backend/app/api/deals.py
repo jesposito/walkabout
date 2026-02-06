@@ -282,7 +282,10 @@ async def trigger_deal_rating(
     limit: int = Query(20, le=100),
     db: Session = Depends(get_db),
 ):
-    rated_count = await rate_unrated_deals(db, limit=limit)
+    from app.models.user_settings import UserSettings
+    settings = UserSettings.get_or_create(db)
+    currency = settings.preferred_currency or "USD"
+    rated_count = await rate_unrated_deals(db, limit=limit, preferred_currency=currency)
     return {"rated": rated_count, "message": f"Rated {rated_count} deals"}
 
 

@@ -79,7 +79,7 @@ class SearchDefinitionCreate(BaseModel):
     infants_on_lap: int = 0
     cabin_class: str = "economy"
     stops_filter: str = "any"
-    currency: str = "NZD"
+    currency: str = "USD"
     name: Optional[str] = None
     departure_days_min: Optional[int] = 60
     departure_days_max: Optional[int] = 120

@@ -146,7 +146,7 @@ class TripPlanSearchService:
                     adults=trip.travelers_adults or 2,
                     children=trip.travelers_children or 0,
                     cabin_class=getattr(trip, 'cabin_class', 'economy') or 'economy',
-                    currency=getattr(trip, 'currency', 'NZD') or 'NZD',
+                    currency=settings.preferred_currency or 'USD',
                 )
                 
                 if result.is_success and result.prices:
@@ -189,7 +189,7 @@ class TripPlanSearchService:
             all_results = [r for r in all_results if Decimal(str(r.price_nzd)) * total_pax <= budget]
             logger.info(f"Trip Plan {trip_plan_id}: Budget filter {budget} {trip.budget_currency} / {total_pax} pax: {before_count} -> {len(all_results)} results")
 
-        # Filter obviously bogus prices (international flights under $200 NZD are not real)
+        # Filter obviously bogus prices (international flights under $200 are not real)
         if origins and all_results:
             before_sanity = len(all_results)
             all_results = [r for r in all_results if self._passes_sanity_check(r)]
@@ -344,7 +344,7 @@ class TripPlanSearchService:
         price = float(result.price_nzd)
         if price <= 0:
             return False
-        # International flights under $200 NZD are almost certainly extraction errors
+        # International flights under $200 are almost certainly extraction errors
         if result.origin[:1] != result.destination[:1] and price < 200:
             return False
         # Nonstop with 0 duration is bogus

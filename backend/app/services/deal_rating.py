@@ -152,7 +152,7 @@ async def fetch_market_price(
     origin: str,
     destination: str,
     cabin_class: str = "economy",
-    currency: str = "NZD",
+    currency: str = "USD",
     travel_date: Optional[date] = None,
     db=None,
 ) -> Optional[FetchResult]:
@@ -185,7 +185,7 @@ async def fetch_market_price(
     return result
 
 
-async def rate_deal(db: Session, deal: Deal) -> bool:
+async def rate_deal(db: Session, deal: Deal, preferred_currency: str = "USD") -> bool:
     if not deal.parsed_origin or not deal.parsed_destination:
         logger.debug(f"Deal {deal.id} missing origin/destination, skipping rating")
         return False
@@ -214,8 +214,8 @@ async def rate_deal(db: Session, deal: Deal) -> bool:
         source = cached.source
         market_currency = cached.currency
     else:
-        # Fetch market price in NZD (our standard comparison currency)
-        market_currency = "NZD"
+        # Fetch market price in user's preferred currency
+        market_currency = preferred_currency
         logger.info(f"Fetching market price for {deal.parsed_origin}-{deal.parsed_destination} in {market_currency}")
         result = await fetch_market_price(
             deal.parsed_origin,
@@ -273,20 +273,20 @@ async def rate_deal(db: Session, deal: Deal) -> bool:
     return True
 
 
-async def rate_unrated_deals(db: Session, limit: int = 10) -> int:
+async def rate_unrated_deals(db: Session, limit: int = 10, preferred_currency: str = "USD") -> int:
     unrated_deals = db.query(Deal).filter(
         Deal.parsed_origin.isnot(None),
         Deal.parsed_destination.isnot(None),
         Deal.parsed_price.isnot(None),
         Deal.deal_rating.is_(None),
     ).order_by(Deal.created_at.desc()).limit(limit).all()
-    
+
     rated_count = 0
     for deal in unrated_deals:
         try:
-            if await rate_deal(db, deal):
+            if await rate_deal(db, deal, preferred_currency=preferred_currency):
                 rated_count += 1
         except Exception as e:
             logger.error(f"Error rating deal {deal.id}: {e}")
-    
+
     return rated_count

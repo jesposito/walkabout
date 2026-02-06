@@ -68,8 +68,8 @@ class SearchDefinition(Base):
     exclude_airlines = Column(String(100), nullable=True)
     
     # Locale/currency (affects prices shown)
-    currency = Column(String(3), default="NZD", nullable=False)
-    locale = Column(String(10), default="en-NZ", nullable=False)  # Affects point of sale
+    currency = Column(String(3), default="USD", nullable=False)
+    locale = Column(String(10), default="en-US", nullable=False)  # Affects point of sale
     
     # Bags (Google Flights can filter by bags included)
     carry_on_bags = Column(Integer, default=0, nullable=False)

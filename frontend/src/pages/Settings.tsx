@@ -195,14 +195,14 @@ const REGIONS = [
 ]
 
 const CURRENCIES = [
-  { value: 'NZD', label: 'NZD' },
-  { value: 'AUD', label: 'AUD' },
   { value: 'USD', label: 'USD' },
   { value: 'EUR', label: 'EUR' },
   { value: 'GBP', label: 'GBP' },
+  { value: 'CAD', label: 'CAD' },
+  { value: 'AUD', label: 'AUD' },
+  { value: 'NZD', label: 'NZD' },
   { value: 'SGD', label: 'SGD' },
   { value: 'JPY', label: 'JPY' },
-  { value: 'CAD', label: 'CAD' },
 ]
 
 const PROVIDERS = [
@@ -222,14 +222,17 @@ const AI_PROVIDERS = [
 ]
 
 const TIMEZONES = [
-  { value: 'Pacific/Auckland', label: 'Auckland (NZST)' },
-  { value: 'Australia/Sydney', label: 'Sydney (AEST)' },
+  { value: 'America/New_York', label: 'Eastern (ET)' },
+  { value: 'America/Chicago', label: 'Central (CT)' },
+  { value: 'America/Denver', label: 'Mountain (MT)' },
+  { value: 'America/Los_Angeles', label: 'Pacific (PT)' },
+  { value: 'Pacific/Honolulu', label: 'Hawaii (HT)' },
+  { value: 'Europe/London', label: 'London (GMT)' },
+  { value: 'Europe/Berlin', label: 'Berlin (CET)' },
   { value: 'Asia/Tokyo', label: 'Tokyo (JST)' },
   { value: 'Asia/Singapore', label: 'Singapore (SGT)' },
-  { value: 'Europe/London', label: 'London (GMT)' },
-  { value: 'America/New_York', label: 'New York (EST)' },
-  { value: 'America/Los_Angeles', label: 'Los Angeles (PST)' },
-  { value: 'Europe/Berlin', label: 'Berlin (CET)' },
+  { value: 'Australia/Sydney', label: 'Sydney (AEST)' },
+  { value: 'Pacific/Auckland', label: 'Auckland (NZST)' },
 ]
 
 export default function Settings() {
@@ -439,7 +442,7 @@ export default function Settings() {
             <div className="grid grid-cols-2 gap-4 pt-2">
               <Select
                 label="Timezone"
-                value={form.timezone || 'Pacific/Auckland'}
+                value={form.timezone || 'America/New_York'}
                 onChange={(v) => update('timezone', v)}
                 options={TIMEZONES}
               />
