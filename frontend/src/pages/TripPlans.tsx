@@ -11,15 +11,25 @@ import {
   fetchTripPlanMatches,
   fetchDestinationTypes,
   searchAirports,
+  aiNameTrip,
+  aiNameTripEstimate,
+  aiCheckFeasibility,
+  aiFeasibilityEstimate,
+  aiSuggestDestinations,
   TripPlan,
   TripPlanCreate,
   TripPlanMatch,
   TripLeg,
   AirportSearchResult,
   DestinationType,
+  TripNameResult,
+  TripFeasibilityResult,
+  DestinationSuggestResult,
+  TokenEstimate,
 } from '../api/client'
 import { PageHeader, Card, Button, Input, EmptyState, Spinner, Badge, PriceDisplay, AirportRoute } from '../components/shared'
 import { useAirports, formatAirport } from '../hooks/useAirports'
+import { useAIAction } from '../hooks/useAIAction'
 
 // --- Multi-Airport Picker ---
 
@@ -231,13 +241,62 @@ function TripPlanForm({
                 types={destTypes}
               />
             )}
-            <button
-              type="button"
-              onClick={() => setShowLegs(true)}
-              className="text-xs text-accent-primary hover:underline"
-            >
-              + Add multi-city legs instead
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setShowLegs(true)}
+                className="text-xs text-accent-primary hover:underline"
+              >
+                + Add multi-city legs instead
+              </button>
+            </div>
+
+            {/* AI Destination Suggestions */}
+            {origins.length > 0 && (
+              <AIActionButton<DestinationSuggestResult>
+                label="Suggest destinations"
+                action={() => aiSuggestDestinations({
+                  origins,
+                  available_from: availableFrom || undefined,
+                  available_to: availableTo || undefined,
+                  duration_min: durationMin,
+                  duration_max: durationMax,
+                  budget_max: budgetMax ? Number(budgetMax) : undefined,
+                  budget_currency: budgetCurrency,
+                  travelers_adults: adults,
+                  travelers_children: children,
+                })}
+                renderResult={(r) => (
+                  <div className="space-y-2">
+                    <p className="text-xs text-deck-text-muted uppercase tracking-wide">Suggested Destinations</p>
+                    {r.suggestions.map((s, i) => (
+                      <div key={i} className="flex items-start gap-2">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            if (!destinations.includes(s.airport)) {
+                              setDestinations([...destinations, s.airport])
+                            }
+                          }}
+                          className="shrink-0 px-2 py-0.5 text-xs font-mono rounded bg-accent-primary/10 text-accent-primary border border-accent-primary/30 hover:bg-accent-primary/20"
+                          title={`Add ${s.airport} to destinations`}
+                        >
+                          + {s.airport}
+                        </button>
+                        <div>
+                          <span className="text-sm text-deck-text-primary">{s.city}</span>
+                          <p className="text-xs text-deck-text-secondary">{s.reasoning}</p>
+                        </div>
+                      </div>
+                    ))}
+                    {r.suggestions.length === 0 && (
+                      <p className="text-xs text-deck-text-muted">No suggestions available.</p>
+                    )}
+                  </div>
+                )}
+              />
+            )}
           </>
         ) : (
           <div className="space-y-3">
@@ -485,6 +544,92 @@ function TripPlanRouteDisplay({ plan }: { plan: TripPlan }) {
   )
 }
 
+// --- AI Action Button ---
+
+function formatEstimate(estimate: TokenEstimate | null): string {
+  if (!estimate) return ''
+  const totalTokens = estimate.input_tokens_est + estimate.output_tokens_est
+  const cost = estimate.cost_est_usd
+  if (cost < 0.001) return `~${totalTokens} tokens`
+  return `~${totalTokens} tokens (~$${cost.toFixed(3)})`
+}
+
+function AIActionButton<T>({
+  label,
+  action,
+  fetchEstimate,
+  onSuccess,
+  renderResult,
+}: {
+  label: string
+  action: () => Promise<T>
+  fetchEstimate?: () => Promise<TokenEstimate>
+  onSuccess?: (result: T) => void
+  renderResult: (result: T) => React.ReactNode
+}) {
+  const ai = useAIAction<T>({ action, fetchEstimate, onSuccess })
+
+  useEffect(() => {
+    if (fetchEstimate && !ai.estimate && !ai.estimateLoading) {
+      ai.loadEstimate()
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center gap-2">
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={(e) => { e.stopPropagation(); ai.execute() }}
+          disabled={ai.loading}
+        >
+          {ai.loading ? (
+            <span className="flex items-center gap-1.5">
+              <Spinner size="sm" />
+              Thinking...
+            </span>
+          ) : (
+            label
+          )}
+        </Button>
+        {ai.estimate && !ai.result && !ai.loading && (
+          <span className="text-xs text-deck-text-muted">
+            {formatEstimate(ai.estimate)}
+          </span>
+        )}
+      </div>
+
+      {ai.error && (
+        <p className="text-xs text-deal-above">{ai.error}</p>
+      )}
+
+      {ai.result && (
+        <div className="p-3 rounded-lg bg-deck-bg border border-deck-border space-y-2">
+          {renderResult(ai.result)}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); ai.execute() }}
+              className="text-xs text-accent-primary hover:underline"
+              disabled={ai.loading}
+            >
+              Refresh
+            </button>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); ai.clear() }}
+              className="text-xs text-deck-text-muted hover:text-deck-text-secondary"
+            >
+              Hide
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // --- Trip Plan Card ---
 
 function TripPlanCard({
@@ -493,12 +638,14 @@ function TripPlanCard({
   onToggle,
   onSearch,
   onEdit,
+  onRefresh,
 }: {
   plan: TripPlan
   onDelete: (id: number) => void
   onToggle: (id: number) => void
   onSearch: (id: number) => void
   onEdit: (plan: TripPlan) => void
+  onRefresh: () => void
 }) {
   const [expanded, setExpanded] = useState(false)
   const [searching, setSearching] = useState(plan.search_in_progress)
@@ -630,6 +777,41 @@ function TripPlanCard({
             >
               Delete
             </Button>
+          </div>
+
+          {/* AI Intelligence */}
+          <div className="space-y-2 pt-1">
+            <p className="text-xs text-deck-text-muted uppercase tracking-wide">AI Intelligence</p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <AIActionButton<TripNameResult>
+                label="Name this trip"
+                action={() => aiNameTrip(plan.id)}
+                fetchEstimate={() => aiNameTripEstimate(plan.id)}
+                onSuccess={() => onRefresh()}
+                renderResult={(r) => (
+                  <div>
+                    <p className="text-sm font-semibold text-deck-text-primary">{r.name}</p>
+                    {r.vibe && <p className="text-xs text-deck-text-secondary mt-0.5">{r.vibe}</p>}
+                  </div>
+                )}
+              />
+              <AIActionButton<TripFeasibilityResult>
+                label="Is this realistic?"
+                action={() => aiCheckFeasibility(plan.id)}
+                fetchEstimate={() => aiFeasibilityEstimate(plan.id)}
+                renderResult={(r) => (
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="text-sm font-semibold text-deck-text-primary">{r.verdict}</p>
+                      <Badge variant={r.confidence === 'high' ? 'hot' : r.confidence === 'medium' ? 'good' : 'normal'}>
+                        {r.confidence} confidence
+                      </Badge>
+                    </div>
+                    {r.reasoning && <p className="text-xs text-deck-text-secondary">{r.reasoning}</p>}
+                  </div>
+                )}
+              />
+            </div>
           </div>
         </div>
       )}
@@ -770,6 +952,7 @@ export default function TripPlans() {
               onToggle={(id) => toggleMutation.mutate(id)}
               onSearch={handleSearch}
               onEdit={handleEdit}
+              onRefresh={() => queryClient.invalidateQueries({ queryKey: ['tripPlans'] })}
             />
           ))}
         </div>

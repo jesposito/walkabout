@@ -383,6 +383,76 @@ export async function searchTripPlan(id: number): Promise<{ status: string; mess
   return data
 }
 
+// --- Trip AI Intelligence ---
+
+export interface TokenEstimate {
+  input_tokens_est: number
+  output_tokens_est: number
+  cost_est_usd: number
+}
+
+export interface TripNameResult {
+  name: string
+  vibe: string
+  estimate: TokenEstimate
+}
+
+export interface TripFeasibilityResult {
+  verdict: string
+  reasoning: string
+  confidence: 'high' | 'medium' | 'low'
+  estimate: TokenEstimate
+}
+
+export interface DestinationSuggestion {
+  airport: string
+  city: string
+  reasoning: string
+}
+
+export interface DestinationSuggestResult {
+  suggestions: DestinationSuggestion[]
+  estimate: TokenEstimate
+}
+
+export interface DestinationSuggestRequest {
+  origins: string[]
+  available_from?: string | null
+  available_to?: string | null
+  duration_min?: number
+  duration_max?: number
+  budget_max?: number | null
+  budget_currency?: string
+  cabin_classes?: string[]
+  travelers_adults?: number
+  travelers_children?: number
+}
+
+export async function aiNameTrip(id: number): Promise<TripNameResult> {
+  const { data } = await api.post(`/trips/api/trips/${id}/name`)
+  return data
+}
+
+export async function aiNameTripEstimate(id: number): Promise<TokenEstimate> {
+  const { data } = await api.get(`/trips/api/trips/${id}/name/estimate`)
+  return data
+}
+
+export async function aiCheckFeasibility(id: number): Promise<TripFeasibilityResult> {
+  const { data } = await api.post(`/trips/api/trips/${id}/feasibility`)
+  return data
+}
+
+export async function aiFeasibilityEstimate(id: number): Promise<TokenEstimate> {
+  const { data } = await api.get(`/trips/api/trips/${id}/feasibility/estimate`)
+  return data
+}
+
+export async function aiSuggestDestinations(request: DestinationSuggestRequest): Promise<DestinationSuggestResult> {
+  const { data } = await api.post('/trips/api/suggest-destinations', request)
+  return data
+}
+
 export async function fetchTripPlanMatches(id: number, limit = 20): Promise<TripPlanMatch[]> {
   const { data } = await api.get(`/trips/api/trips/${id}/matches`, { params: { limit } })
   const raw = data.matches || data

@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime, timedelta
+from typing import List
 import os
 import asyncio
 import logging
@@ -493,4 +494,145 @@ async def check_trip_matches(trip_id: int, db: Session = Depends(get_db)):
             }
             for deal, score in matches
         ],
+    }
+
+
+# --- AI Trip Intelligence Endpoints ---
+
+
+class DestinationSuggestRequest(BaseModel):
+    origins: List[str] = []
+    available_from: Optional[str] = None
+    available_to: Optional[str] = None
+    duration_min: Optional[int] = 3
+    duration_max: Optional[int] = 14
+    budget_max: Optional[int] = None
+    budget_currency: str = "NZD"
+    cabin_classes: List[str] = ["economy"]
+    travelers_adults: int = 2
+    travelers_children: int = 0
+
+
+@router.post("/api/trips/{trip_id}/name")
+async def ai_name_trip(trip_id: int, db: Session = Depends(get_db)):
+    """Generate an AI-powered creative name and vibe for a trip plan."""
+    from app.services.ai_service import AIService
+    if not AIService.is_configured():
+        raise HTTPException(status_code=503, detail="AI service is not configured")
+
+    trip = db.query(TripPlan).filter(TripPlan.id == trip_id).first()
+    if not trip:
+        raise HTTPException(status_code=404, detail="Trip not found")
+
+    from app.services.ai_trips import name_trip
+    result = await name_trip(trip, db=db)
+
+    # Save to trip plan
+    trip.name = result["name"]
+    if result["vibe"]:
+        existing_notes = trip.notes or ""
+        vibe_line = f"Vibe: {result['vibe']}"
+        if "Vibe:" in existing_notes:
+            # Replace existing vibe line
+            lines = existing_notes.split("\n")
+            lines = [l for l in lines if not l.startswith("Vibe:")]
+            lines.insert(0, vibe_line)
+            trip.notes = "\n".join(lines).strip()
+        else:
+            trip.notes = f"{vibe_line}\n{existing_notes}".strip() if existing_notes else vibe_line
+    db.commit()
+
+    return {
+        "name": result["name"],
+        "vibe": result["vibe"],
+        "estimate": result["estimate"],
+    }
+
+
+@router.get("/api/trips/{trip_id}/name/estimate")
+async def ai_name_trip_estimate(trip_id: int, db: Session = Depends(get_db)):
+    """Return token/cost estimate for naming a trip without running the AI."""
+    from app.services.ai_service import AIService
+    if not AIService.is_configured():
+        raise HTTPException(status_code=503, detail="AI service is not configured")
+
+    trip = db.query(TripPlan).filter(TripPlan.id == trip_id).first()
+    if not trip:
+        raise HTTPException(status_code=404, detail="Trip not found")
+
+    from app.services.ai_trips import estimate_name_trip
+    return estimate_name_trip(trip)
+
+
+@router.post("/api/trips/{trip_id}/feasibility")
+async def ai_check_feasibility(trip_id: int, db: Session = Depends(get_db)):
+    """AI-powered feasibility check for a trip plan."""
+    from app.services.ai_service import AIService
+    if not AIService.is_configured():
+        raise HTTPException(status_code=503, detail="AI service is not configured")
+
+    trip = db.query(TripPlan).filter(TripPlan.id == trip_id).first()
+    if not trip:
+        raise HTTPException(status_code=404, detail="Trip not found")
+
+    from app.services.ai_trips import check_feasibility
+    result = await check_feasibility(trip, db=db)
+
+    return {
+        "verdict": result["verdict"],
+        "reasoning": result["reasoning"],
+        "confidence": result["confidence"],
+        "estimate": result["estimate"],
+    }
+
+
+@router.get("/api/trips/{trip_id}/feasibility/estimate")
+async def ai_feasibility_estimate(trip_id: int, db: Session = Depends(get_db)):
+    """Return token/cost estimate for a feasibility check without running the AI."""
+    from app.services.ai_service import AIService
+    if not AIService.is_configured():
+        raise HTTPException(status_code=503, detail="AI service is not configured")
+
+    trip = db.query(TripPlan).filter(TripPlan.id == trip_id).first()
+    if not trip:
+        raise HTTPException(status_code=404, detail="Trip not found")
+
+    from app.services.ai_trips import estimate_feasibility
+    return estimate_feasibility(trip)
+
+
+@router.post("/api/suggest-destinations")
+async def ai_suggest_destinations(
+    request: DestinationSuggestRequest,
+    db: Session = Depends(get_db),
+):
+    """AI-powered destination recommendations based on traveler preferences."""
+    from app.services.ai_service import AIService
+    if not AIService.is_configured():
+        raise HTTPException(status_code=503, detail="AI service is not configured")
+
+    from app.services.ai_trips import suggest_destinations
+    result = await suggest_destinations(
+        origins=request.origins,
+        dates={
+            "available_from": request.available_from,
+            "available_to": request.available_to,
+            "duration_min": request.duration_min,
+            "duration_max": request.duration_max,
+        },
+        budget={
+            "budget_max": request.budget_max,
+            "budget_currency": request.budget_currency,
+        },
+        cabin_classes=request.cabin_classes,
+        travelers={
+            "adults": request.travelers_adults,
+            "children": request.travelers_children,
+        },
+        db=db,
+    )
+
+    return {
+        "suggestions": result["suggestions"],
+        "estimate": result["estimate"],
     }
