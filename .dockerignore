@@ -1,0 +1,14 @@
+.git
+.beads
+.claude
+.agent-skills
+.github
+docs
+*.md
+!backend/requirements.txt
+frontend/node_modules
+backend/__pycache__
+backend/.pytest_cache
+backend/tests
+**/__pycache__
+**/*.pyc

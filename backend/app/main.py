@@ -1,6 +1,7 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from contextlib import asynccontextmanager
 import logging
 import os
@@ -76,12 +77,7 @@ app = FastAPI(
 # CORS for Phase 1a - only localhost (security)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost:8000", 
-        "http://127.0.0.1:8000"
-    ],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
@@ -108,3 +104,20 @@ app.include_router(awards.router, prefix="/awards", tags=["awards"])
 async def ping():
     """Simple ping endpoint for health checks."""
     return {"status": "ok", "phase": "1a"}
+
+
+# Serve React SPA from baked-in frontend build
+frontend_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend_dist")
+if os.path.exists(frontend_dir):
+    # Serve static assets (JS, CSS, images) from the Vite build
+    app.mount("/assets", StaticFiles(directory=os.path.join(frontend_dir, "assets")), name="frontend_assets")
+
+    @app.get("/{full_path:path}")
+    async def serve_spa(request: Request, full_path: str):
+        """Catch-all: serve index.html for client-side routing."""
+        # Try to serve a static file first (favicon, etc.)
+        file_path = os.path.join(frontend_dir, full_path)
+        if full_path and os.path.isfile(file_path):
+            return FileResponse(file_path)
+        # Otherwise serve index.html for React Router
+        return FileResponse(os.path.join(frontend_dir, "index.html"))
