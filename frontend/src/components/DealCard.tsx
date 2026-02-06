@@ -118,7 +118,7 @@ export default function DealCard({ deal, onDismiss, onRestore }: DealCardProps) 
       </p>
 
       {/* Price + cabin */}
-      <div className="flex items-center gap-3 flex-wrap overflow-hidden">
+      <div className="flex items-center gap-3 flex-wrap min-w-0">
         <div className="flex items-center gap-2 min-w-0">
           {deal.converted_price != null && deal.preferred_currency ? (
             <PriceDisplay
@@ -158,7 +158,7 @@ export default function DealCard({ deal, onDismiss, onRestore }: DealCardProps) 
             href={deal.link}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg bg-accent-primary text-deck-bg hover:bg-accent-primary-dim font-medium transition-colors"
+            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg bg-accent-primary text-deck-bg hover:bg-accent-primary-dim font-medium transition-colors min-h-[44px]"
           >
             View deal
             <span className="text-xs">&#8599;</span>
@@ -208,7 +208,7 @@ export default function DealCard({ deal, onDismiss, onRestore }: DealCardProps) 
               {verdictLabel(ai.result.verdict)}
             </Badge>
           </div>
-          <p className="text-sm text-deck-text-secondary">{ai.result.explanation}</p>
+          <p className="text-sm text-deck-text-secondary break-words min-w-0">{ai.result.explanation}</p>
           <div className="flex gap-2">
             <button
               type="button"

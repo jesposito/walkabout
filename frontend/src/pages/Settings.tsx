@@ -10,11 +10,9 @@ import {
   UserSettings,
   AirportSearchResult,
   SettingsReviewResult,
-  TokenEstimate,
 } from '../api/client'
-import { PageHeader, Card, Button, Input, Spinner, ToggleSwitch, Badge } from '../components/shared'
+import { PageHeader, Card, Button, Input, Spinner, ToggleSwitch, Badge, AIActionButton } from '../components/shared'
 import { useAirports, formatAirport } from '../hooks/useAirports'
-import { useAIAction } from '../hooks/useAIAction'
 
 // --- Collapsible Section ---
 
@@ -31,11 +29,12 @@ function Section({
 }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <Card>
+    <Card aria-expanded={open}>
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex items-center justify-between w-full text-left"
+        aria-expanded={open}
+        className="flex items-center justify-between w-full text-left min-h-[44px]"
       >
         <div className="flex items-center gap-2">
           <span className="text-lg">{icon}</span>
@@ -102,7 +101,8 @@ function AirportSelect({
               <button
                 type="button"
                 onClick={() => onChange(selected.filter((c) => c !== code))}
-                className="hover:text-deal-above"
+                className="hover:text-danger min-w-[24px] min-h-[24px] flex items-center justify-center"
+                aria-label={`Remove ${code}`}
               >
                 &times;
               </button>
@@ -313,10 +313,10 @@ export default function Settings() {
         title="Settings"
         subtitle="Configure your preferences"
         actions={
-          <span className={`text-sm transition-opacity ${saveStatus === 'idle' ? 'opacity-0' : 'opacity-100'}`}>
+          <span className={`text-sm transition-opacity ${saveStatus === 'idle' ? 'opacity-0' : 'opacity-100'}`} aria-live="polite">
             {saveStatus === 'saving' && <span className="text-deck-text-muted">Saving...</span>}
             {saveStatus === 'saved' && <span className="text-deal-hot">Saved</span>}
-            {saveStatus === 'error' && <span className="text-deal-above">Save failed</span>}
+            {saveStatus === 'error' && <span className="text-danger">Save failed</span>}
           </span>
         }
       />
@@ -611,14 +611,6 @@ export default function Settings() {
   )
 }
 
-function formatEstimate(estimate: TokenEstimate | null): string {
-  if (!estimate) return ''
-  const totalTokens = estimate.input_tokens_est + estimate.output_tokens_est
-  const cost = estimate.cost_est_usd
-  if (cost < 0.001) return `~${totalTokens} tokens`
-  return `~${totalTokens} tokens (~$${cost.toFixed(3)})`
-}
-
 function scoreToVariant(score: number): 'hot' | 'good' | 'decent' | 'normal' {
   if (score >= 8) return 'hot'
   if (score >= 6) return 'good'
@@ -627,90 +619,36 @@ function scoreToVariant(score: number): 'hot' | 'good' | 'decent' | 'normal' {
 }
 
 function SettingsReview() {
-  const ai = useAIAction<SettingsReviewResult>({
-    action: aiReviewSettings,
-    fetchEstimate: aiReviewSettingsEstimate,
-  })
-
-  useEffect(() => {
-    if (!ai.estimate && !ai.estimateLoading) {
-      ai.loadEstimate()
-    }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
   return (
     <Card className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-deck-text-secondary uppercase tracking-wide">
-          AI Configuration Review
-        </h3>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => ai.execute()}
-            disabled={ai.loading}
-          >
-            {ai.loading ? (
-              <span className="flex items-center gap-1.5">
-                <Spinner size="sm" />
-                Reviewing...
-              </span>
-            ) : (
-              'Review my setup'
-            )}
-          </Button>
-          {ai.estimate && !ai.result && !ai.loading && (
-            <span className="text-xs text-deck-text-muted">
-              {formatEstimate(ai.estimate)}
-            </span>
-          )}
-        </div>
-      </div>
-
-      {ai.error && (
-        <p className="text-xs text-deal-above">{ai.error}</p>
-      )}
-
-      {ai.result && (
-        <div className="space-y-3 pt-2 border-t border-deck-border">
-          <div className="flex items-center gap-2">
-            <Badge variant={scoreToVariant(ai.result.score)}>
-              Score: {ai.result.score}/10
-            </Badge>
-            <p className="text-sm text-deck-text-primary">{ai.result.assessment}</p>
-          </div>
-
-          {ai.result.suggestions.length > 0 && (
-            <div className="space-y-2">
-              {ai.result.suggestions.map((s, i) => (
-                <div key={i} className="p-2 rounded bg-deck-bg">
-                  <p className="text-sm font-medium text-deck-text-primary">{s.title}</p>
-                  <p className="text-xs text-deck-text-secondary mt-0.5">{s.description}</p>
-                </div>
-              ))}
+      <h3 className="text-sm font-medium text-deck-text-secondary uppercase tracking-wide">
+        AI Configuration Review
+      </h3>
+      <AIActionButton<SettingsReviewResult>
+        label="Review my setup"
+        action={aiReviewSettings}
+        fetchEstimate={aiReviewSettingsEstimate}
+        renderResult={(r) => (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Badge variant={scoreToVariant(r.score)}>
+                Score: {r.score}/10
+              </Badge>
+              <p className="text-sm text-deck-text-primary break-words min-w-0 flex-1">{r.assessment}</p>
             </div>
-          )}
-
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => ai.execute()}
-              className="text-xs text-accent-primary hover:underline"
-              disabled={ai.loading}
-            >
-              Refresh
-            </button>
-            <button
-              type="button"
-              onClick={() => ai.clear()}
-              className="text-xs text-deck-text-muted hover:text-deck-text-secondary"
-            >
-              Hide
-            </button>
+            {r.suggestions.length > 0 && (
+              <div className="space-y-2">
+                {r.suggestions.map((s: { title: string; description: string }, i: number) => (
+                  <div key={i} className="p-2 rounded bg-deck-bg">
+                    <p className="text-sm font-medium text-deck-text-primary">{s.title}</p>
+                    <p className="text-xs text-deck-text-secondary mt-0.5 break-words">{s.description}</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        )}
+      />
     </Card>
   )
 }

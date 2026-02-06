@@ -52,12 +52,14 @@ export default function Deals() {
       {/* Tabs + sort */}
       <div className="flex flex-wrap items-center gap-4">
         {/* Tab pills */}
-        <div className="flex rounded-lg bg-deck-surface border border-deck-border p-0.5">
+        <div className="flex rounded-lg bg-deck-surface border border-deck-border p-0.5" role="tablist" aria-label="Deal categories">
           {tabs.map((t) => (
             <button
               key={t.key}
+              role="tab"
+              aria-selected={tab === t.key}
               onClick={() => setTab(t.key)}
-              className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+              className={`px-3 py-1.5 text-sm rounded-md transition-colors min-h-[44px] ${
                 tab === t.key
                   ? 'bg-deck-surface-hover text-deck-text-primary font-medium'
                   : 'text-deck-text-muted hover:text-deck-text-secondary'

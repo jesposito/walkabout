@@ -246,7 +246,7 @@ function MileValueForm({ search }: { search: AwardSearch }) {
   if (!submitted) {
     return (
       <div className="space-y-2">
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <Input
             label="Miles required"
             type="number"
@@ -412,8 +412,8 @@ function AwardSearchCard({
                 action={() => aiFindPatterns(search.id)}
                 fetchEstimate={() => aiPatternsEstimate(search.id)}
                 renderResult={(r) => (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 mb-1">
+                  <div className="space-y-2 min-w-0">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <p className="text-xs text-deck-text-muted uppercase">Trend</p>
                       <Badge variant={
                         r.trend === 'improving' ? 'hot'
@@ -434,16 +434,16 @@ function AwardSearchCard({
                         <p className="text-xs text-deck-text-muted uppercase mb-1">Sweet Spots</p>
                         {r.sweet_spots.map((s, i) => (
                           <div key={i} className="text-xs text-deck-text-secondary mb-1">
-                            <span className="font-medium text-deck-text-primary">{s.program}</span>: {s.insight}
+                            <span className="font-medium text-deck-text-primary">{s.program}</span>: <span className="break-words">{s.insight}</span>
                           </div>
                         ))}
                       </div>
                     )}
                     {r.timing && (
-                      <p className="text-xs text-deck-text-secondary"><span className="font-medium">Timing:</span> {r.timing}</p>
+                      <p className="text-xs text-deck-text-secondary break-words"><span className="font-medium">Timing:</span> {r.timing}</p>
                     )}
                     {r.recommendation && (
-                      <p className="text-xs text-deck-text-secondary"><span className="font-medium">Recommendation:</span> {r.recommendation}</p>
+                      <p className="text-xs text-deck-text-secondary break-words"><span className="font-medium">Recommendation:</span> {r.recommendation}</p>
                     )}
                   </div>
                 )}

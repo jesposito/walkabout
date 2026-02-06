@@ -57,7 +57,7 @@ function StatusBar({ status }: { status: SystemStatus }) {
 
   return (
     <Card className="!p-3">
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs" aria-live="polite">
         <div className="flex items-center gap-2">
           <span className="text-deck-text-muted font-medium uppercase tracking-wider">Sources</span>
           {apiSources.map(([name, info]) => (
@@ -69,7 +69,7 @@ function StatusBar({ status }: { status: SystemStatus }) {
           {scraperSources.map(([name, info]) => (
             <span key={name} className="flex items-center gap-1.5 text-deck-text-secondary">
               <SourceDot available={info.available} />
-              <span className="capitalize">{name}</span>
+              <span className="capitalize">{name === 'playwright' ? 'Google Flights Scraper' : name}</span>
             </span>
           ))}
           {status.ai_enabled && (
