@@ -7,6 +7,7 @@ import {
   toggleAwardSearch,
   pollAwardSearch,
   fetchLatestAwardResults,
+  fetchSystemStatus,
   type AwardSearch,
   type AwardSearchCreate,
 } from '../api/client'
@@ -316,6 +317,14 @@ export default function Awards() {
     queryFn: () => fetchAwardSearches(),
   })
 
+  const { data: status } = useQuery({
+    queryKey: ['system-status'],
+    queryFn: fetchSystemStatus,
+    staleTime: 60000,
+  })
+
+  const seatsAeroAvailable = status?.data_sources?.['seats.aero']?.available ?? null
+
   const deleteMutation = useMutation({
     mutationFn: deleteAwardSearch,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['awardSearches'] }),
@@ -339,6 +348,20 @@ export default function Awards() {
           {showAdd ? 'Cancel' : '+ Track Route'}
         </Button>
       </div>
+
+      {seatsAeroAvailable === false && (
+        <Card className="!border-deal-above/30 !bg-deal-above/5">
+          <div className="flex items-start gap-3">
+            <span className="text-deal-above text-lg shrink-0">!</span>
+            <div>
+              <p className="text-sm font-medium text-deck-text-primary">Seats.aero API key not configured</p>
+              <p className="text-xs text-deck-text-secondary mt-0.5">
+                Award tracking requires a Seats.aero Pro API key. Set <code className="font-mono bg-deck-bg px-1 rounded">SEATS_AERO_API_KEY</code> in your environment to enable polling.
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {showAdd && <AddAwardForm onClose={() => setShowAdd(false)} />}
 

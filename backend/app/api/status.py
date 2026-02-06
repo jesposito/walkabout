@@ -251,8 +251,16 @@ async def data_sources_status(db: Session = Depends(get_db)):
         FlightPrice.scraped_at >= datetime.utcnow() - timedelta(days=7)
     ).count()
 
+    # Include Seats.aero availability
+    import os
+    all_sources = dict(sources["sources"])
+    all_sources["seats.aero"] = {
+        "available": bool(os.environ.get("SEATS_AERO_API_KEY")),
+        "type": "api",
+    }
+
     return {
-        "data_sources": sources["sources"],
+        "data_sources": all_sources,
         "ai_enabled": sources["ai_enabled"],
         "total_sources_available": sources["total_available"],
         "scheduler": {

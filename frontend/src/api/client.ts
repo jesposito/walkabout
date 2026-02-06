@@ -330,6 +330,18 @@ export interface TripPlanMatch {
   found_at: string
 }
 
+export interface DestinationType {
+  id: string
+  name: string
+  emoji: string
+  description: string
+}
+
+export async function fetchDestinationTypes(): Promise<DestinationType[]> {
+  const { data } = await api.get('/trips/api/destination-types')
+  return data
+}
+
 export async function fetchTripPlans(activeOnly = false): Promise<TripPlan[]> {
   const { data } = await api.get('/trips/api/trips', { params: { active_only: activeOnly } })
   return data.trips || data

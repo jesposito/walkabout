@@ -18,6 +18,7 @@ from app.services.currency import CurrencyService
 from app.utils.template_helpers import get_airports_dict
 from app.utils.version import get_version
 from app.services.airports import AIRPORTS, AirportService
+from app.services.destination_types import DestinationTypeService
 from app.services.trip_plan_search import TripPlanSearchService
 
 # Pre-compute airports dict for API responses
@@ -116,6 +117,11 @@ async def trips_page(request: Request, db: Session = Depends(get_db)):
             "version": get_version(),
         }
     )
+
+
+@router.get("/api/destination-types")
+async def list_destination_types():
+    return DestinationTypeService.get_all_types()
 
 
 @router.get("/api/trips")

@@ -10,9 +10,23 @@ from app.services.currency import CurrencyService
 
 
 class TripMatcher:
-    
+
     def __init__(self, db: Session):
         self.db = db
+        self._home_airports: list[str] | None = None
+
+    @property
+    def home_airports(self) -> list[str]:
+        if self._home_airports is None:
+            from app.models.user_settings import UserSettings
+            settings = UserSettings.get_or_create(self.db)
+            airports = [a.upper() for a in (settings.home_airports or [])]
+            if settings.home_airport:
+                ha = settings.home_airport.upper()
+                if ha not in airports:
+                    airports.append(ha)
+            self._home_airports = airports
+        return self._home_airports
     
     def match_deal_to_plans(self, deal: Deal) -> list[tuple[TripPlan, float]]:
         active_plans = self.db.query(TripPlan).filter(TripPlan.is_active == True).all()
@@ -47,8 +61,22 @@ class TripMatcher:
                         score += 15
                         break
         else:
-            origin_match = True
-            score += 10
+            # No plan origins specified - fall back to user's home airports
+            home = self.home_airports
+            if home:
+                if deal_origin in home:
+                    origin_match = True
+                    score += 20
+                else:
+                    for ha in home:
+                        if deal_origin in DestinationService.get_similar_airports(ha):
+                            origin_match = True
+                            score += 10
+                            break
+            else:
+                # No plan origins AND no home airports configured
+                origin_match = True
+                score += 10
         
         dest_match = False
         if plan_dests:

@@ -8,12 +8,14 @@ import {
   toggleTripPlan,
   searchTripPlan,
   fetchTripPlanMatches,
+  fetchDestinationTypes,
   searchAirports,
   TripPlan,
   TripPlanCreate,
   TripPlanMatch,
   TripLeg,
   AirportSearchResult,
+  DestinationType,
 } from '../api/client'
 import { PageHeader, Card, Button, Input, EmptyState, Spinner, Badge, PriceDisplay } from '../components/shared'
 
@@ -104,6 +106,51 @@ function MultiAirportPicker({
   )
 }
 
+// --- Destination Type Picker ---
+
+function DestinationTypePicker({
+  selected,
+  onChange,
+  types,
+}: {
+  selected: string[]
+  onChange: (types: string[]) => void
+  types: DestinationType[]
+}) {
+  const toggle = (id: string) => {
+    onChange(
+      selected.includes(id) ? selected.filter((t) => t !== id) : [...selected, id]
+    )
+  }
+
+  return (
+    <div>
+      <label className="block text-sm text-deck-text-secondary mb-2">Destination Types</label>
+      <div className="flex flex-wrap gap-2">
+        {types.map((dt) => (
+          <button
+            key={dt.id}
+            type="button"
+            onClick={() => toggle(dt.id)}
+            className={`px-3 py-1.5 text-sm rounded-full border transition-colors ${
+              selected.includes(dt.id)
+                ? 'bg-accent-primary/20 border-accent-primary/50 text-accent-primary'
+                : 'bg-deck-bg border-deck-border text-deck-text-secondary hover:border-deck-text-muted'
+            }`}
+          >
+            {dt.emoji} {dt.name}
+          </button>
+        ))}
+      </div>
+      {selected.length > 0 && (
+        <p className="text-xs text-deck-text-muted mt-1.5">
+          Matches deals to airports in {selected.length} region{selected.length > 1 ? 's' : ''}
+        </p>
+      )}
+    </div>
+  )
+}
+
 // --- Trip Plan Form (Create & Edit) ---
 
 function TripPlanForm({
@@ -118,6 +165,7 @@ function TripPlanForm({
   const [name, setName] = useState(initial?.name || '')
   const [origins, setOrigins] = useState<string[]>(initial?.origins || [])
   const [destinations, setDestinations] = useState<string[]>(initial?.destinations || [])
+  const [destinationTypes, setDestinationTypes] = useState<string[]>(initial?.destination_types || [])
   const [legs, setLegs] = useState<TripLeg[]>(initial?.legs || [])
   const [showLegs, setShowLegs] = useState((initial?.legs?.length ?? 0) > 0)
   const [budgetMax, setBudgetMax] = useState(initial?.budget_max?.toString() || '')
@@ -129,6 +177,11 @@ function TripPlanForm({
   const [availableFrom, setAvailableFrom] = useState(initial?.available_from?.split('T')[0] || '')
   const [availableTo, setAvailableTo] = useState(initial?.available_to?.split('T')[0] || '')
   const [notes, setNotes] = useState(initial?.notes || '')
+
+  const { data: destTypes } = useQuery({
+    queryKey: ['destinationTypes'],
+    queryFn: fetchDestinationTypes,
+  })
 
   const addLeg = () => {
     setLegs([...legs, { origin: '', destination: '', date_start: null, date_end: null, order: legs.length }])
@@ -147,7 +200,7 @@ function TripPlanForm({
     setLegs(newLegs.map((l, i) => ({ ...l, order: i })))
   }
 
-  const canSubmit = name.trim().length > 0 && (origins.length > 0 || destinations.length > 0 || legs.length > 0)
+  const canSubmit = name.trim().length > 0 && (origins.length > 0 || destinations.length > 0 || destinationTypes.length > 0 || legs.length > 0)
 
   return (
     <Card>
@@ -168,6 +221,13 @@ function TripPlanForm({
               <MultiAirportPicker label="From (origins)" selected={origins} onChange={setOrigins} />
               <MultiAirportPicker label="To (destinations)" selected={destinations} onChange={setDestinations} />
             </div>
+            {destTypes && destTypes.length > 0 && (
+              <DestinationTypePicker
+                selected={destinationTypes}
+                onChange={setDestinationTypes}
+                types={destTypes}
+              />
+            )}
             <button
               type="button"
               onClick={() => setShowLegs(true)}
@@ -320,6 +380,7 @@ function TripPlanForm({
               name: name.trim(),
               origins: showLegs ? [] : origins,
               destinations: showLegs ? [] : destinations,
+              destination_types: showLegs ? [] : destinationTypes,
               legs: showLegs ? legs.filter((l) => l.origin && l.destination) : [],
               travelers_adults: adults,
               travelers_children: children,
@@ -433,11 +494,17 @@ function TripPlanCard({
               {plan.origins.length > 0 && (
                 <span className="font-mono">{plan.origins.join(', ')}</span>
               )}
-              {plan.origins.length > 0 && plan.destinations.length > 0 && (
+              {plan.origins.length > 0 && (plan.destinations.length > 0 || plan.destination_types.length > 0) && (
                 <span className="text-deck-text-muted mx-1">&rarr;</span>
               )}
               {plan.destinations.length > 0 && (
                 <span className="font-mono">{plan.destinations.join(', ')}</span>
+              )}
+              {plan.destination_types.length > 0 && (
+                <span className="text-deck-text-muted">
+                  {plan.destinations.length > 0 ? ' + ' : ''}
+                  {plan.destination_types.map((t) => t.replace(/_/g, ' ')).join(', ')}
+                </span>
               )}
               {plan.budget_max && (
                 <span className="text-deck-text-muted ml-2">
