@@ -85,20 +85,69 @@ class AIExtractor:
     async def extract(self, deal: ParsedDeal) -> ParseResult:
         if not self.config.enabled:
             return deal.result
-        
+
         cache_key = self._cache_key(deal)
         if cache_key in self._cache:
             logger.debug(f"AI cache hit for {cache_key}")
             return self._cache[cache_key]
-        
+
         try:
             result = await self._call_api(deal)
+            # Validate: if generic parser found valid airports, don't replace
+            # with AI airports unless they match city names in the title
+            result = self._validate_against_original(deal, result)
             self._cache[cache_key] = result
             self._call_count += 1
             return result
         except Exception as e:
             logger.error(f"AI extraction failed: {e}")
             return deal.result
+
+    def _validate_against_original(self, deal: ParsedDeal, ai_result: ParseResult) -> ParseResult:
+        """Prevent AI from replacing valid route data with hallucinated airports."""
+        original = deal.result
+
+        # If the generic parser found valid airports, keep them unless AI matches title
+        if original.origin and original.destination:
+            from app.services.airports import AirportLookup, AIRPORTS, CITY_TO_CODES
+
+            # Verify AI airports actually appear in the title text
+            title_lower = deal.raw_title.lower()
+            ai_origin_valid = self._airport_matches_text(ai_result.origin, title_lower)
+            ai_dest_valid = self._airport_matches_text(ai_result.destination, title_lower)
+
+            if not (ai_origin_valid and ai_dest_valid):
+                logger.warning(
+                    f"AI hallucinated airports for '{deal.raw_title[:80]}': "
+                    f"AI={ai_result.origin}->{ai_result.destination}, "
+                    f"keeping generic={original.origin}->{original.destination}"
+                )
+                ai_result.origin = original.origin
+                ai_result.destination = original.destination
+
+        return ai_result
+
+    @staticmethod
+    def _airport_matches_text(code: str | None, text_lower: str) -> bool:
+        """Check if an airport code or its city name appears in the text."""
+        if not code:
+            return False
+        code = code.upper()
+        # Direct code mention
+        if code.lower() in text_lower or code in text_lower.upper():
+            return True
+        # Check if the city name for this code appears in the text
+        from app.services.airports import AIRPORTS, CITY_TO_CODES
+        airport_info = AIRPORTS.get(code)
+        if airport_info:
+            city = airport_info.get('city', '').lower()
+            if city and city in text_lower:
+                return True
+        # Check reverse: city_to_codes
+        for city, codes in CITY_TO_CODES.items():
+            if code in codes and city in text_lower:
+                return True
+        return False
     
     async def _call_api(self, deal: ParsedDeal) -> ParseResult:
         import httpx

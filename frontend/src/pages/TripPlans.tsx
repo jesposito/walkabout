@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   fetchTripPlans,
   createTripPlan,
+  updateTripPlan,
   deleteTripPlan,
   toggleTripPlan,
   searchTripPlan,
@@ -103,29 +104,31 @@ function MultiAirportPicker({
   )
 }
 
-// --- Add Trip Plan Form ---
+// --- Trip Plan Form (Create & Edit) ---
 
-function AddTripPlanForm({
+function TripPlanForm({
   onSubmit,
   onCancel,
+  initial,
 }: {
   onSubmit: (data: TripPlanCreate) => void
   onCancel: () => void
+  initial?: TripPlan
 }) {
-  const [name, setName] = useState('')
-  const [origins, setOrigins] = useState<string[]>([])
-  const [destinations, setDestinations] = useState<string[]>([])
-  const [legs, setLegs] = useState<TripLeg[]>([])
-  const [showLegs, setShowLegs] = useState(false)
-  const [budgetMax, setBudgetMax] = useState('')
-  const [budgetCurrency, setBudgetCurrency] = useState('NZD')
-  const [adults, setAdults] = useState(2)
-  const [children, setChildren] = useState(0)
-  const [durationMin, setDurationMin] = useState(3)
-  const [durationMax, setDurationMax] = useState(14)
-  const [availableFrom, setAvailableFrom] = useState('')
-  const [availableTo, setAvailableTo] = useState('')
-  const [notes, setNotes] = useState('')
+  const [name, setName] = useState(initial?.name || '')
+  const [origins, setOrigins] = useState<string[]>(initial?.origins || [])
+  const [destinations, setDestinations] = useState<string[]>(initial?.destinations || [])
+  const [legs, setLegs] = useState<TripLeg[]>(initial?.legs || [])
+  const [showLegs, setShowLegs] = useState((initial?.legs?.length ?? 0) > 0)
+  const [budgetMax, setBudgetMax] = useState(initial?.budget_max?.toString() || '')
+  const [budgetCurrency, setBudgetCurrency] = useState(initial?.budget_currency || 'NZD')
+  const [adults, setAdults] = useState(initial?.travelers_adults ?? 2)
+  const [children, setChildren] = useState(initial?.travelers_children ?? 0)
+  const [durationMin, setDurationMin] = useState(initial?.trip_duration_min ?? 3)
+  const [durationMax, setDurationMax] = useState(initial?.trip_duration_max ?? 14)
+  const [availableFrom, setAvailableFrom] = useState(initial?.available_from?.split('T')[0] || '')
+  const [availableTo, setAvailableTo] = useState(initial?.available_to?.split('T')[0] || '')
+  const [notes, setNotes] = useState(initial?.notes || '')
 
   const addLeg = () => {
     setLegs([...legs, { origin: '', destination: '', date_start: null, date_end: null, order: legs.length }])
@@ -149,7 +152,7 @@ function AddTripPlanForm({
   return (
     <Card>
       <h3 className="text-sm font-medium text-deck-text-secondary uppercase tracking-wide mb-4">
-        New Trip Plan
+        {initial ? 'Edit Trip Plan' : 'New Trip Plan'}
       </h3>
       <div className="space-y-4">
         <Input
@@ -330,7 +333,7 @@ function AddTripPlanForm({
             })}
             disabled={!canSubmit}
           >
-            Create Trip Plan
+            {initial ? 'Save Changes' : 'Create Trip Plan'}
           </Button>
           <Button variant="secondary" onClick={onCancel}>Cancel</Button>
         </div>
@@ -343,41 +346,42 @@ function AddTripPlanForm({
 
 function MatchCard({ match }: { match: TripPlanMatch }) {
   return (
-    <Card>
-      <div className="flex items-center justify-between mb-2">
-        <div className="font-mono text-sm font-semibold text-deck-text-primary">
-          {match.origin} &rarr; {match.destination}
+    <a
+      href={match.booking_url || '#'}
+      target={match.booking_url ? '_blank' : undefined}
+      rel={match.booking_url ? 'noopener noreferrer' : undefined}
+      className="block"
+    >
+      <Card interactive>
+        <div className="flex items-center justify-between mb-2">
+          <div className="font-mono text-sm font-semibold text-deck-text-primary">
+            {match.origin} &rarr; {match.destination}
+          </div>
+          <Badge variant={match.match_score >= 70 ? 'hot' : match.match_score >= 40 ? 'good' : 'decent'}>
+            {Math.round(match.match_score)}% match
+          </Badge>
         </div>
-        <Badge variant={match.match_score >= 70 ? 'hot' : match.match_score >= 40 ? 'good' : 'decent'}>
-          {Math.round(match.match_score)}% match
-        </Badge>
-      </div>
-      <div className="flex items-center justify-between">
-        <div className="space-y-1">
-          <p className="text-xs text-deck-text-secondary">
-            {match.departure_date}
-            {match.return_date && ` - ${match.return_date}`}
-          </p>
-          {match.airline && (
-            <p className="text-xs text-deck-text-muted">{match.airline} &middot; {match.stops === 0 ? 'Nonstop' : `${match.stops} stop${match.stops > 1 ? 's' : ''}`}</p>
-          )}
-          <p className="text-xs text-deck-text-muted capitalize">{(match.source || 'unknown').replace(/_/g, ' ')}</p>
+        {match.deal_title && (
+          <p className="text-xs text-deck-text-secondary mb-2 line-clamp-2">{match.deal_title}</p>
+        )}
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            {match.airline && (
+              <p className="text-xs text-deck-text-muted">{match.airline} &middot; {match.stops === 0 ? 'Nonstop' : `${match.stops} stop${match.stops > 1 ? 's' : ''}`}</p>
+            )}
+            <p className="text-xs text-deck-text-muted capitalize">{(match.source || 'unknown').replace(/_/g, ' ')}</p>
+          </div>
+          <div className="text-right">
+            <PriceDisplay price={match.price_nzd} size="lg" />
+            {match.booking_url && (
+              <span className="text-xs text-accent-primary mt-1 block">
+                View deal &rarr;
+              </span>
+            )}
+          </div>
         </div>
-        <div className="text-right">
-          <PriceDisplay price={match.price_nzd} size="lg" />
-          {match.booking_url && (
-            <a
-              href={match.booking_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-accent-primary hover:underline mt-1 block"
-            >
-              Book &rarr;
-            </a>
-          )}
-        </div>
-      </div>
-    </Card>
+      </Card>
+    </a>
   )
 }
 
@@ -388,11 +392,13 @@ function TripPlanCard({
   onDelete,
   onToggle,
   onSearch,
+  onEdit,
 }: {
   plan: TripPlan
   onDelete: (id: number) => void
   onToggle: (id: number) => void
   onSearch: (id: number) => void
+  onEdit: (plan: TripPlan) => void
 }) {
   const [expanded, setExpanded] = useState(false)
   const [searching, setSearching] = useState(plan.search_in_progress)
@@ -517,6 +523,9 @@ function TripPlanCard({
             <Button variant="secondary" size="sm" onClick={handleSearch} disabled={searching}>
               {searching ? 'Searching...' : 'Search now'}
             </Button>
+            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onEdit(plan) }}>
+              Edit
+            </Button>
             <Button variant="ghost" size="sm" onClick={() => onToggle(plan.id)}>
               {plan.is_active ? 'Pause' : 'Resume'}
             </Button>
@@ -539,7 +548,8 @@ function TripPlanCard({
 
 export default function TripPlans() {
   const queryClient = useQueryClient()
-  const [showAddForm, setShowAddForm] = useState(false)
+  const [showForm, setShowForm] = useState(false)
+  const [editingPlan, setEditingPlan] = useState<TripPlan | null>(null)
 
   const { data: plans, isLoading } = useQuery({
     queryKey: ['tripPlans'],
@@ -550,7 +560,16 @@ export default function TripPlans() {
     mutationFn: (data: TripPlanCreate) => createTripPlan(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tripPlans'] })
-      setShowAddForm(false)
+      setShowForm(false)
+    },
+  })
+
+  const editMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: TripPlanCreate }) => updateTripPlan(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tripPlans'] })
+      setEditingPlan(null)
+      setShowForm(false)
     },
   })
 
@@ -572,26 +591,50 @@ export default function TripPlans() {
     }, 5000)
   }
 
+  const handleEdit = (plan: TripPlan) => {
+    setEditingPlan(plan)
+    setShowForm(true)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const handleFormCancel = () => {
+    setShowForm(false)
+    setEditingPlan(null)
+  }
+
+  const handleFormSubmit = (data: TripPlanCreate) => {
+    if (editingPlan) {
+      editMutation.mutate({ id: editingPlan.id, data })
+    } else {
+      createMutation.mutate(data)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Trip Plans"
         subtitle="Dream trips with flexible criteria"
         actions={
-          <Button onClick={() => setShowAddForm(true)}>+ New trip plan</Button>
+          <Button onClick={() => { setEditingPlan(null); setShowForm(true) }}>+ New trip plan</Button>
         }
       />
 
-      {showAddForm && (
-        <AddTripPlanForm
-          onSubmit={(data) => createMutation.mutate(data)}
-          onCancel={() => setShowAddForm(false)}
+      {showForm && (
+        <TripPlanForm
+          onSubmit={handleFormSubmit}
+          onCancel={handleFormCancel}
+          initial={editingPlan || undefined}
         />
       )}
 
-      {createMutation.isError && (
+      {(createMutation.isError || editMutation.isError) && (
         <p className="text-sm text-deal-above">
-          Failed to create trip plan: {createMutation.error instanceof Error ? createMutation.error.message : 'Unknown error'}
+          Failed to save trip plan: {
+            (createMutation.error || editMutation.error) instanceof Error
+              ? (createMutation.error || editMutation.error)!.message
+              : 'Unknown error'
+          }
         </p>
       )}
 
@@ -601,13 +644,13 @@ export default function TripPlans() {
         </div>
       )}
 
-      {!isLoading && (!plans || plans.length === 0) && !showAddForm && (
+      {!isLoading && (!plans || plans.length === 0) && !showForm && (
         <EmptyState
           icon="🗺️"
           title="No trip plans yet"
           description="Create a trip plan with flexible dates and destinations to find the best flights."
           actionLabel="New trip plan"
-          onAction={() => setShowAddForm(true)}
+          onAction={() => setShowForm(true)}
         />
       )}
 
@@ -620,6 +663,7 @@ export default function TripPlans() {
               onDelete={(id) => deleteMutation.mutate(id)}
               onToggle={(id) => toggleMutation.mutate(id)}
               onSearch={handleSearch}
+              onEdit={handleEdit}
             />
           ))}
         </div>

@@ -366,7 +366,31 @@ export async function searchTripPlan(id: number): Promise<{ status: string; mess
 
 export async function fetchTripPlanMatches(id: number, limit = 20): Promise<TripPlanMatch[]> {
   const { data } = await api.get(`/trips/api/trips/${id}/matches`, { params: { limit } })
-  return data.matches || data
+  const raw = data.matches || data
+  // Backend returns {deal: {...}, match_score} - flatten to TripPlanMatch shape
+  return raw.map((m: Record<string, unknown>) => {
+    if (m.deal && typeof m.deal === 'object') {
+      const deal = m.deal as Record<string, unknown>
+      return {
+        id: deal.id,
+        trip_plan_id: id,
+        source: deal.source || 'unknown',
+        origin: deal.origin,
+        destination: deal.destination,
+        departure_date: deal.published_at || '',
+        return_date: null,
+        price_nzd: deal.converted_price ?? deal.price ?? 0,
+        airline: deal.airline,
+        stops: 0,
+        duration_minutes: null,
+        booking_url: deal.link,
+        match_score: m.match_score as number,
+        deal_title: deal.title,
+        found_at: deal.published_at || '',
+      } as TripPlanMatch
+    }
+    return m as unknown as TripPlanMatch
+  })
 }
 
 // --- Awards ---
