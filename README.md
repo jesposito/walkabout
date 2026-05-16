@@ -1,5 +1,11 @@
 # Walkabout
 
+[![Latest release](https://img.shields.io/github/v/release/jesposito/walkabout?color=blueviolet)](https://github.com/jesposito/walkabout/releases)
+[![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://python.org)
+[![Self-hosted](https://img.shields.io/badge/self--hosted-yes-2ea44f)](#)
+[![Tracks](https://img.shields.io/badge/tracks-flights%20·%20awards%20·%20resorts-1abc9c)](#)
+[![Last commit](https://img.shields.io/github/last-commit/jesposito/walkabout)](https://github.com/jesposito/walkabout/commits/main)
+
 **Personal Flight Deal Intelligence Platform** - A self-hosted dashboard that aggregates flight deals, tracks prices, monitors award availability, and provides AI-powered insights for your specific routes.
 
 ```
